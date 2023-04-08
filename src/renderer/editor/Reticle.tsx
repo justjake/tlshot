@@ -7,6 +7,7 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   const vertical = useRef<HTMLDivElement>(null);
   const horizontal = useRef<HTMLDivElement>(null);
   const bg = useRef<HTMLDivElement>(null);
+  const wrapper = useRef<HTMLDivElement>(null);
   const [dragOrigin, setDragOrigin] = useState<
     { x: number; y: number } | undefined
   >(undefined);
@@ -99,7 +100,15 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
       const width = maxX - minX;
       const height = maxY - minY;
       const rect = new DOMRect(minX, minY, width, height);
-      props.onSelect(rect);
+
+      // Close the window immediately so we aren't included in the capture
+      if (wrapper.current) {
+        wrapper.current.style.display = "none";
+      }
+      getWindow().close();
+      requestAnimationFrame(() => {
+        props.onSelect(rect);
+      });
     }
 
     function getClipPath() {
@@ -140,7 +149,7 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   }, [props.onSelect, getWindow]);
 
   return (
-    <div style={styles.wrapper}>
+    <div ref={wrapper} style={styles.wrapper}>
       <div ref={bg} className="reticle-bg" style={styles.bg} />
       <div
         className="reticle-hair horizontal"
