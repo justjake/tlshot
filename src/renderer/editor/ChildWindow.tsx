@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import NewWindow, { IWindowFeatures } from "react-new-window";
 
 interface ChildWindowHandle {
@@ -82,9 +82,18 @@ const ChildWindowHandleContext = React.createContext<ChildWindowHandle>(
 );
 ChildWindowHandleContext.displayName = "ChildWindow";
 
-export function useGetWindow() {
+interface GetWindowFunction {
+  (): Window;
+  handle: ChildWindowHandle;
+}
+
+export function useGetWindow(): GetWindowFunction {
   const handle = React.useContext(ChildWindowHandleContext);
-  return useCallback(() => Windows.getWindow(handle), [handle]);
+  return useMemo(() => {
+    const getWindow = () => Windows.getWindow(handle);
+    getWindow.handle = handle;
+    return getWindow;
+  }, [handle]);
 }
 
 export interface ChildWindowProps {

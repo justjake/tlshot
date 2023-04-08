@@ -72,7 +72,7 @@ export function CaptureView() {
     const open: CSSProperties = {
       height: "100%",
       width: "100%",
-      background: "rgba(30, 30, 30, 0.3)",
+      background: "rgba(30, 30, 30, 0.4)",
       backdropFilter: "blur(6px)",
       overflowY: "auto",
       display: "grid",
@@ -95,7 +95,7 @@ export function CaptureView() {
   return (
     <>
       <div className="capture-view-toolbar" style={styles.toolbar}>
-        <button onClick={handleButtonClick}>Refresh capture sources</button>
+        <button onClick={handleButtonClick}>Capture!</button>
       </div>
       {state.type === "open" && (
         <ChildWindow
@@ -116,24 +116,28 @@ export function CaptureView() {
             transparent: true,
             backgroundColor: "#00000000",
             hasShadow: false,
-            width: dims?.width || getWindow().screen.availWidth,
-            height: dims?.height || getWindow().screen.availHeight,
-            left: dims?.x || 0,
-            top: dims?.y || 0,
-            // center: false,
+            width: getWindow().screen.width,
+            height: getWindow().screen.height,
+            left: 0,
+            top: 0,
             useContentSize: true,
-            alwaysOnTop: "screensaver" as any,
+            alwaysOnTop: true,
             enableLargerThanScreen: true,
             titleBarStyle: "hidden",
             frame: false,
             roundedCorners: false,
+            hiddenInMissionControl: true,
           }}
         >
           <ChildWindowEscapeListener
-            // onBlur={handleClose}
+            onBlur={handleClose}
             onEscape={handleClose}
           />
-          <div className="capture-view-sources" style={styles.open}>
+          <div
+            className="capture-view-sources"
+            style={styles.open}
+            onClick={handleClose}
+          >
             {sourceViews}
           </div>
         </ChildWindow>
