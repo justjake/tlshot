@@ -1,4 +1,8 @@
-/* Please */
+/* If only this was easier to copy-paste https://twitter.com/buildsghost/status/1360343126510981122?s=20 */
+:root {
+  color-scheme: light dark;
+}
+
 html {
   box-sizing: border-box;
 }
@@ -18,8 +22,7 @@ body {
 }
 
 html, body {
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
 }
 
 body {
@@ -29,6 +32,7 @@ body {
   flex: 1;
 }
 
+/* App */
 #root {
   flex: 1;
 }
