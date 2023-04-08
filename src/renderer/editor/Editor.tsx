@@ -25,7 +25,7 @@ const UIContextProps: TldrawUiContextProviderProps = {
   assetUrls: TLDRAW_ASSETS,
 };
 
-export function App() {
+export function Editor() {
   const scheme = useColorScheme();
 
   return (

@@ -2,7 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer } from "electron";
-import type { TlshotApi } from "./main/onReady";
+import type { TlshotApi } from "../main/services";
 
 class TlshotApiClient implements TlshotApi {
   createMethod<T extends keyof TlshotApi>(name: T): TlshotApi[T] {
