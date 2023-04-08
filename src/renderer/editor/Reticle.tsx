@@ -11,6 +11,9 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   const [dragOrigin, setDragOrigin] = useState<
     { x: number; y: number } | undefined
   >(undefined);
+  const [dragCurrent, setDragCurrent] = useState<
+    { x: number; y: number } | undefined
+  >();
 
   const styles = useStyles(() => {
     const hairWidth = 3;
@@ -83,11 +86,13 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
       horizontal.current.style.top = `${e.clientY - 1.5}px`;
       if (isDragging.current) {
         bg.current.style.clipPath = getClipPath();
+        setDragCurrent({ x: e.clientX, y: e.clientY });
       }
     }
 
     function handleMouseUp() {
       setDragOrigin(undefined);
+      setDragCurrent(undefined);
       isDragging.current = false;
       if (bg.current) {
         bg.current.style.clipPath = "none";
@@ -158,6 +163,55 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
       />
       <div className="reticle-hair vertical" ref={vertical} style={styles.v} />
       {dragOrigin && <div className="drag-origin" style={styles.origin} />}
+      {dragOrigin && dragCurrent && (
+        <DragDimensions origin={dragOrigin} current={dragCurrent} />
+      )}
     </div>
   );
 }
+
+function DragDimensions(props: {
+  origin: { x: number; y: number };
+  current: { x: number; y: number };
+}) {
+  const width = Math.abs(props.origin.x - props.current.x);
+  const height = Math.abs(props.origin.y - props.current.y);
+  const style = useStyles(() => {
+    const offset = 8;
+    return {
+      spot: {
+        position: "absolute",
+        top: props.current.y + offset,
+        left: props.current.x + offset,
+        transform:
+          props.current.x < props.origin.x
+            ? `translateX(calc(-100% - ${offset * 2}px))`
+            : "none",
+        borderRadius: 3,
+        background: "rgba(0, 0, 0, 0.7)",
+        color: "white",
+        fontSize: 10,
+        padding: "2px 5px",
+        fontFamily: SYSTEM_UI_MONO,
+      },
+    };
+  }, [props.current, props.origin]);
+
+  return (
+    <div className="drag-dimensions" style={style.spot}>
+      {width} x {height}
+    </div>
+  );
+}
+
+const SYSTEM_UI_MONO = `ui-monospace, 
+             Menlo, Monaco, 
+             "Cascadia Mono", "Segoe UI Mono", 
+             "Roboto Mono", 
+             "Oxygen Mono", 
+             "Ubuntu Monospace", 
+             "Source Code Pro",
+             "Fira Mono", 
+             "Droid Sans Mono", 
+             "Courier New", monospace
+`.trim();

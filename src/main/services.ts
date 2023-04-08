@@ -11,6 +11,7 @@ import installExtension, {
 } from "electron-extension-installer";
 
 import Store from "electron-store";
+import { DisplaysState } from "../renderer/editor/useDisplays";
 interface StoreData {
   editorWindowBounds?: Electron.Rectangle;
   editorWindowDevtools?: boolean;
@@ -77,10 +78,8 @@ export class WindowHistoryLog {
 }
 
 export type TlshotApiResponse = {
-  [K in keyof TlshotApi]: TlshotApi[K] extends (
-    ...args: any
-  ) => Promise<infer R>
-    ? R
+  [K in keyof TlshotApi]: TlshotApi[K] extends (...args: any) => infer R
+    ? Awaited<R>
     : never;
 };
 
@@ -136,12 +135,35 @@ export class TlshotApi {
     }));
   }
 
-  async getCurrentDisplay(event: Electron.IpcMainInvokeEvent) {
-    const browserWindow = BrowserWindow.fromWebContents(event.sender);
-    if (!browserWindow) {
-      return;
+  // TODO: this is still quite low rez :(
+  // We'll need to shell out to `screencapture` on macOS and similar elsewhere
+  // if we want good results.
+  async captureAllDisplays() {
+    let maxWidth = 0;
+    let maxHeight = 0;
+    for (const display of screen.getAllDisplays()) {
+      maxHeight = Math.max(maxHeight, display.bounds.height);
+      maxWidth = Math.max(maxWidth, display.bounds.width);
     }
-    return screen.getDisplayMatching(browserWindow.getBounds());
+
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      fetchWindowIcons: false,
+      thumbnailSize: {
+        width: maxWidth,
+        height: maxHeight,
+      },
+    });
+
+    return sources.map((source) => ({
+      ...source,
+      appIcon: undefined,
+      thumbnail: source.thumbnail.toDataURL(),
+    }));
+  }
+
+  getCurrentDisplay() {
+    return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   }
 
   async getRecentWindowId(event: Electron.IpcMainInvokeEvent) {
@@ -171,6 +193,48 @@ export class TlshotApi {
       return;
     }
     browserWindow.setAlwaysOnTop(true, "screen-saver");
+  }
+
+  subscribeToDisplays(event: Electron.IpcMainInvokeEvent) {
+    const getDisplaysState = (): DisplaysState => {
+      const map = new Map<number, Electron.Display>();
+      for (const display of screen.getAllDisplays()) {
+        map.set(display.id, display);
+      }
+      return {
+        currentDisplay: this.getCurrentDisplay().id,
+        displays: map,
+      };
+    };
+
+    const sendDisplayState = () => {
+      event.sender.send("displaysChanged", getDisplaysState());
+    };
+
+    // TODO: better way than polling?
+    let currentDisplay = this.getCurrentDisplay();
+    const interval = setInterval(() => {
+      const newDisplay = this.getCurrentDisplay();
+      if (newDisplay.id !== currentDisplay.id) {
+        currentDisplay = newDisplay;
+        sendDisplayState();
+      }
+    }, 500);
+
+    screen.on("display-added", sendDisplayState);
+    screen.on("display-metrics-changed", sendDisplayState);
+    screen.on("display-removed", sendDisplayState);
+
+    const cleanUp = () => {
+      clearInterval(interval);
+      screen.off("display-added", sendDisplayState);
+      screen.off("display-metrics-changed", sendDisplayState);
+      screen.off("display-removed", sendDisplayState);
+    };
+
+    event.sender.once("destroyed", cleanUp);
+
+    return getDisplaysState();
   }
 }
 

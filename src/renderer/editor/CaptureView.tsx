@@ -7,6 +7,7 @@ import { ChildWindow, useGetWindow } from "./ChildWindow";
 import { ModalOverlayWindow } from "./ModalOverlayWindow";
 import { useStyles } from "./useStyles";
 import { Reticle } from "./Reticle";
+import { useDisplays } from "./useDisplays";
 
 type CaptureViewState =
   | { type: "closed"; display?: undefined; sources?: undefined }
@@ -21,6 +22,7 @@ type CaptureViewState =
 
 export function CaptureView() {
   const [state, setState] = useState<CaptureViewState>({ type: "closed" });
+  const displays = useDisplays();
 
   const startCapture = async (type: "picker" | "reticle") => {
     const sources = await window.TlshotAPI.getSources();
@@ -37,6 +39,62 @@ export function CaptureView() {
   const captureSourceToCanvas = useCallback(
     async (sourceId: string, rect?: DOMRect) => {
       const blob = await captureSource(sourceId, rect);
+      await createShapesFromFiles(
+        app,
+        [Object.assign(blob as any, { name: "capture.png" })],
+        app.viewportPageBounds.center,
+        false
+      );
+    },
+    [app]
+  );
+
+  const captureDisplayToCanvas = useCallback(
+    async (displayId: string, rect?: DOMRect) => {
+      const displays = await window.TlshotAPI.captureAllDisplays();
+      const display = displays.find(
+        (d) => d.id === displayId || d.display_id === displayId
+      );
+      if (!display) {
+        throw new Error(`Could not find display with id ${displayId}`);
+      }
+
+      const image = new Image();
+      image.src = display.thumbnail;
+      await new Promise((resolve) => {
+        image.onload = resolve;
+      });
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d")!;
+      if (rect) {
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        ctx.drawImage(
+          image,
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          0,
+          0,
+          rect.width,
+          rect.height
+        );
+      } else {
+        canvas.width = image.width;
+        canvas.height = image.height;
+        ctx.drawImage(image, 0, 0);
+      }
+
+      const blob = await new Promise<Blob>((resolve) =>
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            throw new Error("Could not get blob from canvas");
+          }
+          resolve(blob);
+        }, "image/png")
+      );
+
       await createShapesFromFiles(
         app,
         [Object.assign(blob as any, { name: "capture.png" })],
@@ -83,12 +141,10 @@ export function CaptureView() {
             <Reticle
               onSelect={(rect) => {
                 handleClose();
-                const displaySource = state.sources.find((s) => s.display_id);
-                if (!displaySource) {
-                  return;
+                if (!displays?.currentDisplay) {
+                  throw new Error("No current display");
                 }
-                console.log("got rect", { rect, displaySource });
-                captureSourceToCanvas(displaySource.id, rect);
+                captureDisplayToCanvas(String(displays.currentDisplay), rect);
               }}
             />
           )}

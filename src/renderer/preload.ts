@@ -3,11 +3,11 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 import type {
-  TlshotApi,
   TlshotApiClient,
   TlshotApiRequest,
   TlshotApiResponse,
 } from "../main/services";
+import type { DisplaysState } from "./editor/useDisplays";
 
 class TlshotApiClientImpl implements TlshotApiClient {
   createMethod<T extends keyof TlshotApiClient>(name: T): TlshotApiClient[T] {
@@ -22,12 +22,21 @@ class TlshotApiClientImpl implements TlshotApiClient {
   getCurrentDisplay = this.createMethod("getCurrentDisplay");
   getRecentWindowId = this.createMethod("getRecentWindowId");
   setAlwaysOnTop = this.createMethod("setAlwaysOnTop");
+  subscribeToDisplays = this.createMethod("subscribeToDisplays");
+  captureAllDisplays = this.createMethod("captureAllDisplays");
+  POTATO = this.createMethod("captureAllDisplays");
+
+  onDisplaysChanged = (callback: (state: DisplaysState) => void) => {
+    const listener = (_: unknown, state: DisplaysState) => callback(state);
+    ipcRenderer.on("displaysChanged", listener);
+    return () => ipcRenderer.removeListener("displaysChanged", listener);
+  };
 }
 
 contextBridge.exposeInMainWorld("TlshotAPI", new TlshotApiClientImpl());
 
 declare global {
   interface Window {
-    TlshotAPI: TlshotApiClient;
+    TlshotAPI: TlshotApiClientImpl;
   }
 }
