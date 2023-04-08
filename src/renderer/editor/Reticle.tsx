@@ -11,7 +11,7 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   const [dragOrigin, setDragOrigin] = useState<
     { x: number; y: number } | undefined
   >(undefined);
-  const [dragCurrent, setDragCurrent] = useState<
+  const [mouseState, setMouseState] = useState<
     { x: number; y: number } | undefined
   >();
 
@@ -84,15 +84,14 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
       mousePosition.current = { x: e.clientX, y: e.clientY };
       vertical.current.style.left = `${e.clientX - 1.5}px`;
       horizontal.current.style.top = `${e.clientY - 1.5}px`;
+      setMouseState({ x: e.clientX, y: e.clientY });
       if (isDragging.current) {
         bg.current.style.clipPath = getClipPath();
-        setDragCurrent({ x: e.clientX, y: e.clientY });
       }
     }
 
     function handleMouseUp() {
       setDragOrigin(undefined);
-      setDragCurrent(undefined);
       isDragging.current = false;
       if (bg.current) {
         bg.current.style.clipPath = "none";
@@ -163,43 +162,83 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
       />
       <div className="reticle-hair vertical" ref={vertical} style={styles.v} />
       {dragOrigin && <div className="drag-origin" style={styles.origin} />}
-      {dragOrigin && dragCurrent && (
-        <DragDimensions origin={dragOrigin} current={dragCurrent} />
+      {mouseState && (
+        <DragDimensions origin={dragOrigin} current={mouseState} />
       )}
     </div>
   );
 }
 
 function DragDimensions(props: {
-  origin: { x: number; y: number };
+  origin: { x: number; y: number } | undefined;
   current: { x: number; y: number };
 }) {
-  const width = Math.abs(props.origin.x - props.current.x);
-  const height = Math.abs(props.origin.y - props.current.y);
+  const [bg, setBg] = useState<string | undefined>();
+  useEffect(() => {
+    // On mount, capture the screen to use as loupe
+    let unmounted = false;
+    const perform = async () => {
+      const bgs = await window.TlshotAPI.captureAllDisplays();
+      const firstBg = bgs[0];
+      if (!unmounted && firstBg) {
+        setBg(`url(${firstBg.thumbnail})`);
+      }
+    };
+    void perform();
+    return () => {
+      unmounted = true;
+    };
+  }, []);
+
+  const currentWindowWidth = useGetWindow()().outerWidth;
   const style = useStyles(() => {
     const offset = 8;
+    let flip = false;
+    flip ||= Boolean(props.origin && props.origin.x > props.current.x);
+    flip ||= props.current.x + 150 > currentWindowWidth;
+
+    const bgSize = 64;
+    const bgScale = 3;
+
     return {
       spot: {
         position: "absolute",
         top: props.current.y + offset,
         left: props.current.x + offset,
-        transform:
-          props.current.x < props.origin.x
-            ? `translateX(calc(-100% - ${offset * 2}px))`
-            : "none",
+        transform: flip ? `translateX(calc(-100% - ${offset * 2}px))` : "none",
         borderRadius: 3,
         background: "rgba(0, 0, 0, 0.7)",
         color: "white",
         fontSize: 10,
-        padding: "2px 5px",
+        padding: "3px 0px",
         fontFamily: SYSTEM_UI_MONO,
+        minWidth: `${4 * 2}em`,
+        textAlign: "center",
+        overflow: "clip",
+      },
+      bg: {
+        width: bgSize,
+        height: bgSize,
+        backgroundImage: bg,
+        backgroundSize: outerWidth * bgScale,
+        backgroundRepeat: "no-repeat",
+        backgroundPositionX: -props.current.x * bgScale + bgSize / 2,
+        backgroundPositionY: -props.current.y * bgScale + bgSize / 2,
       },
     };
   }, [props.current, props.origin]);
 
+  const dx = props.origin
+    ? Math.abs(props.origin.x - props.current.x)
+    : props.current.x;
+  const dy = props.origin
+    ? Math.abs(props.origin.y - props.current.y)
+    : props.current.y;
+
   return (
     <div className="drag-dimensions" style={style.spot}>
-      {width} x {height}
+      {dx} x {dy}
+      {bg && <div className="loupe" style={style.bg} />}
     </div>
   );
 }
