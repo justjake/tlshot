@@ -1,36 +1,40 @@
-import React, { CSSProperties, useCallback, useEffect, useMemo } from "react";
+import React, { CSSProperties, useCallback, useMemo } from "react";
 import { useState } from "react";
 import { TlshotApiResponse } from "../../main/services";
 import "./captureView.css";
 import { createShapesFromFiles, useApp } from "@tldraw/editor";
-import { ChildWindow, Windows, useGetWindow } from "./ChildWindow";
-import { ChildWindowEscapeListener } from "./ChildWindowEscapeListener";
+import { ChildWindow, useGetWindow } from "./ChildWindow";
+import { ModalOverlayWindow } from "./ModalOverlayWindow";
+import { useStyles } from "./useStyles";
+import { Reticle } from "./Reticle";
 
 type CaptureViewState =
   | { type: "closed"; display?: undefined; sources?: undefined }
   | {
-      type: "open";
+      type: "picker";
       sources: TlshotApiResponse["getSources"];
-      display: Electron.Display | undefined;
+    }
+  | {
+      type: "reticle";
     };
 
 export function CaptureView() {
   const [state, setState] = useState<CaptureViewState>({ type: "closed" });
 
-  const handleButtonClick = async () => {
-    console.log(window.TlshotAPI, screen);
+  const handleOpenPicker = async () => {
     const sources = await window.TlshotAPI.getSources();
-    const display = await window.TlshotAPI.getCurrentDisplay({} as any);
     console.log("got sources", {
       sources,
-      display,
     });
     setState({
-      type: "open",
+      type: "picker",
       sources,
-      display,
     });
   };
+
+  const handleOpenReticle = useCallback(() => {
+    setState({ type: "reticle" });
+  }, []);
 
   const app = useApp();
   const captureSourceToCanvas = useCallback(
@@ -46,40 +50,12 @@ export function CaptureView() {
     [app]
   );
 
-  const sourceViews = useMemo(() => {
-    if (state.type === "closed") {
-      return null;
-    }
-    return state.sources.map((source) => (
-      <SourceView
-        source={source}
-        key={source.id}
-        onClick={() => {
-          setState({ type: "closed" });
-          captureSourceToCanvas(source.id);
-        }}
-      />
-    ));
-  }, [state]);
-
   const styles = useStyles(() => {
     const toolbar: CSSProperties = {
       position: "absolute",
       top: 0,
       right: 0,
       zIndex: 1000,
-    };
-    const open: CSSProperties = {
-      height: "100%",
-      width: "100%",
-      background: "rgba(30, 30, 30, 0.4)",
-      backdropFilter: "blur(6px)",
-      overflowY: "auto",
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-      gap: 24,
-      padding: "24px 64px 64px 64px",
-      overflowX: "clip",
     };
 
     return { toolbar, open };
@@ -89,65 +65,70 @@ export function CaptureView() {
     setState({ type: "closed" });
   }, []);
 
-  const getWindow = useGetWindow();
-  const dims = state.display?.bounds;
-
   return (
     <>
       <div className="capture-view-toolbar" style={styles.toolbar}>
-        <button onClick={handleButtonClick}>Capture!</button>
+        <button onClick={handleOpenPicker}>Pick Window</button>
+        <button onClick={handleOpenReticle}>Drag</button>
       </div>
-      {state.type === "open" && (
-        <ChildWindow
-          name="Take screenshot"
-          onUnload={handleClose}
-          onOpen={async (win, handle) => {
-            console.log("onOpen", { handle });
-            await handle.registered;
-            if (handle.browserWindowId) {
-              window.TlshotAPI.setAlwaysOnTop(
-                handle.browserWindowId as any,
-                handle.browserWindowId
-              );
-            }
-          }}
-          center="none"
-          features={{
-            transparent: true,
-            backgroundColor: "#00000000",
-            hasShadow: false,
-            width: getWindow().screen.width,
-            height: getWindow().screen.height,
-            left: 0,
-            top: 0,
-            useContentSize: true,
-            alwaysOnTop: true,
-            enableLargerThanScreen: true,
-            titleBarStyle: "hidden",
-            frame: false,
-            roundedCorners: false,
-            hiddenInMissionControl: true,
-          }}
-        >
-          <ChildWindowEscapeListener
-            onBlur={handleClose}
-            onEscape={handleClose}
-          />
-          <div
-            className="capture-view-sources"
-            style={styles.open}
-            onClick={handleClose}
-          >
-            {sourceViews}
-          </div>
-        </ChildWindow>
+      {state.type !== "closed" && (
+        <ModalOverlayWindow onClose={handleClose}>
+          {state.type === "picker" ? (
+            <SourcesGrid
+              sources={state.sources}
+              onClose={handleClose}
+              onClickSource={(source) => {
+                handleClose();
+                captureSourceToCanvas(source.id);
+              }}
+            />
+          ) : (
+            <Reticle />
+          )}
+        </ModalOverlayWindow>
       )}
     </>
   );
 }
 
-type CaptureSource = TlshotApiResponse["getSources"][0];
+function SourcesGrid(props: {
+  sources: TlshotApiResponse["getSources"];
+  onClose: () => void;
+  onClickSource: (source: CaptureSource) => void;
+}) {
+  const styles = useStyles(() => {
+    const grid: CSSProperties = {
+      height: "100%",
+      width: "100%",
+      background: "rgba(30, 30, 30, 0.4)",
+      overflowY: "auto",
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+      gap: 24,
+      padding: "24px 64px 64px 64px",
+      overflowX: "clip",
+    };
+    return { grid };
+  }, []);
 
+  const sourceViews = useMemo(() => {
+    return props.sources.map((source) => (
+      <SourceView
+        source={source}
+        key={source.id}
+        onClick={() => props.onClickSource(source)}
+      />
+    ));
+  }, [props.sources]);
+
+  return (
+    <div className="sources-grid" style={styles.grid}>
+      {sourceViews}
+    </div>
+  );
+}
+
+type CaptureSource = TlshotApiResponse["getSources"][0];
 function SourceView(props: { source: CaptureSource; onClick?: () => void }) {
   const { source, onClick } = props;
 
@@ -215,13 +196,6 @@ function SourceView(props: { source: CaptureSource; onClick?: () => void }) {
       <div style={styles.name}>{source.name}</div>
     </div>
   );
-}
-
-function useStyles<T extends Record<string, CSSProperties>>(
-  fn: () => T,
-  deps: unknown[]
-): T {
-  return useMemo(fn, deps);
 }
 
 async function captureSource(sourceId: string) {
