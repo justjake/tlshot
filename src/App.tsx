@@ -12,6 +12,7 @@ import {
   TldrawUiContextProviderProps,
 } from "@tldraw/ui";
 import React from "react";
+import { CaptureView } from "./CaptureView";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format(url) {
@@ -30,6 +31,7 @@ export function App() {
         <ContextMenu>
           <Canvas />
         </ContextMenu>
+        <CaptureView />
       </TldrawUi>
     </TldrawEditor>
   );

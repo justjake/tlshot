@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
+    "strictNullChecks": true,
+    "strict": true,
     "jsx": "react",
-    "target": "ES6",
+    "target": "ES2021",
     "allowJs": true,
     "module": "commonjs",
     "skipLibCheck": true,

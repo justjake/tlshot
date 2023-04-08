@@ -1,4 +1,4 @@
-import { session } from "electron";
+import { session, desktopCapturer, ipcMain } from "electron";
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
@@ -35,4 +35,45 @@ export function installDevtoolsExtensions() {
       allowFileAccess: true,
     },
   });
+}
+
+export type TlshotApiResponse = {
+  [K in keyof TlshotApi]: TlshotApi[K] extends (
+    ...args: any
+  ) => Promise<infer R>
+    ? R
+    : never;
+};
+export class TlshotApi {
+  // https://www.electronjs.org/docs/latest/api/ipc-renderer#ipcrendererinvokechannel-args
+  static connect(instance: TlshotApi) {
+    const methodNames = Object.getOwnPropertyNames(
+      TlshotApi.prototype
+    ) as Array<keyof TlshotApi>;
+
+    console.log("methodNames", methodNames);
+
+    for (const methodName of methodNames) {
+      const method = instance[methodName as keyof TlshotApi];
+      console.log("connected method", methodName, method);
+      ipcMain.handle(methodName, method.bind(instance));
+    }
+  }
+
+  // https://www.electronjs.org/docs/latest/api/desktop-capturer
+  async getSources() {
+    const sources = await desktopCapturer.getSources({
+      types: ["window", "screen"],
+      fetchWindowIcons: true,
+      thumbnailSize: {
+        width: 500,
+        height: 500,
+      },
+    });
+    return sources.map((source) => ({
+      ...source,
+      appIcon: source.appIcon?.toDataURL() || undefined,
+      thumbnail: source.thumbnail?.toDataURL(),
+    }));
+  }
 }
