@@ -1,0 +1,64 @@
+diff --git a/node_modules/@tldraw/assets/dist-cjs/index.d.ts b/node_modules/@tldraw/assets/dist-cjs/index.d.ts
+index 9ed31fc..02c3a06 100644
+--- a/node_modules/@tldraw/assets/dist-cjs/index.d.ts
++++ b/node_modules/@tldraw/assets/dist-cjs/index.d.ts
+@@ -1,6 +1,7 @@
+ /** @public */
+ declare type AssetUrlOptions = {
+     baseUrl?: string;
++		format?: (url: string) => string;
+ };
+ 
+ /** @public */
+diff --git a/node_modules/@tldraw/assets/dist-cjs/utils.js b/node_modules/@tldraw/assets/dist-cjs/utils.js
+index 6f20aae..4a8cc73 100644
+--- a/node_modules/@tldraw/assets/dist-cjs/utils.js
++++ b/node_modules/@tldraw/assets/dist-cjs/utils.js
+@@ -21,8 +21,11 @@ __export(utils_exports, {
+   formatAssetUrl: () => formatAssetUrl
+ });
+ module.exports = __toCommonJS(utils_exports);
+-function formatAssetUrl(assetUrl, { baseUrl = "" } = {}) {
++function formatAssetUrl(assetUrl, { baseUrl = "", format } = {}) {
+   const assetUrlString = typeof assetUrl === "string" ? assetUrl : assetUrl.src;
++	if (format) {
++		return format(assetUrlString)
++	}
+   if (assetUrlString.startsWith("data:"))
+     return assetUrlString;
+   return `${baseUrl.replace(/\/$/, "")}/${assetUrlString.replace(/^\.?\//, "")}`;
+diff --git a/node_modules/@tldraw/assets/dist-esm/utils.mjs b/node_modules/@tldraw/assets/dist-esm/utils.mjs
+index fea5a94..a11286d 100644
+--- a/node_modules/@tldraw/assets/dist-esm/utils.mjs
++++ b/node_modules/@tldraw/assets/dist-esm/utils.mjs
+@@ -1,5 +1,8 @@
+-function formatAssetUrl(assetUrl, { baseUrl = "" } = {}) {
++function formatAssetUrl(assetUrl, { baseUrl = "", format } = {}) {
+   const assetUrlString = typeof assetUrl === "string" ? assetUrl : assetUrl.src;
++  if (format) {
++    return format(assetUrlString)
++  }
+   if (assetUrlString.startsWith("data:"))
+     return assetUrlString;
+   return `${baseUrl.replace(/\/$/, "")}/${assetUrlString.replace(/^\.?\//, "")}`;
+diff --git a/node_modules/@tldraw/assets/src/utils.ts b/node_modules/@tldraw/assets/src/utils.ts
+index 565e37d..3caf30e 100644
+--- a/node_modules/@tldraw/assets/src/utils.ts
++++ b/node_modules/@tldraw/assets/src/utils.ts
+@@ -4,11 +4,15 @@ export type AssetUrl = string | { src: string }
+ /** @public */
+ export type AssetUrlOptions = {
+ 	baseUrl?: string
++	format?: (url: string) => string
+ }
+ 
+ /** @public */
+-export function formatAssetUrl(assetUrl: AssetUrl, { baseUrl = '' }: AssetUrlOptions = {}): string {
++export function formatAssetUrl(assetUrl: AssetUrl, { baseUrl = '', format }: AssetUrlOptions = {}): string {
+ 	const assetUrlString = typeof assetUrl === 'string' ? assetUrl : assetUrl.src
++	if (format) {
++		return format(assetUrlString)
++	}
+ 
+ 	if (assetUrlString.startsWith('data:')) return assetUrlString
+ 

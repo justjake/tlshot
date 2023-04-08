@@ -1,7 +1,34 @@
+/* Please */
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
     Arial, sans-serif;
-  margin: auto;
-  max-width: 38rem;
-  padding: 2rem;
+
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100vh;
+  width: 100vw;
+}
+
+body {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  flex: 1;
+}
+
+#root {
+  flex: 1;
 }

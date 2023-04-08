@@ -33,12 +33,22 @@
     "eslint-plugin-import": "^2.25.0",
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "node-loader": "^2.0.0",
+    "patch-package": "^6.5.1",
     "style-loader": "^3.0.0",
     "ts-loader": "^9.2.2",
     "ts-node": "^10.0.0",
     "typescript": "~4.5.4"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.0"
+    "@tldraw/assets": "^2.0.0-canary.dc7c1416a",
+    "@tldraw/editor": "^2.0.0-canary.dc7c1416a",
+    "@tldraw/tldraw": "^2.0.0-canary.dc7c1416a",
+    "@tldraw/tlstore": "^2.0.0-canary.dc7c1416a",
+    "@tldraw/ui": "^2.0.0-canary.dc7c1416a",
+    "electron-squirrel-startup": "^1.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "signia": "^0.1.2-canary.0094a5d",
+    "signia-react": "^0.1.2-canary.0094a5d"
   }
 }
