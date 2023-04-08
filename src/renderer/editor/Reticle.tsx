@@ -181,7 +181,7 @@ function DragDimensions(props: {
       const bgs = await window.TlshotAPI.captureAllDisplays();
       const firstBg = bgs[0];
       if (!unmounted && firstBg) {
-        setBg(`url(${firstBg.thumbnail})`);
+        // setBg(`url(${firstBg.thumbnail})`);
       }
     };
     void perform();

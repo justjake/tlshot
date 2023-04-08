@@ -11,7 +11,7 @@ import installExtension, {
 } from "electron-extension-installer";
 
 import Store from "electron-store";
-import { DisplaysState } from "../renderer/editor/useDisplays";
+import { DisplaysState } from "../renderer/editor/Displays";
 interface StoreData {
   editorWindowBounds?: Electron.Rectangle;
   editorWindowDevtools?: boolean;
@@ -133,6 +133,33 @@ export class TlshotApi {
       appIcon: source.appIcon?.toDataURL() || undefined,
       thumbnail: source.thumbnail?.toDataURL(),
     }));
+  }
+
+  async getDisplaySource(
+    _event: Electron.IpcMainInvokeEvent,
+    displayId: number
+  ) {
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      fetchWindowIcons: false,
+      thumbnailSize: {
+        width: 0,
+        height: 0,
+      },
+    });
+
+    const source = sources.find(
+      (source) => source.display_id === String(displayId)
+    );
+    if (!source) {
+      throw new Error(`No source found for display ${displayId}`);
+    }
+
+    return {
+      ...source,
+      appIcon: undefined,
+      thumbnail: undefined,
+    };
   }
 
   // TODO: this is still quite low rez :(

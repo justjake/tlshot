@@ -1,11 +1,19 @@
 import React, { useEffect } from "react";
 import { ChildWindow, useGetWindow } from "./ChildWindow";
+import { Display } from "electron";
 
 export function ModalOverlayWindow(props: {
   children: React.ReactNode;
   onClose: () => void;
+  display?: Display;
 }) {
   const getWindow = useGetWindow();
+
+  const left = props.display?.bounds.x ?? 0;
+  const top = props.display?.bounds.y ?? 0;
+  const width = props.display?.bounds.width ?? getWindow().screen.width;
+  const height = props.display?.bounds.height ?? getWindow().screen.height;
+
   return (
     <ChildWindow
       name="Take screenshot"
@@ -18,24 +26,27 @@ export function ModalOverlayWindow(props: {
       }}
       center="none"
       features={{
+        // Styling.
         transparent: true,
         backgroundColor: "#00000000",
         hasShadow: false,
-        width: getWindow().screen.width,
-        height: getWindow().screen.height,
-        left: 0,
-        top: 0,
-        useContentSize: true,
         alwaysOnTop: true,
         enableLargerThanScreen: true,
         titleBarStyle: "hidden",
         frame: false,
         roundedCorners: false,
         hiddenInMissionControl: true,
+
+        // Sizing.
+        left,
+        top,
+        width,
+        height,
+        useContentSize: true,
       }}
     >
       <ChildWindowEscapeListener
-        onBlur={props.onClose}
+        // onBlur={props.onClose}
         onEscape={props.onClose}
       />
       {props.children}

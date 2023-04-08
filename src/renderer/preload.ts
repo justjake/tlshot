@@ -7,7 +7,7 @@ import type {
   TlshotApiRequest,
   TlshotApiResponse,
 } from "../main/services";
-import type { DisplaysState } from "./editor/useDisplays";
+import type { DisplaysState } from "./editor/Displays";
 
 class TlshotApiClientImpl implements TlshotApiClient {
   createMethod<T extends keyof TlshotApiClient>(name: T): TlshotApiClient[T] {
@@ -24,7 +24,7 @@ class TlshotApiClientImpl implements TlshotApiClient {
   setAlwaysOnTop = this.createMethod("setAlwaysOnTop");
   subscribeToDisplays = this.createMethod("subscribeToDisplays");
   captureAllDisplays = this.createMethod("captureAllDisplays");
-  POTATO = this.createMethod("captureAllDisplays");
+  getDisplaySource = this.createMethod("getDisplaySource");
 
   onDisplaysChanged = (callback: (state: DisplaysState) => void) => {
     const listener = (_: unknown, state: DisplaysState) => callback(state);

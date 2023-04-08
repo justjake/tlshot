@@ -12,8 +12,9 @@ import {
   TldrawUiContextProviderProps,
 } from "@tldraw/ui";
 import React from "react";
-import { CaptureView } from "./CaptureView";
+import { CaptureView } from "./CaptureToolbar";
 import { useColorScheme } from "./useColorScheme";
+import { DisplaysListener } from "./Displays";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format(url) {
@@ -42,7 +43,10 @@ export function Editor() {
         <ContextMenu>
           <Canvas />
         </ContextMenu>
-        <CaptureView />
+
+        <DisplaysListener>
+          <CaptureView />
+        </DisplaysListener>
       </TldrawUi>
     </TldrawEditor>
   );
