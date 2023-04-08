@@ -2,12 +2,22 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Hello World!</title>
+    <title>tlshot</title>
   </head>
   <body>
-    <div id="root">
-      <h1>💖 Hello World!</h1>
-      <p>Welcome to your Electron application.</p>
-    </div>
+    <div id="root"></div>
   </body>
+  <style>
+    /* Initial color scheme to match Tldraw */
+    html {
+      background-color: rgb(249, 250, 251);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      html {
+        color: #f8f9fa;
+        background-color: #212529;
+      }
+    }
+  </style>
 </html>

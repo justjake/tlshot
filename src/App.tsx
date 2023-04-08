@@ -13,6 +13,7 @@ import {
 } from "@tldraw/ui";
 import React from "react";
 import { CaptureView } from "./CaptureView";
+import { useColorScheme } from "./useColorScheme";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format(url) {
@@ -25,8 +26,10 @@ const UIContextProps: TldrawUiContextProviderProps = {
 };
 
 export function App() {
+  const scheme = useColorScheme();
+
   return (
-    <TldrawEditor {...UIContextProps}>
+    <TldrawEditor isDarkMode={scheme === "dark"} {...UIContextProps}>
       <TldrawUi {...UIContextProps}>
         <ContextMenu>
           <Canvas />
