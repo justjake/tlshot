@@ -16,30 +16,27 @@ type CaptureViewState =
     }
   | {
       type: "reticle";
+      sources: TlshotApiResponse["getSources"];
     };
 
 export function CaptureView() {
   const [state, setState] = useState<CaptureViewState>({ type: "closed" });
 
-  const handleOpenPicker = async () => {
+  const startCapture = async (type: "picker" | "reticle") => {
     const sources = await window.TlshotAPI.getSources();
     console.log("got sources", {
       sources,
     });
     setState({
-      type: "picker",
+      type,
       sources,
     });
   };
 
-  const handleOpenReticle = useCallback(() => {
-    setState({ type: "reticle" });
-  }, []);
-
   const app = useApp();
   const captureSourceToCanvas = useCallback(
-    async (sourceId: string) => {
-      const blob = await captureSource(sourceId);
+    async (sourceId: string, rect?: DOMRect) => {
+      const blob = await captureSource(sourceId, rect);
       await createShapesFromFiles(
         app,
         [Object.assign(blob as any, { name: "capture.png" })],
@@ -58,7 +55,7 @@ export function CaptureView() {
       zIndex: 1000,
     };
 
-    return { toolbar, open };
+    return { toolbar };
   }, []);
 
   const handleClose = useCallback(() => {
@@ -68,8 +65,8 @@ export function CaptureView() {
   return (
     <>
       <div className="capture-view-toolbar" style={styles.toolbar}>
-        <button onClick={handleOpenPicker}>Pick Window</button>
-        <button onClick={handleOpenReticle}>Drag</button>
+        <button onClick={() => startCapture("reticle")}>Drag</button>
+        <button onClick={() => startCapture("picker")}>Pick Window</button>
       </div>
       {state.type !== "closed" && (
         <ModalOverlayWindow onClose={handleClose}>
@@ -83,7 +80,17 @@ export function CaptureView() {
               }}
             />
           ) : (
-            <Reticle />
+            <Reticle
+              onSelect={(rect) => {
+                handleClose();
+                const displaySource = state.sources.find((s) => s.display_id);
+                if (!displaySource) {
+                  return;
+                }
+                console.log("got rect", { rect, displaySource });
+                captureSourceToCanvas(displaySource.id, rect);
+              }}
+            />
           )}
         </ModalOverlayWindow>
       )}
@@ -198,7 +205,7 @@ function SourceView(props: { source: CaptureSource; onClick?: () => void }) {
   );
 }
 
-async function captureSource(sourceId: string) {
+async function captureSource(sourceId: string, rect?: DOMRect) {
   const electronParameters = {
     mandatory: {
       chromeMediaSource: "desktop",
@@ -226,14 +233,32 @@ async function captureSource(sourceId: string) {
       video.play();
 
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = rect?.width ?? video.videoWidth;
+      canvas.height = rect?.height ?? video.videoHeight;
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         throw new Error('Could not get canvas context for "2d"');
       }
 
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      console.log("Drawing with clipped rect", rect);
+
+      if (rect) {
+        ctx.drawImage(
+          video,
+          // Source
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          // Dest
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+      } else {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
       // const dataUrl = canvas.toDataURL("image/png");
       // resolve(dataUrl);
 
@@ -242,7 +267,7 @@ async function captureSource(sourceId: string) {
           throw new Error("Could not get blob from canvas");
         }
         resolve(blob);
-      });
+      }, "image/png");
 
       video.srcObject = null;
       video.remove();

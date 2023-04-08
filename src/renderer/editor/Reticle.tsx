@@ -3,7 +3,7 @@ import { useStyles } from "./useStyles";
 import React from "react";
 import { useGetWindow } from "./ChildWindow";
 
-export function Reticle() {
+export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   const vertical = useRef<HTMLDivElement>(null);
   const horizontal = useRef<HTMLDivElement>(null);
   const bg = useRef<HTMLDivElement>(null);
@@ -60,16 +60,16 @@ export function Reticle() {
     };
   }, [dragOrigin]);
 
-  const draggngRef = useRef(false);
-  const mouse = useRef({ x: 0, y: 0 });
-  const originRef = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const mousePosition = useRef({ x: 0, y: 0 });
+  const startPosition = useRef({ x: 0, y: 0 });
 
   const getWindow = useGetWindow();
   useEffect(() => {
     function handleMouseDown(e: MouseEvent) {
       const origin = { x: e.clientX, y: e.clientY };
-      draggngRef.current = true;
-      mouse.current = originRef.current = origin;
+      isDragging.current = true;
+      mousePosition.current = startPosition.current = origin;
       setDragOrigin(origin);
     }
 
@@ -77,20 +77,29 @@ export function Reticle() {
       if (!vertical.current || !horizontal.current || !bg.current) {
         return;
       }
-      mouse.current = { x: e.clientX, y: e.clientY };
+      mousePosition.current = { x: e.clientX, y: e.clientY };
       vertical.current.style.left = `${e.clientX - 1.5}px`;
       horizontal.current.style.top = `${e.clientY - 1.5}px`;
-      if (draggngRef.current) {
+      if (isDragging.current) {
         bg.current.style.clipPath = getClipPath();
       }
     }
 
     function handleMouseUp() {
       setDragOrigin(undefined);
-      draggngRef.current = false;
+      isDragging.current = false;
       if (bg.current) {
         bg.current.style.clipPath = "none";
       }
+
+      const minX = Math.min(startPosition.current.x, mousePosition.current.x);
+      const maxX = Math.max(startPosition.current.x, mousePosition.current.x);
+      const minY = Math.min(startPosition.current.y, mousePosition.current.y);
+      const maxY = Math.max(startPosition.current.y, mousePosition.current.y);
+      const width = maxX - minX;
+      const height = maxY - minY;
+      const rect = new DOMRect(minX, minY, width, height);
+      props.onSelect(rect);
     }
 
     function getClipPath() {
@@ -98,10 +107,13 @@ export function Reticle() {
       const bottomLeft = "0% 100%";
       const topRight = "100% 0%";
       const bottomRight = "100% 100%";
-      const leftX = Math.min(originRef.current.x, mouse.current.x);
-      const rightX = Math.max(originRef.current.x, mouse.current.x);
-      const topY = Math.min(originRef.current.y, mouse.current.y);
-      const bottomY = Math.max(originRef.current.y, mouse.current.y);
+      const leftX = Math.min(startPosition.current.x, mousePosition.current.x);
+      const rightX = Math.max(startPosition.current.x, mousePosition.current.x);
+      const topY = Math.min(startPosition.current.y, mousePosition.current.y);
+      const bottomY = Math.max(
+        startPosition.current.y,
+        mousePosition.current.y
+      );
       const polygon = [
         topLeft,
         bottomLeft,
@@ -125,7 +137,7 @@ export function Reticle() {
       getWindow().removeEventListener("mousemove", handleMouseMove);
       getWindow().removeEventListener("mouseup", handleMouseUp);
     };
-  });
+  }, [props.onSelect, getWindow]);
 
   return (
     <div style={styles.wrapper}>
