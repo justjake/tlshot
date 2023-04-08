@@ -1,4 +1,11 @@
-import { session, desktopCapturer, ipcMain } from "electron";
+import {
+  session,
+  desktopCapturer,
+  ipcMain,
+  screen,
+  BrowserWindow,
+  WebContents,
+} from "electron";
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
@@ -43,6 +50,32 @@ function installDevtoolsExtensions() {
   });
 }
 
+export class WindowHistoryLog {
+  static recentWindows = new WeakMap<
+    WebContents,
+    Array<WeakRef<BrowserWindow>>
+  >();
+
+  static track(browserWindow: BrowserWindow) {
+    browserWindow.webContents.on("did-create-window", (newWindow, details) => {
+      console.log(
+        "New window opened",
+        { from: browserWindow.id, to: newWindow.id },
+        details
+      );
+      this.didOpen(browserWindow.webContents, newWindow);
+      this.track(newWindow);
+    });
+  }
+
+  static didOpen(webContents: WebContents, newWindow: BrowserWindow) {
+    const ref = new WeakRef(newWindow);
+    const log = this.recentWindows.get(webContents) || [];
+    log.push(ref);
+    this.recentWindows.set(webContents, log);
+  }
+}
+
 export type TlshotApiResponse = {
   [K in keyof TlshotApi]: TlshotApi[K] extends (
     ...args: any
@@ -85,6 +118,43 @@ export class TlshotApi {
       appIcon: source.appIcon?.toDataURL() || undefined,
       thumbnail: source.thumbnail?.toDataURL(),
     }));
+  }
+
+  async getCurrentDisplay(event: Electron.IpcMainInvokeEvent) {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!browserWindow) {
+      return;
+    }
+    return screen.getDisplayMatching(browserWindow.getBounds());
+  }
+
+  async getRecentWindowId(event: Electron.IpcMainInvokeEvent) {
+    const lastWindowCreated =
+      WindowHistoryLog.recentWindows.get(event.sender)?.at(-1)?.deref() ||
+      BrowserWindow.fromWebContents(event.sender);
+    if (lastWindowCreated) {
+      return {
+        caller: {
+          webContentsId: event.sender.id,
+        },
+        latestWindow: {
+          webContentsId: lastWindowCreated.webContents.id,
+          browserWindowId: lastWindowCreated.id,
+        },
+      };
+    }
+  }
+
+  async setAlwaysOnTop(
+    _event: Electron.IpcMainInvokeEvent,
+    browserWindowId: number
+  ) {
+    const browserWindow = BrowserWindow.fromId(browserWindowId);
+    if (!browserWindow) {
+      console.log("id not found", browserWindowId);
+      return;
+    }
+    browserWindow.setAlwaysOnTop(true, "screen-saver");
   }
 }
 

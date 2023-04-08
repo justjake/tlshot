@@ -29,7 +29,15 @@ export function Editor() {
   const scheme = useColorScheme();
 
   return (
-    <TldrawEditor isDarkMode={scheme === "dark"} {...UIContextProps}>
+    <TldrawEditor
+      onMount={(app) =>
+        app.updateInstanceState({
+          isDebugMode: false,
+        })
+      }
+      isDarkMode={scheme === "dark"}
+      {...UIContextProps}
+    >
       <TldrawUi {...UIContextProps}>
         <ContextMenu>
           <Canvas />

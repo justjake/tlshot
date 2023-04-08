@@ -51,6 +51,7 @@
     "electron-store": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-new-window": "^1.0.1",
     "signia": "^0.1.2-canary.0094a5d",
     "signia-react": "^0.1.2-canary.0094a5d"
   }

@@ -11,10 +11,13 @@ class TlshotApiClient implements TlshotApi {
       ...args: Parameters<Method>
     ): ReturnType<Method> {
       return ipcRenderer.invoke(name, ...args) as any;
-    };
+    } as any;
   }
 
   getSources = this.createMethod("getSources");
+  getCurrentDisplay = this.createMethod("getCurrentDisplay");
+  getRecentWindowId = this.createMethod("getRecentWindowId");
+  setAlwaysOnTop = this.createMethod("setAlwaysOnTop");
 }
 
 contextBridge.exposeInMainWorld("TlshotAPI", new TlshotApiClient());

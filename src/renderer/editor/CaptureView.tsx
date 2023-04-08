@@ -1,23 +1,34 @@
-import React, { CSSProperties, useCallback, useMemo } from "react";
+import React, { CSSProperties, useCallback, useEffect, useMemo } from "react";
 import { useState } from "react";
 import { TlshotApiResponse } from "../../main/services";
 import "./captureView.css";
 import { createShapesFromFiles, useApp } from "@tldraw/editor";
+import { ChildWindow, Windows, useGetWindow } from "./ChildWindow";
+import { ChildWindowEscapeListener } from "./ChildWindowEscapeListener";
 
 type CaptureViewState =
-  | { type: "closed" }
-  | { type: "open"; sources: TlshotApiResponse["getSources"] };
+  | { type: "closed"; display?: undefined; sources?: undefined }
+  | {
+      type: "open";
+      sources: TlshotApiResponse["getSources"];
+      display: Electron.Display | undefined;
+    };
 
 export function CaptureView() {
   const [state, setState] = useState<CaptureViewState>({ type: "closed" });
 
   const handleButtonClick = async () => {
-    console.log(window.TlshotAPI);
+    console.log(window.TlshotAPI, screen);
     const sources = await window.TlshotAPI.getSources();
-    console.log("got sources", sources);
+    const display = await window.TlshotAPI.getCurrentDisplay({} as any);
+    console.log("got sources", {
+      sources,
+      display,
+    });
     setState({
       type: "open",
       sources,
+      display,
     });
   };
 
@@ -59,21 +70,27 @@ export function CaptureView() {
       zIndex: 1000,
     };
     const open: CSSProperties = {
-      ...toolbar,
-      bottom: 0,
-      left: 0,
-      background: "rgba(30, 30, 30, 0.5)",
+      height: "100%",
+      width: "100%",
+      background: "rgba(30, 30, 30, 0.3)",
       backdropFilter: "blur(6px)",
       overflowY: "auto",
       display: "grid",
-      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
       gap: 24,
-      padding: 24,
+      padding: "24px 64px 64px 64px",
       overflowX: "clip",
     };
 
     return { toolbar, open };
   }, []);
+
+  const handleClose = useCallback(() => {
+    setState({ type: "closed" });
+  }, []);
+
+  const getWindow = useGetWindow();
+  const dims = state.display?.bounds;
 
   return (
     <>
@@ -81,9 +98,45 @@ export function CaptureView() {
         <button onClick={handleButtonClick}>Refresh capture sources</button>
       </div>
       {state.type === "open" && (
-        <div className="capture-view-sources" style={styles.open}>
-          {sourceViews}
-        </div>
+        <ChildWindow
+          name="Take screenshot"
+          onUnload={handleClose}
+          onOpen={async (win, handle) => {
+            console.log("onOpen", { handle });
+            await handle.registered;
+            if (handle.browserWindowId) {
+              window.TlshotAPI.setAlwaysOnTop(
+                handle.browserWindowId as any,
+                handle.browserWindowId
+              );
+            }
+          }}
+          center="none"
+          features={{
+            transparent: true,
+            backgroundColor: "#00000000",
+            hasShadow: false,
+            width: dims?.width || getWindow().screen.availWidth,
+            height: dims?.height || getWindow().screen.availHeight,
+            left: dims?.x || 0,
+            top: dims?.y || 0,
+            // center: false,
+            useContentSize: true,
+            alwaysOnTop: "screensaver" as any,
+            enableLargerThanScreen: true,
+            titleBarStyle: "hidden",
+            frame: false,
+            roundedCorners: false,
+          }}
+        >
+          <ChildWindowEscapeListener
+            // onBlur={handleClose}
+            onEscape={handleClose}
+          />
+          <div className="capture-view-sources" style={styles.open}>
+            {sourceViews}
+          </div>
+        </ChildWindow>
       )}
     </>
   );
@@ -105,11 +158,13 @@ function SourceView(props: { source: CaptureSource; onClick?: () => void }) {
       },
       thumbnail: {
         borderRadius: 3,
-        boxShadow: "var(--shadow-4)",
+        // boxShadow: "var(--shadow-4)",
         maxWidth: "100%",
         maxHeight: "100%",
         width: "auto",
         height: "auto",
+        boxShadow:
+          "inset 0 1px 0 rgba(255,255,255,.6), 0 22px 70px 4px rgba(0,0,0,0.56), 0 0 0 1px rgba(0, 0, 0, 0.0)",
       },
       icon: {
         width: 48,
