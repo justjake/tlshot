@@ -83,6 +83,22 @@ export type TlshotApiResponse = {
     ? R
     : never;
 };
+
+export type TlshotApiRequest = {
+  [K in keyof TlshotApi]: TlshotApi[K] extends (
+    first: any,
+    ...rest: infer R
+  ) => any
+    ? R
+    : never;
+};
+
+export type TlshotApiClient = {
+  [K in keyof TlshotApi]: (
+    ...args: TlshotApiRequest[K]
+  ) => Promise<TlshotApiResponse[K]>;
+};
+
 export class TlshotApi {
   // https://www.electronjs.org/docs/latest/api/ipc-renderer#ipcrendererinvokechannel-args
   static connect(instance: TlshotApi) {

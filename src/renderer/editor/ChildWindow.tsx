@@ -34,7 +34,7 @@ class ChildWindowRegistry {
   register(handle: ChildWindowHandle, newWindow: Window) {
     this.handles.add(handle);
     this.windows.set(handle, newWindow);
-    window.TlshotAPI.getRecentWindowId({} as any).then((response) => {
+    window.TlshotAPI.getRecentWindowId().then((response) => {
       if (response) {
         for (const otherHandle of this.handles) {
           if (otherHandle.ephemeralId === handle.ephemeralId) {

@@ -13,10 +13,7 @@ export function ModalOverlayWindow(props: {
       onOpen={async (_, handle) => {
         await handle.registered;
         if (handle.browserWindowId) {
-          window.TlshotAPI.setAlwaysOnTop(
-            handle.browserWindowId as any,
-            handle.browserWindowId
-          );
+          window.TlshotAPI.setAlwaysOnTop(handle.browserWindowId);
         }
       }}
       center="none"

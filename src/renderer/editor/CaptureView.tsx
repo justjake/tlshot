@@ -259,8 +259,6 @@ async function captureSource(sourceId: string, rect?: DOMRect) {
       } else {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       }
-      // const dataUrl = canvas.toDataURL("image/png");
-      // resolve(dataUrl);
 
       canvas.toBlob((blob) => {
         if (!blob) {
