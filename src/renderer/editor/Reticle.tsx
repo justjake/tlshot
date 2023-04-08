@@ -197,24 +197,28 @@ function DragDimensions(props: {
     flip ||= Boolean(props.origin && props.origin.x > props.current.x);
     flip ||= props.current.x + 150 > currentWindowWidth;
 
-    const bgSize = 64;
-    const bgScale = 3;
+    const bgSize = 128;
+    const bgScale = 5;
 
     return {
       spot: {
+        width: bgSize,
         position: "absolute",
         top: props.current.y + offset,
         left: props.current.x + offset,
         transform: flip ? `translateX(calc(-100% - ${offset * 2}px))` : "none",
         borderRadius: 3,
         background: "rgba(0, 0, 0, 0.7)",
+        border: "2px solid rgba(0, 0, 0, 0.7)",
         color: "white",
         fontSize: 10,
-        padding: "3px 0px",
         fontFamily: SYSTEM_UI_MONO,
-        minWidth: `${4 * 2}em`,
         textAlign: "center",
         overflow: "clip",
+        imageRendering: "pixelated",
+      },
+      text: {
+        padding: "2px 0px",
       },
       bg: {
         width: bgSize,
@@ -222,6 +226,7 @@ function DragDimensions(props: {
         backgroundImage: bg,
         backgroundSize: outerWidth * bgScale,
         backgroundRepeat: "no-repeat",
+        // TODO: this doesn't quite work
         backgroundPositionX: -props.current.x * bgScale + bgSize / 2,
         backgroundPositionY: -props.current.y * bgScale + bgSize / 2,
       },
@@ -237,8 +242,10 @@ function DragDimensions(props: {
 
   return (
     <div className="drag-dimensions" style={style.spot}>
-      {dx} x {dy}
       {bg && <div className="loupe" style={style.bg} />}
+      <div style={style.text}>
+        {String(dx).padStart(4)} x {String(dy).padEnd(4)}
+      </div>
     </div>
   );
 }
