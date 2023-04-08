@@ -1,6 +1,6 @@
 import React, { CSSProperties, useCallback, useMemo } from "react";
 import { useState } from "react";
-import { TlshotApiResponse } from "./onReady";
+import { TlshotApiResponse } from "./main/onReady";
 import "./captureView.css";
 import { createShapesFromFiles, useApp } from "@tldraw/editor";
 
