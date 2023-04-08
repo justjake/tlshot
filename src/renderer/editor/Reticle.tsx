@@ -190,15 +190,23 @@ function DragDimensions(props: {
     };
   }, []);
 
-  const currentWindowWidth = useGetWindow()().outerWidth;
-  const style = useStyles(() => {
-    const offset = 8;
-    let flip = false;
-    flip ||= Boolean(props.origin && props.origin.x > props.current.x);
-    flip ||= props.current.x + 150 > currentWindowWidth;
+  const getWindow = useGetWindow();
 
+  const style = useStyles(() => {
     const bgSize = 128;
     const bgScale = 5;
+    const currentWindowWidth = getWindow().innerWidth;
+    const currentWindowHeight = getWindow().innerHeight;
+
+    const offset = 8;
+    let flipX = false;
+    flipX ||= Boolean(props.origin && props.origin.x > props.current.x);
+    flipX ||= props.current.x + 150 > currentWindowWidth;
+    const flipY = props.current.y + 150 > currentWindowHeight;
+    const translateX = flipX ? `calc(-100% - ${offset * 2}px)` : "0px";
+    const translateY = flipY ? `calc(-100% - ${offset * 2}px)` : "0px";
+    const hairStroke = `1px solid rgba(255, 255, 255, 0.3)`;
+    const hairFill = `1px solid rgba(0, 0, 0, 0.4)`;
 
     return {
       spot: {
@@ -206,7 +214,7 @@ function DragDimensions(props: {
         position: "absolute",
         top: props.current.y + offset,
         left: props.current.x + offset,
-        transform: flip ? `translateX(calc(-100% - ${offset * 2}px))` : "none",
+        transform: `translate(${translateX}, ${translateY})`,
         borderRadius: 3,
         background: "rgba(0, 0, 0, 0.7)",
         border: "2px solid rgba(0, 0, 0, 0.7)",
@@ -224,11 +232,27 @@ function DragDimensions(props: {
         width: bgSize,
         height: bgSize,
         backgroundImage: bg,
-        backgroundSize: outerWidth * bgScale,
+        backgroundSize: currentWindowWidth * bgScale,
         backgroundRepeat: "no-repeat",
-        // TODO: this doesn't quite work
         backgroundPositionX: -props.current.x * bgScale + bgSize / 2,
         backgroundPositionY: -props.current.y * bgScale + bgSize / 2,
+        position: "relative",
+      },
+      v: {
+        position: "absolute",
+        width: 7,
+        height: bgSize,
+        left: bgSize / 2 - 4,
+        borderLeft: hairStroke,
+        borderRight: hairStroke,
+      },
+      h: {
+        position: "absolute",
+        width: bgSize,
+        height: 7,
+        top: bgSize / 2 - 4,
+        borderTop: hairStroke,
+        borderBottom: hairStroke,
       },
     };
   }, [props.current, props.origin]);
@@ -242,7 +266,12 @@ function DragDimensions(props: {
 
   return (
     <div className="drag-dimensions" style={style.spot}>
-      {bg && <div className="loupe" style={style.bg} />}
+      {bg && (
+        <div className="loupe" style={style.bg}>
+          <div style={style.v} />
+          <div style={style.h} />
+        </div>
+      )}
       <div style={style.text}>
         {String(dx).padStart(4)} x {String(dy).padEnd(4)}
       </div>
