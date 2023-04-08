@@ -48,6 +48,7 @@
     "@tldraw/tlstore": "^2.0.0-canary.dc7c1416a",
     "@tldraw/ui": "^2.0.0-canary.dc7c1416a",
     "electron-squirrel-startup": "^1.0.0",
+    "electron-store": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "signia": "^0.1.2-canary.0094a5d",
