@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useStyles } from "./useStyles";
 import React from "react";
 import { useGetWindow } from "./ChildWindow";
+import { useDisplays } from "./Displays";
+import { captureUserMediaSource } from "./captureHelpers";
 
 export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   const vertical = useRef<HTMLDivElement>(null);
@@ -173,22 +175,39 @@ function DragDimensions(props: {
   origin: { x: number; y: number } | undefined;
   current: { x: number; y: number };
 }) {
+  const displayId = useDisplays()?.self.id;
+  if (!displayId) {
+    throw new Error("Must have displayId");
+  }
+
   const [bg, setBg] = useState<string | undefined>();
   useEffect(() => {
     // On mount, capture the screen to use as loupe
     let unmounted = false;
+    let blobUrl: string | undefined = undefined;
     const perform = async () => {
-      const bgs = await window.TlshotAPI.captureAllDisplays();
-      const firstBg = bgs[0];
-      if (!unmounted && firstBg) {
-        // setBg(`url(${firstBg.thumbnail})`);
+      const source = await window.TlshotAPI.getDisplaySource(displayId);
+      if (unmounted) {
+        return;
       }
+
+      const blob = await captureUserMediaSource(source.id, undefined);
+      if (unmounted) {
+        return;
+      }
+
+      blobUrl = URL.createObjectURL(blob);
+      setBg(`url(${blobUrl})`);
     };
     void perform();
     return () => {
       unmounted = true;
+      if (blobUrl) {
+        setBg(undefined);
+        URL.revokeObjectURL(blobUrl);
+      }
     };
-  }, []);
+  }, [displayId]);
 
   const getWindow = useGetWindow();
 

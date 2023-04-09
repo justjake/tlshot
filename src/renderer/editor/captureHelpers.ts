@@ -15,7 +15,6 @@ function cropImageToBlob(
 ): Promise<Blob> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  document.body.appendChild(canvas);
   if (!ctx) {
     throw new Error("Could not get canvas context");
   }
