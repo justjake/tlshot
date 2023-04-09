@@ -1,20 +1,21 @@
 import { App, createShapesFromFiles } from "@tldraw/editor";
 
-function loadImageFromDataURL(dataUrl: string): Promise<Image> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = dataUrl;
-  });
-}
+// function loadImageFromDataURL(dataUrl: string): Promise<Image> {
+//   return new Promise((resolve, reject) => {
+//     const image = new Image();
+//     image.onload = () => resolve(image);
+//     image.onerror = reject;
+//     image.src = dataUrl;
+//   });
+// }
 
 function cropImageToBlob(
-  imageSource: Exclude<CanvasImageSource, SVGImageElement>,
+  imageOrVideo: Exclude<CanvasImageSource, SVGImageElement>,
   rect: DOMRect | undefined
 ): Promise<Blob> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
+  document.body.appendChild(canvas);
   if (!ctx) {
     throw new Error("Could not get canvas context");
   }
@@ -23,7 +24,7 @@ function cropImageToBlob(
     canvas.width = rect.width;
     canvas.height = rect.height;
     ctx.drawImage(
-      imageSource,
+      imageOrVideo,
       rect.x,
       rect.y,
       rect.width,
@@ -34,19 +35,26 @@ function cropImageToBlob(
       rect.height
     );
   } else {
-    canvas.width = imageSource.width;
-    canvas.height = imageSource.height;
-    ctx.drawImage(imageSource, 0, 0);
+    canvas.width = imageOrVideo.width;
+    canvas.height = imageOrVideo.height;
+    ctx.drawImage(imageOrVideo, 0, 0, imageOrVideo.width, imageOrVideo.height);
+    console.log(canvas, imageOrVideo, {
+      width: imageOrVideo.width,
+      height: imageOrVideo.height,
+    });
   }
 
-  return new Promise<Blob>((resolve) =>
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        throw new Error("Could not get blob from canvas");
-      }
-      resolve(blob);
-      canvas.remove();
-    }, "image/png")
+  return debugPromise(
+    new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("Could not get blob from canvas"));
+        } else {
+          resolve(blob);
+        }
+        canvas.remove();
+      }, "image/png")
+    )
   );
 }
 
@@ -72,14 +80,17 @@ export async function captureUserMediaSource(
 
   const video = document.createElement("video");
   video.style.cssText = "position:absolute;top:-10000px;left:-10000px;";
-  document.appendChild(video);
-  await new Promise((resolve, reject) => {
-    video.onloadedmetadata = resolve;
-    video.onerror = reject;
-  });
+  document.body.appendChild(video);
+  await debugPromise(
+    new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = reject;
+      video.srcObject = stream;
+    })
+  );
 
-  video.style.width = video.videoWidth + "px";
-  video.style.height = video.videoHeight + "px";
+  video.width = video.videoWidth;
+  video.height = video.videoHeight;
   video.play();
 
   const blob = await cropImageToBlob(video, rect);
@@ -104,4 +115,24 @@ export function createShapeFromBlob(app: App, blob: Blob) {
     app.viewportPageBounds.center,
     false
   );
+}
+
+const TIMEOUT = Symbol("Timeout reached");
+
+async function debugPromise<T>(promise: Promise<T>): Promise<T> {
+  const timeout = new Promise((resolve) => setTimeout(resolve, 500)).then(
+    () => TIMEOUT
+  );
+
+  try {
+    const result = await Promise.race([promise, timeout]);
+    if (result === TIMEOUT) {
+      throw new Error("Promise timed out");
+    }
+    console.log("Promise resolved", result);
+    return result as any;
+  } catch (e) {
+    console.log("Promise error", e);
+    throw e;
+  }
 }

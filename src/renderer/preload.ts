@@ -14,6 +14,7 @@ class TlshotApiClientImpl implements TlshotApiClient {
     return function asyncMethod(
       ...args: TlshotApiRequest[T]
     ): Promise<TlshotApiResponse[T]> {
+      console.warn("TlshotApiClient: call:", name, args);
       return ipcRenderer.invoke(name, ...args);
     } as any;
   }

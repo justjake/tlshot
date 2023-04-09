@@ -10,49 +10,15 @@ import { Reticle } from "./Reticle";
 import { useDisplays } from "./Displays";
 import { SourcesGrid } from "./SourcePicker";
 import { ReticleWindows } from "./ReticleWindows";
+import { SourcePickerWindow } from "./SourcePickerWindow";
 
 type CaptureViewState =
-  | { type: "closed"; display?: undefined; sources?: undefined }
-  | {
-      type: "picker";
-      sources: TlshotApiResponse["getSources"];
-    }
-  | {
-      type: "reticle";
-      sources?: undefined;
-    };
+  | { type: "closed" }
+  | { type: "picker" }
+  | { type: "reticle" };
 
 export function CaptureView() {
   const [state, setState] = useState<CaptureViewState>({ type: "closed" });
-  const displays = useDisplays();
-
-  const startCapture = async (type: "picker" | "reticle") => {
-    if (type === "picker") {
-      const sources = await window.TlshotAPI.getSources();
-      setState({
-        type,
-        sources,
-      });
-    } else {
-      setState({
-        type,
-      });
-    }
-  };
-
-  const app = useApp();
-  const captureSourceToCanvas = useCallback(
-    async (sourceId: string, rect?: DOMRect) => {
-      const blob = await captureSource(sourceId, rect);
-      await createShapesFromFiles(
-        app,
-        [Object.assign(blob as any, { name: "capture.png" })],
-        app.viewportPageBounds.center,
-        false
-      );
-    },
-    [app]
-  );
 
   const styles = useStyles(() => {
     const toolbar: CSSProperties = {
@@ -65,6 +31,12 @@ export function CaptureView() {
     return { toolbar };
   }, []);
 
+  const startCapture = async (type: "picker" | "reticle") => {
+    setState({
+      type,
+    });
+  };
+
   const handleClose = useCallback(() => {
     setState({ type: "closed" });
   }, []);
@@ -74,18 +46,7 @@ export function CaptureView() {
       case "closed":
         return null;
       case "picker":
-        return (
-          <ModalOverlayWindow onClose={handleClose}>
-            <SourcesGrid
-              sources={state.sources}
-              onClose={handleClose}
-              onClickSource={(source) => {
-                handleClose();
-                captureSourceToCanvas(source.id);
-              }}
-            />
-          </ModalOverlayWindow>
-        );
+        return <SourcePickerWindow onClose={handleClose} />;
       case "reticle":
         return <ReticleWindows onClose={handleClose} />;
       default:

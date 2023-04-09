@@ -98,6 +98,8 @@ export type TlshotApiClient = {
   ) => Promise<TlshotApiResponse[K]>;
 };
 
+export type CaptureSource = TlshotApiResponse["getSources"][number];
+
 export class TlshotApi {
   // https://www.electronjs.org/docs/latest/api/ipc-renderer#ipcrendererinvokechannel-args
   static connect(instance: TlshotApi) {
