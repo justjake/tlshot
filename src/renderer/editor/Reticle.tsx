@@ -14,7 +14,10 @@ import { useGetWindow } from "./ChildWindow";
 import { useDisplays } from "./Displays";
 import { captureUserMediaSource } from "./captureHelpers";
 
-export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
+export function Reticle(props: {
+  onSelect: (rect: DOMRect) => void;
+  onClose: () => void;
+}) {
   const getWindow = useGetWindow();
 
   const vertical = useRef<HTMLDivElement>(null);
@@ -97,20 +100,19 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
     }
 
     function handleMouseMove(e: MouseEvent) {
-      // Always update state
-      setMouseState({ x: e.clientX, y: e.clientY });
-
       // Imperatively move the reticle. Faster than React re-render.
       dimensions.current?.setPosition(mousePosition.current);
-      if (!vertical.current || !horizontal.current || !bg.current) {
-        return;
+
+      if (vertical.current && horizontal.current && bg.current) {
+        mousePosition.current = { x: e.clientX, y: e.clientY };
+        vertical.current.style.left = `${e.clientX - 1.5}px`;
+        horizontal.current.style.top = `${e.clientY - 1.5}px`;
+        if (isDragging.current) {
+          bg.current.style.clipPath = getClipPath();
+        }
       }
-      mousePosition.current = { x: e.clientX, y: e.clientY };
-      vertical.current.style.left = `${e.clientX - 1.5}px`;
-      horizontal.current.style.top = `${e.clientY - 1.5}px`;
-      if (isDragging.current) {
-        bg.current.style.clipPath = getClipPath();
-      }
+
+      setMouseState({ x: e.clientX, y: e.clientY });
     }
 
     function handleMouseUp() {
@@ -202,6 +204,7 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
             style={styles.v}
           />
           <DragDimensions
+            onClose={props.onClose}
             origin={dragOrigin}
             current={mouseState}
             ref={dimensions}
@@ -220,6 +223,7 @@ const DragDimensions = forwardRef(function DragDimensions(
   props: {
     origin: { x: number; y: number } | undefined;
     current: { x: number; y: number };
+    onClose: () => void;
   },
   ref: ForwardedRef<DragDimensionsRef>
 ) {
@@ -229,11 +233,13 @@ const DragDimensions = forwardRef(function DragDimensions(
   }
 
   const offset = 8;
+  const mousePositionRef = useRef(props.current);
   const wrapper = useRef<HTMLDivElement | null>(null);
   useImperativeHandle(
     ref,
     () => ({
       setPosition(point) {
+        mousePositionRef.current = point;
         if (wrapper.current) {
           wrapper.current.style.left = `${point.x + offset}px`;
           wrapper.current.style.top = `${point.y + offset}px`;
@@ -284,14 +290,16 @@ const DragDimensions = forwardRef(function DragDimensions(
   });
 
   const currentColor = useMemo(() => {
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", {
+      willReadFrequently: true,
+    });
     if (!ctx || !bgImageElement.current) {
       return undefined;
     }
     ctx.drawImage(
       bgImageElement.current,
-      props.current.x,
-      props.current.y,
+      mousePositionRef.current.x,
+      mousePositionRef.current.y,
       1,
       1,
       0,
@@ -313,14 +321,15 @@ const DragDimensions = forwardRef(function DragDimensions(
     let flipX = false;
     flipX ||= Boolean(
       props.origin &&
-        props.origin.x > props.current.x &&
-        props.origin.y > props.current.y
+        props.origin.x > mousePositionRef.current.x &&
+        props.origin.y > mousePositionRef.current.y
     );
-    flipX ||= props.current.x + boundaryZone > currentWindowWidth;
-    if (flipX && props.current.x - boundaryZone < 0) {
+    flipX ||= mousePositionRef.current.x + boundaryZone > currentWindowWidth;
+    if (flipX && mousePositionRef.current.x - boundaryZone < 0) {
       flipX = false;
     }
-    const flipY = props.current.y + boundaryZone > currentWindowHeight;
+    const flipY =
+      mousePositionRef.current.y + boundaryZone > currentWindowHeight;
     const translateX = flipX ? `calc(-100% - ${offset * 2}px)` : "0px";
     const translateY = flipY ? `calc(-100% - ${offset * 2}px)` : "0px";
     const hairStroke = `1px solid rgba(255, 255, 255, 0.3)`;
@@ -339,8 +348,8 @@ const DragDimensions = forwardRef(function DragDimensions(
       spot: {
         width: bgSize,
         position: "absolute",
-        top: props.current.y + offset,
-        left: props.current.x + offset,
+        top: mousePositionRef.current.y + offset,
+        left: mousePositionRef.current.x + offset,
         transform: `translate(${translateX}, ${translateY})`,
         borderRadius: 3,
         background: "rgba(0, 0, 0, 0.7)",
@@ -370,8 +379,8 @@ const DragDimensions = forwardRef(function DragDimensions(
         backgroundImage: `url(${bg})`,
         backgroundSize: currentWindowWidth * bgScale,
         backgroundRepeat: "no-repeat",
-        backgroundPositionX: -props.current.x * bgScale + bgSize / 2,
-        backgroundPositionY: -props.current.y * bgScale + bgSize / 2,
+        backgroundPositionX: -mousePositionRef.current.x * bgScale + bgSize / 2,
+        backgroundPositionY: -mousePositionRef.current.y * bgScale + bgSize / 2,
         position: "relative",
       },
       v: {
@@ -391,14 +400,19 @@ const DragDimensions = forwardRef(function DragDimensions(
         borderBottom: hairStroke,
       },
     };
-  }, [props.current, props.origin, canvas]);
+  }, [mousePositionRef.current, props.origin, canvas]);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.select();
+  }, [currentColor]);
 
   const dx = props.origin
-    ? Math.abs(props.origin.x - props.current.x)
-    : props.current.x;
+    ? Math.abs(props.origin.x - mousePositionRef.current.x)
+    : mousePositionRef.current.x;
   const dy = props.origin
-    ? Math.abs(props.origin.y - props.current.y)
-    : props.current.y;
+    ? Math.abs(props.origin.y - mousePositionRef.current.y)
+    : mousePositionRef.current.y;
 
   if (!bg) {
     return null;
@@ -406,6 +420,24 @@ const DragDimensions = forwardRef(function DragDimensions(
 
   return (
     <div className="drag-dimensions" style={style.spot} ref={wrapper}>
+      <input
+        ref={inputRef}
+        type="text"
+        value={currentColor || "#000000"}
+        readOnly
+        onCopy={(e) => {
+          console.log("onCopy", currentColor);
+          e.clipboardData.setData("text/plain", currentColor || "#000000");
+          requestAnimationFrame(() => {
+            props.onClose();
+          });
+        }}
+        style={{
+          position: "absolute",
+          top: -10_000,
+          left: -10_000,
+        }}
+      />
       <div className="loupe" style={style.bg}>
         <div style={style.v} />
         <div style={style.h} />
