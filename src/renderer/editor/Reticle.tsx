@@ -426,8 +426,10 @@ const DragDimensions = forwardRef(function DragDimensions(
         value={currentColor || "#000000"}
         readOnly
         onCopy={(e) => {
-          console.log("onCopy", currentColor);
-          e.clipboardData.setData("text/plain", currentColor || "#000000");
+          const copiedColor = currentColor || "#000000";
+          console.log("onCopy", copiedColor);
+          e.clipboardData.setData("text/plain", copiedColor);
+          new Notification(`Copied ${copiedColor}`);
           requestAnimationFrame(() => {
             props.onClose();
           });
