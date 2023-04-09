@@ -26,6 +26,7 @@ class TlshotApiClientImpl implements TlshotApiClient {
   subscribeToDisplays = this.createMethod("subscribeToDisplays");
   captureAllDisplays = this.createMethod("captureAllDisplays");
   getDisplaySource = this.createMethod("getDisplaySource");
+  focusTopWindowNearMouse = this.createMethod("focusTopWindowNearMouse");
 
   onDisplaysChanged = (callback: (state: DisplaysState) => void) => {
     const listener = (_: unknown, state: DisplaysState) => callback(state);

@@ -23,8 +23,8 @@ export function CaptureView() {
   const styles = useStyles(() => {
     const toolbar: CSSProperties = {
       position: "absolute",
-      top: 0,
-      right: 0,
+      top: "var(--space-3)",
+      right: "var(--space-3)",
       zIndex: 1000,
     };
 

@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  ForwardedRef,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useStyles } from "./useStyles";
 import React from "react";
 import { useGetWindow } from "./ChildWindow";
@@ -6,10 +15,14 @@ import { useDisplays } from "./Displays";
 import { captureUserMediaSource } from "./captureHelpers";
 
 export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
+  const getWindow = useGetWindow();
+
   const vertical = useRef<HTMLDivElement>(null);
   const horizontal = useRef<HTMLDivElement>(null);
   const bg = useRef<HTMLDivElement>(null);
   const wrapper = useRef<HTMLDivElement>(null);
+  const dimensions = useRef<DragDimensionsRef>(null);
+
   const [dragOrigin, setDragOrigin] = useState<
     { x: number; y: number } | undefined
   >(undefined);
@@ -42,8 +55,6 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
         borderTop: hairStroke,
         borderBottom: hairStroke,
         background: hairFill,
-
-        top: "50%",
       },
       v: {
         position: "absolute",
@@ -52,8 +63,6 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
         borderLeft: hairStroke,
         borderRight: hairStroke,
         background: hairFill,
-
-        left: "50%",
       },
       origin: {
         position: "absolute",
@@ -70,7 +79,15 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
   const mousePosition = useRef({ x: 0, y: 0 });
   const startPosition = useRef({ x: 0, y: 0 });
 
-  const getWindow = useGetWindow();
+  // Grab focus when the mouse enters the window
+  const hasMouseState = Boolean(mouseState);
+  useEffect(() => {
+    if (hasMouseState) {
+      console.log("become active");
+      window.TlshotAPI.focusTopWindowNearMouse();
+    }
+  }, [hasMouseState]);
+
   useEffect(() => {
     function handleMouseDown(e: MouseEvent) {
       const origin = { x: e.clientX, y: e.clientY };
@@ -80,13 +97,17 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
     }
 
     function handleMouseMove(e: MouseEvent) {
+      // Always update state
+      setMouseState({ x: e.clientX, y: e.clientY });
+
+      // Imperatively move the reticle. Faster than React re-render.
+      dimensions.current?.setPosition(mousePosition.current);
       if (!vertical.current || !horizontal.current || !bg.current) {
         return;
       }
       mousePosition.current = { x: e.clientX, y: e.clientY };
       vertical.current.style.left = `${e.clientX - 1.5}px`;
       horizontal.current.style.top = `${e.clientY - 1.5}px`;
-      setMouseState({ x: e.clientX, y: e.clientY });
       if (isDragging.current) {
         bg.current.style.clipPath = getClipPath();
       }
@@ -144,41 +165,85 @@ export function Reticle(props: { onSelect: (rect: DOMRect) => void }) {
       return `polygon(${polygon.join(", ")})`;
     }
 
+    function handleLoseMouse() {
+      // mouseout occurs over transparent portions of the screen?
+      // console.log("mouse out", e.relatedTarget, e);
+      setMouseState(undefined);
+    }
+
     getWindow().addEventListener("mousedown", handleMouseDown);
     getWindow().addEventListener("mousemove", handleMouseMove);
     getWindow().addEventListener("mouseup", handleMouseUp);
+    getWindow().addEventListener("mouseleave", handleLoseMouse);
+    getWindow().addEventListener("blur", handleLoseMouse);
     return () => {
       getWindow().removeEventListener("mousedown", handleMouseDown);
       getWindow().removeEventListener("mousemove", handleMouseMove);
       getWindow().removeEventListener("mouseup", handleMouseUp);
+      getWindow().removeEventListener("mouseleave", handleLoseMouse);
+      getWindow().removeEventListener("blur", handleLoseMouse);
     };
   }, [props.onSelect, getWindow]);
 
   return (
     <div ref={wrapper} style={styles.wrapper}>
       <div ref={bg} className="reticle-bg" style={styles.bg} />
-      <div
-        className="reticle-hair horizontal"
-        ref={horizontal}
-        style={styles.h}
-      />
-      <div className="reticle-hair vertical" ref={vertical} style={styles.v} />
       {dragOrigin && <div className="drag-origin" style={styles.origin} />}
       {mouseState && (
-        <DragDimensions origin={dragOrigin} current={mouseState} />
+        <>
+          <div
+            className="reticle-hair horizontal"
+            ref={horizontal}
+            style={styles.h}
+          />
+          <div
+            className="reticle-hair vertical"
+            ref={vertical}
+            style={styles.v}
+          />
+          <DragDimensions
+            origin={dragOrigin}
+            current={mouseState}
+            ref={dimensions}
+          />
+        </>
       )}
     </div>
   );
 }
 
-function DragDimensions(props: {
-  origin: { x: number; y: number } | undefined;
-  current: { x: number; y: number };
-}) {
+interface DragDimensionsRef {
+  setPosition(point: { x: number; y: number }): void;
+}
+
+const DragDimensions = forwardRef(function DragDimensions(
+  props: {
+    origin: { x: number; y: number } | undefined;
+    current: { x: number; y: number };
+  },
+  ref: ForwardedRef<DragDimensionsRef>
+) {
   const displayId = useDisplays()?.self.id;
   if (!displayId) {
     throw new Error("Must have displayId");
   }
+
+  const offset = 8;
+  const wrapper = useRef<HTMLDivElement | null>(null);
+  useImperativeHandle(
+    ref,
+    () => ({
+      setPosition(point) {
+        if (wrapper.current) {
+          wrapper.current.style.left = `${point.x + offset}px`;
+          wrapper.current.style.top = `${point.y + offset}px`;
+        }
+      },
+    }),
+    []
+  );
+
+  const bgImageElement = useRef<HTMLImageElement | null>(null);
 
   const [bg, setBg] = useState<string | undefined>();
   useEffect(() => {
@@ -197,7 +262,7 @@ function DragDimensions(props: {
       }
 
       blobUrl = URL.createObjectURL(blob);
-      setBg(`url(${blobUrl})`);
+      setBg(blobUrl);
     };
     void perform();
     return () => {
@@ -211,21 +276,64 @@ function DragDimensions(props: {
 
   const getWindow = useGetWindow();
 
+  const [canvas] = useState(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    return canvas;
+  });
+
+  const currentColor = useMemo(() => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx || !bgImageElement.current) {
+      return undefined;
+    }
+    ctx.drawImage(
+      bgImageElement.current,
+      props.current.x,
+      props.current.y,
+      1,
+      1,
+      0,
+      0,
+      1,
+      1
+    );
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+  }, [canvas, props.current]);
+
   const style = useStyles(() => {
     const bgSize = 128;
+    const boundaryZone = bgSize + offset * 2;
     const bgScale = 5;
     const currentWindowWidth = getWindow().innerWidth;
     const currentWindowHeight = getWindow().innerHeight;
 
-    const offset = 8;
     let flipX = false;
-    flipX ||= Boolean(props.origin && props.origin.x > props.current.x);
-    flipX ||= props.current.x + 150 > currentWindowWidth;
-    const flipY = props.current.y + 150 > currentWindowHeight;
+    flipX ||= Boolean(
+      props.origin &&
+        props.origin.x > props.current.x &&
+        props.origin.y > props.current.y
+    );
+    flipX ||= props.current.x + boundaryZone > currentWindowWidth;
+    if (flipX && props.current.x - boundaryZone < 0) {
+      flipX = false;
+    }
+    const flipY = props.current.y + boundaryZone > currentWindowHeight;
     const translateX = flipX ? `calc(-100% - ${offset * 2}px)` : "0px";
     const translateY = flipY ? `calc(-100% - ${offset * 2}px)` : "0px";
     const hairStroke = `1px solid rgba(255, 255, 255, 0.3)`;
     const hairFill = `1px solid rgba(0, 0, 0, 0.4)`;
+
+    const textStyle: CSSProperties = {
+      padding: "2px 0px",
+      color: "white",
+      textShadow:
+        "0px 1px 0px rgba(0, 0, 0, 1), 0px -1px 0px rgba(0, 0, 0, 1), -1px 0px 0px rgba(0, 0, 0, 1), 1px 0px 0px rgba(0, 0, 0, 1)",
+      width: "50%",
+      textAlign: "center",
+    };
 
     return {
       spot: {
@@ -238,19 +346,28 @@ function DragDimensions(props: {
         background: "rgba(0, 0, 0, 0.7)",
         border: "2px solid rgba(0, 0, 0, 0.7)",
         color: "white",
-        fontSize: 10,
+        fontSize: 9,
         fontFamily: SYSTEM_UI_MONO,
         textAlign: "center",
         overflow: "clip",
         imageRendering: "pixelated",
       },
-      text: {
-        padding: "2px 0px",
+      texts: {
+        display: "flex",
+        flexDirection: "row",
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        background: currentColor,
+        borderTop: hairFill,
       },
+      color: textStyle,
+      pos: textStyle,
       bg: {
         width: bgSize,
         height: bgSize,
-        backgroundImage: bg,
+        backgroundImage: `url(${bg})`,
         backgroundSize: currentWindowWidth * bgScale,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: -props.current.x * bgScale + bgSize / 2,
@@ -274,7 +391,7 @@ function DragDimensions(props: {
         borderBottom: hairStroke,
       },
     };
-  }, [props.current, props.origin]);
+  }, [props.current, props.origin, canvas]);
 
   const dx = props.origin
     ? Math.abs(props.origin.x - props.current.x)
@@ -283,20 +400,32 @@ function DragDimensions(props: {
     ? Math.abs(props.origin.y - props.current.y)
     : props.current.y;
 
+  if (!bg) {
+    return null;
+  }
+
   return (
-    <div className="drag-dimensions" style={style.spot}>
-      {bg && (
-        <div className="loupe" style={style.bg}>
-          <div style={style.v} />
-          <div style={style.h} />
+    <div className="drag-dimensions" style={style.spot} ref={wrapper}>
+      <div className="loupe" style={style.bg}>
+        <div style={style.v} />
+        <div style={style.h} />
+      </div>
+      <img
+        ref={bgImageElement}
+        src={bg}
+        style={{
+          display: "none",
+        }}
+      />
+      <div style={style.texts}>
+        <div style={style.pos}>
+          {String(dx).padStart(4)} x {String(dy).padEnd(4)}
         </div>
-      )}
-      <div style={style.text}>
-        {String(dx).padStart(4)} x {String(dy).padEnd(4)}
+        <div style={style.color}>{currentColor}</div>
       </div>
     </div>
   );
-}
+});
 
 const SYSTEM_UI_MONO = `ui-monospace, 
              Menlo, Monaco, 

@@ -24,7 +24,7 @@ export function ModalOverlayWindow(props: {
           window.TlshotAPI.setAlwaysOnTop(handle.browserWindowId);
         }
       }}
-      center="none"
+      center={props.display ? "none" : "screen"}
       features={{
         // Styling.
         transparent: true,

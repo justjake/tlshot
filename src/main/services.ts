@@ -120,6 +120,25 @@ export class TlshotApi {
     }
   }
 
+  focusTopWindowNearMouse() {
+    const mouse = screen.getCursorScreenPoint();
+    const topBrowserWindow = BrowserWindow.getAllWindows().find((bw) => {
+      const bounds = bw.getBounds();
+      return (
+        mouse.x >= bounds.x &&
+        mouse.x <= bounds.x + bounds.width &&
+        mouse.y >= bounds.y &&
+        mouse.y <= bounds.y + bounds.height &&
+        bw.isAlwaysOnTop()
+      );
+    });
+    if (!topBrowserWindow) {
+      console.log("No window found under mouse", mouse);
+    }
+    topBrowserWindow?.focus();
+    topBrowserWindow?.focusOnWebView();
+  }
+
   // https://www.electronjs.org/docs/latest/api/desktop-capturer
   async getSources() {
     const sources = await desktopCapturer.getSources({
