@@ -1,100 +1,85 @@
 import React, { useEffect, useMemo, useState } from "react";
 import NewWindow, { IWindowFeatures } from "react-new-window";
-import { ChildWindowNanoid } from "../../main/WindowPositionService";
+import {
+  BrowserWindowId,
+  ChildWindowNanoid,
+} from "../../main/WindowPositionService";
+import { nanoid } from "nanoid";
 
-interface ChildWindowHandle {
-  ephemeralId: number;
-  webContentsId?: number;
-  browserWindowId?: number;
+interface ChildWindowInfo {
+  childWindowId: ChildWindowNanoid;
   registered: Promise<void>;
+  window?: WeakRef<Window>;
 }
 
 class ChildWindowRegistry {
-  private nextId = 0;
-  private windows = new WeakMap<ChildWindowHandle, Window>();
-  private handles = new Set<ChildWindowHandle>();
-  private ready = new WeakMap<ChildWindowHandle, () => void>();
+  public readonly ROOT_WINDOW: ChildWindowNanoid;
+  private handles = new Map<ChildWindowNanoid, ChildWindowInfo>();
+  private ready = new WeakMap<ChildWindowInfo, () => void>();
 
-  public readonly ROOT_WINDOW = this.createHandle();
   constructor() {
-    Object.assign(this.ROOT_WINDOW, { root: true });
-    this.register(this.ROOT_WINDOW, globalThis.window);
+    this.ROOT_WINDOW = this.createId();
+    this.registerWindow(this.ROOT_WINDOW, globalThis.window);
   }
 
-  createHandle(): ChildWindowHandle {
-    const id = this.nextId++;
-    const handle: Partial<ChildWindowHandle> = {
-      ephemeralId: id,
-    };
+  createId(): ChildWindowNanoid {
+    const childWindowId: ChildWindowNanoid = nanoid();
+    const handle = {
+      childWindowId,
+    } as ChildWindowInfo;
     handle.registered = new Promise((resolve) => {
-      this.ready.set(handle as ChildWindowHandle, resolve);
+      this.ready.set(handle as ChildWindowInfo, resolve);
     });
-    return handle as ChildWindowHandle;
+    this.handles.set(childWindowId, handle);
+    return childWindowId;
   }
 
-  register(handle: ChildWindowHandle, newWindow: Window) {
-    this.handles.add(handle);
-    this.windows.set(handle, newWindow);
-    window.TlshotAPI.getRecentWindowId().then((response) => {
-      if (response) {
-        for (const otherHandle of this.handles) {
-          if (otherHandle.ephemeralId === handle.ephemeralId) {
-            continue;
-          }
-
-          if (
-            otherHandle.webContentsId === response.latestWindow.webContentsId ||
-            otherHandle.browserWindowId ===
-              response.latestWindow.browserWindowId
-          ) {
-            console.log("Found existing handle", otherHandle, response);
-            return;
-          }
-        }
-        handle.webContentsId = response.latestWindow.webContentsId;
-        handle.browserWindowId = response.latestWindow.browserWindowId;
-        console.log("Registered handle browserWindowId", handle);
-      } else {
-        console.log("no window found for handle", handle);
-      }
-      this.ready.get(handle)?.();
-      this.ready.delete(handle);
-    });
+  register(id: ChildWindowNanoid, childWindow: Window) {
+    const handle = this.handles.get(id);
+    if (!handle) {
+      throw new Error(`Child window ID not found: ${id}`);
+    }
+    handle.window = new WeakRef(childWindow);
+    this.ready.get(handle)?.();
+    this.ready.delete(handle);
   }
 
-  unregister(handle: ChildWindowHandle) {
-    this.handles.delete(handle);
-    this.windows.delete(handle);
+  unregister(id: ChildWindowNanoid) {
+    this.handles.delete(id);
   }
 
-  getWindow(handle: ChildWindowHandle): Window {
-    const childWindow = this.windows.get(handle);
+  getWindow(id: ChildWindowNanoid): Window {
+    const childWindow = this.handles.get(id)?.window?.deref();
     if (!childWindow) {
-      throw new Error(`Child window ${handle.ephemeralId} not found`);
+      throw new Error(`Child window not found: ${id}`);
     }
     return childWindow;
+  }
+
+  getRootWindow(): Window {
+    return this.getWindow(this.ROOT_WINDOW);
   }
 }
 
 export const Windows = new ChildWindowRegistry();
 
-const ChildWindowHandleContext = React.createContext<ChildWindowHandle>(
+const ChildWindowNanoidContext = React.createContext<ChildWindowNanoid>(
   Windows.ROOT_WINDOW
 );
-ChildWindowHandleContext.displayName = "ChildWindow";
+ChildWindowNanoidContext.displayName = "ChildWindowNanoid";
 
 interface GetWindowFunction {
   (): Window;
-  handle: ChildWindowHandle;
+  childWindowNanoid: ChildWindowNanoid;
 }
 
 export function useGetWindow(): GetWindowFunction {
-  const handle = React.useContext(ChildWindowHandleContext);
+  const childWindowNanoid = React.useContext(ChildWindowNanoidContext);
   return useMemo(() => {
-    const getWindow = () => Windows.getWindow(handle);
-    getWindow.handle = handle;
+    const getWindow = () => Windows.getWindow(childWindowNanoid);
+    getWindow.childWindowNanoid = childWindowNanoid;
     return getWindow;
-  }, [handle]);
+  }, [childWindowNanoid]);
 }
 
 export type ChildWindowFeatures = Electron.BrowserWindowConstructorOptions &
@@ -104,19 +89,19 @@ export interface ChildWindowProps {
   name: string;
   copyStyles?: boolean;
   features?: Electron.BrowserWindowConstructorOptions & IWindowFeatures;
-  onOpen?: (childWindow: Window, handle: ChildWindowHandle) => void;
+  onOpen?: (childWindow: Window, handle: ChildWindowNanoid) => void;
   onUnload?: () => void;
   children: React.ReactNode;
   center: "parent" | "screen" | "none";
 }
 
 export function ChildWindow(props: ChildWindowProps) {
-  const [handle] = useState(() => Windows.createHandle());
+  const [id] = useState(() => Windows.createId());
   const [open, setOpen] = useState(false);
 
   const handleOpen = (childWindow: Window) => {
-    Windows.register(handle, childWindow);
-    props.onOpen?.(childWindow, handle);
+    Windows.register(id, childWindow);
+    props.onOpen?.(childWindow, id);
     setOpen(true);
   };
 
@@ -130,25 +115,34 @@ export function ChildWindow(props: ChildWindowProps) {
       return () => {
         // Avoid de-registering the window while cleanup effects are running in our subtree.
         setTimeout(() => {
-          Windows.unregister(handle);
+          Windows.unregister(id);
         }, 30);
       };
     }
-  }, [open, handle]);
+  }, [open, id]);
+
+  const features: ChildWindowFeatures = useMemo(
+    () =>
+      ({
+        ...props.features,
+        childWindowId: id,
+      } as any),
+    [props.features, id]
+  );
 
   return (
     <NewWindow
       title={props.name}
       copyStyles={props.copyStyles}
-      features={props.features}
+      features={features}
       onOpen={handleOpen}
       onUnload={handleUnload}
       center={props.center as any}
     >
       {open && (
-        <ChildWindowHandleContext.Provider value={handle}>
+        <ChildWindowNanoidContext.Provider value={id}>
           {props.children}
-        </ChildWindowHandleContext.Provider>
+        </ChildWindowNanoidContext.Provider>
       )}
     </NewWindow>
   );

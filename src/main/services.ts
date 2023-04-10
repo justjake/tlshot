@@ -12,6 +12,10 @@ import installExtension, {
 
 import Store from "electron-store";
 import { DisplaysState } from "../renderer/editor/Displays";
+import {
+  ChildWindowNanoid,
+  WindowPositionService,
+} from "./WindowPositionService";
 interface StoreData {
   editorWindowBounds?: Electron.Rectangle;
   editorWindowDevtools?: boolean;
@@ -119,6 +123,8 @@ export class TlshotApi {
       ipcMain.handle(methodName, method.bind(instance));
     }
   }
+
+  private windowPositionService = new WindowPositionService();
 
   focusTopWindowNearMouse() {
     const mouse = screen.getCursorScreenPoint();
@@ -283,6 +289,13 @@ export class TlshotApi {
     event.sender.once("destroyed", cleanUp);
 
     return getDisplaysState();
+  }
+
+  subscribeToWindowPositionService(
+    event: Electron.IpcMainInvokeEvent,
+    ownId: ChildWindowNanoid
+  ) {
+    this.windowPositionService.addSubscriber(event.sender, ownId);
   }
 }
 

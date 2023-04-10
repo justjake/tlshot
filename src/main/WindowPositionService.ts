@@ -35,11 +35,11 @@ declare module "electron" {
   }
 }
 
-interface DisplayInfo extends Display {
+export interface DisplayInfo extends Display {
   id: DisplayId;
 }
 
-interface BrowserWindowInfo {
+export interface BrowserWindowInfo {
   // IDs
   browserWindowId: BrowserWindowId;
   childWindowId: ChildWindowNanoid | undefined;
@@ -53,16 +53,31 @@ interface BrowserWindowInfo {
   isAlwaysOnTop: boolean;
 }
 
-type WindowPositionServiceEvent = {
+export interface WindowsAndDisplays {
+  windows: {
+    [id in BrowserWindowId]: BrowserWindowInfo;
+  };
+  displays: {
+    [id in DisplayId]: DisplayInfo;
+  };
+}
+
+export type WindowPositionServiceEvents = {
+  "window-display-subscribed": WindowsAndDisplays;
   "window-changed": BrowserWindowInfo;
   "window-removed": BrowserWindowId;
-  "display-changed": Electron.Display;
+  "display-changed": DisplayInfo;
   "display-removed": DisplayId;
 };
 
-export type WindowChangedEvent = "window-changed";
+export type WindowPositionServiceEvent = {
+  [K in keyof WindowPositionServiceEvents]: {
+    type: K;
+    data: WindowPositionServiceEvents[K];
+  };
+}[keyof WindowPositionServiceEvents];
 
-class WindowPositionService {
+export class WindowPositionService {
   subscribers = new Set<WebContents>();
 
   constructor() {
@@ -75,6 +90,30 @@ class WindowPositionService {
     screen.on("display-removed", (_event, display) =>
       this.handleDisplayRemoved(display)
     );
+  }
+
+  addSubscriber(subscriber: WebContents, ownId: ChildWindowNanoid) {
+    const browserWindow: BrowserWindow | null =
+      BrowserWindow.fromWebContents(subscriber);
+    if (!browserWindow) {
+      return;
+    }
+
+    if (browserWindow.childWindowId && browserWindow.childWindowId !== ownId) {
+      throw new Error(
+        `BrowserWindow already has a childWindowId: ${browserWindow.childWindowId}`
+      );
+    }
+
+    browserWindow.childWindowId = ownId;
+    this.handleWindowChanged(browserWindow);
+
+    this.subscribers.add(subscriber);
+    subscriber.once("destroyed", () => {
+      this.subscribers.delete(subscriber);
+    });
+
+    this.dispatch("window-display-subscribed", this.getWindowsAndDisplays());
   }
 
   handleDisplayChanged(display: Electron.Display) {
@@ -124,6 +163,10 @@ class WindowPositionService {
     this.dispatch("window-changed", this.getBrowserWindowInfo(browserWindow));
   }
 
+  handleWindowClosed(browserWindow: BrowserWindow) {
+    this.dispatch("window-removed", browserWindow.id);
+  }
+
   getBrowserWindowInfo(browserWindow: BrowserWindow): BrowserWindowInfo {
     const display = screen.getDisplayMatching(browserWindow.getBounds());
     return {
@@ -136,11 +179,27 @@ class WindowPositionService {
     };
   }
 
-  private dispatch<T extends keyof WindowPositionServiceEvent>(
+  getWindowsAndDisplays(): WindowsAndDisplays {
+    const result: WindowsAndDisplays = {
+      windows: {},
+      displays: {},
+    };
+    for (const bw of BrowserWindow.getAllWindows()) {
+      result.windows[bw.id] = this.getBrowserWindowInfo(bw);
+    }
+    for (const display of screen.getAllDisplays()) {
+      result.displays[display.id] = display;
+    }
+    return result;
+  }
+
+  private dispatch<T extends keyof WindowPositionServiceEvents>(
     event: T,
-    info: WindowPositionServiceEvent[T]
+    info: WindowPositionServiceEvents[T]
   ) {
     console.log(`WindowPositionService: ${event}:`, info);
-    this.subscribers.forEach((wc) => wc.send(event, info));
+    this.subscribers.forEach((wc) =>
+      wc.send("WindowPositionService", { type: event, data: info })
+    );
   }
 }
