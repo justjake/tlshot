@@ -348,8 +348,6 @@ const DragDimensions = forwardRef(function DragDimensions(
       spot: {
         width: bgSize,
         position: "absolute",
-        top: mousePositionRef.current.y + offset,
-        left: mousePositionRef.current.x + offset,
         transform: `translate(${translateX}, ${translateY})`,
         borderRadius: 3,
         background: "rgba(0, 0, 0, 0.7)",

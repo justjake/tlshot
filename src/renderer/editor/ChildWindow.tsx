@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import NewWindow, { IWindowFeatures } from "react-new-window";
+import { ChildWindowNanoid } from "../../main/WindowPositionService";
 
 interface ChildWindowHandle {
   ephemeralId: number;
@@ -95,6 +96,9 @@ export function useGetWindow(): GetWindowFunction {
     return getWindow;
   }, [handle]);
 }
+
+export type ChildWindowFeatures = Electron.BrowserWindowConstructorOptions &
+  IWindowFeatures & { childWindowId?: ChildWindowNanoid };
 
 export interface ChildWindowProps {
   name: string;
