@@ -1,68 +1,22 @@
-import {
-  session,
-  desktopCapturer,
-  ipcMain,
-  screen,
-  BrowserWindow,
-} from "electron";
-import installExtension, {
-  REACT_DEVELOPER_TOOLS,
-} from "electron-extension-installer";
+import { desktopCapturer, ipcMain, screen, BrowserWindow } from "electron";
 
-import PreferenceStore from "electron-store";
 import {
   ChildWindowNanoid,
   WindowDisplayService,
 } from "./WindowDisplayService";
 import { StoreService } from "./StoreService";
 import { AnyServiceEvent, Service } from "./Service";
-interface StoreData {
-  editorWindowBounds?: Electron.Rectangle;
-  editorWindowDevtools?: boolean;
-}
-export const PREFERENCE_STORE = new PreferenceStore<StoreData>();
+import { applyContentSecurityPolicy } from "./contentSecurityPolicy";
+import { installDevtoolsExtensions } from "./devtools";
 
-// https://github.com/wulkano/Kap/blob/main/main/windows/cropper.ts
-
-function applyContentSecurityPolicy() {
-  /**
-   * Electron tells us to turn this off, but it instantly breaks Webpack's ability to do anything.
-   * Very sad.
-   *
-   * https://twitter.com/jitl/status/1644513765176516609
-   */
-  const UNSAFE_EVAL = `'unsafe-eval'`;
-  const CONTENT_SECURITY_POLICY = [
-    `default-src 'self' 'unsafe-inline' ${UNSAFE_EVAL} data:`,
-    // We need to explicitly allow blob: for Tldraw assets to work.
-    `img-src 'self' data: blob:`,
-  ].join("; ");
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": [CONTENT_SECURITY_POLICY],
-      },
-    });
-  });
-}
-
-function installDevtoolsExtensions() {
-  return installExtension(REACT_DEVELOPER_TOOLS, {
-    loadExtensionOptions: {
-      allowFileAccess: true,
-    },
-  });
-}
-
-export type TlshotApiResponse = {
-  [K in keyof TlshotApi]: TlshotApi[K] extends (...args: any) => infer R
+export type TLShotApiResponse = {
+  [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
     ? Awaited<R>
     : never;
 };
 
-export type TlshotApiRequest = {
-  [K in keyof TlshotApi]: TlshotApi[K] extends (
+export type TLShotApiRequest = {
+  [K in keyof TLShotApi]: TLShotApi[K] extends (
     first: any,
     ...rest: infer R
   ) => any
@@ -70,29 +24,29 @@ export type TlshotApiRequest = {
     : never;
 };
 
-export type TlshotApiClient = {
-  [K in keyof TlshotApi]: TlshotApi[K] extends (...args: any) => any
-    ? (...args: TlshotApiRequest[K]) => Promise<TlshotApiResponse[K]>
-    : never;
+export type TLShotApiClient = {
+  [K in keyof TLShotApi as TLShotApi[K] extends (...args: any) => any
+    ? K
+    : never]: (...args: TLShotApiRequest[K]) => Promise<TLShotApiResponse[K]>;
 };
 
-export type CaptureSource = TlshotApiResponse["getSources"][number];
+export type CaptureSource = TLShotApiResponse["getSources"][number];
 
-export class TlshotApi {
-  private static instance: TlshotApi | undefined;
+export class TLShotApi {
+  private static instance: TLShotApi | undefined;
   static getInstance() {
     if (!this.instance) {
-      this.instance = new TlshotApi();
+      this.instance = new TLShotApi();
       this.connect(this.instance);
     }
     return this.instance;
   }
 
   // https://www.electronjs.org/docs/latest/api/ipc-renderer#ipcrendererinvokechannel-args
-  private static connect(instance: TlshotApi) {
+  private static connect(instance: TLShotApi) {
     const methodNames = Object.getOwnPropertyNames(
-      TlshotApi.prototype
-    ) as Array<keyof TlshotApi>;
+      TLShotApi.prototype
+    ) as Array<keyof TLShotApi>;
 
     console.log("methodNames", methodNames);
 
@@ -102,7 +56,7 @@ export class TlshotApi {
       const method = instance[methodName];
       if (typeof method !== "function") continue;
 
-      console.log("TlshotApi: connecting method:", methodName, method);
+      console.log("TLShotApi: connecting method:", methodName, method);
       ipcMain.handle(methodName, method.bind(instance));
     }
   }
@@ -228,7 +182,7 @@ export class TlshotApi {
 export async function startServices() {
   applyContentSecurityPolicy();
   await installDevtoolsExtensions();
-  TlshotApi.getInstance();
+  TLShotApi.getInstance();
 }
 
 export type AllServices = {

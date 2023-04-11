@@ -1,11 +1,11 @@
 import React, { CSSProperties, useMemo } from "react";
-import { TlshotApiResponse } from "../../main/services";
+import { TLShotApiResponse } from "../../main/TLShotApi";
 import { useStyles } from "./useStyles";
 
-type CaptureSource = TlshotApiResponse["getSources"][0];
+type CaptureSource = TLShotApiResponse["getSources"][0];
 
 export function SourcesGrid(props: {
-  sources: TlshotApiResponse["getSources"];
+  sources: TLShotApiResponse["getSources"];
   onClose: () => void;
   onClickSource: (source: CaptureSource) => void;
 }) {

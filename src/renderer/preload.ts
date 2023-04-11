@@ -4,23 +4,23 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type {
   AllServiceEvents,
-  TlshotApiClient,
-  TlshotApiRequest,
-  TlshotApiResponse,
-} from "@/main/services";
+  TLShotApiClient,
+  TLShotApiRequest,
+  TLShotApiResponse,
+} from "@/main/TLShotApi";
 
 const DEBUG = true;
 
-class TlshotApiClientImpl implements TlshotApiClient {
-  createMethod<T extends keyof TlshotApiClient>(name: T): TlshotApiClient[T] {
+class TlshotApiClientImpl implements TLShotApiClient {
+  createMethod<T extends keyof TLShotApiClient>(name: T): TLShotApiClient[T] {
     return function asyncMethod(
-      ...args: TlshotApiRequest[T]
-    ): Promise<TlshotApiResponse[T]> {
+      ...args: TLShotApiRequest[T]
+    ): Promise<TLShotApiResponse[T]> {
       if (DEBUG) {
         console.warn("TlshotApiClient: call:", name, args);
       }
-      return ipcRenderer.invoke(name, ...args) as Promise<TlshotApiResponse[T]>;
-    } as any as TlshotApiClient[T];
+      return ipcRenderer.invoke(name, ...args) as Promise<TLShotApiResponse[T]>;
+    } as any as TLShotApiClient[T];
   }
 
   getSources = this.createMethod("getSources");

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ModalOverlayWindow } from "./ModalOverlayWindow";
 import { SourcesGrid } from "./SourcePicker";
-import { CaptureSource } from "../../main/services";
+import { CaptureSource } from "../../main/TLShotApi";
 import { captureUserMediaSource, createShapeFromBlob } from "./captureHelpers";
 import { useApp } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";

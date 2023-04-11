@@ -1,4 +1,4 @@
-import { AllServiceEvents } from "@/main/services";
+import { AllServiceEvents } from "@/main/TLShotApi";
 import { createTLShotStore } from "@/shared/store";
 import { Windows } from "./editor/ChildWindow";
 import { DEBUGGING } from "@/shared/debugging";

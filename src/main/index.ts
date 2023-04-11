@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from "electron";
-import { startServices } from "./services";
+import { startServices } from "./TLShotApi";
 import { createEditorWindow } from "./editor";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
