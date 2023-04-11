@@ -11,10 +11,12 @@ import {
 import { useStyles } from "./useStyles";
 import React from "react";
 import { useGetWindow } from "./ChildWindow";
-import { useDisplays } from "./Displays";
 import { captureUserMediaSource } from "./captureHelpers";
+import { TLShot } from "../TLShotRendererApp";
+import { DisplayId } from "../../main/WindowDisplayService";
 
 export function Reticle(props: {
+  displayId: DisplayId;
   onSelect: (rect: DOMRect) => void;
   onClose: () => void;
 }) {
@@ -87,7 +89,7 @@ export function Reticle(props: {
   useEffect(() => {
     if (hasMouseState) {
       console.log("become active");
-      window.TlshotAPI.focusTopWindowNearMouse();
+      TLShot.api.focusTopWindowNearMouse();
     }
   }, [hasMouseState]);
 
@@ -204,6 +206,7 @@ export function Reticle(props: {
             style={styles.v}
           />
           <DragDimensions
+            displayId={props.displayId}
             onClose={props.onClose}
             origin={dragOrigin}
             current={mouseState}
@@ -221,17 +224,13 @@ interface DragDimensionsRef {
 
 const DragDimensions = forwardRef(function DragDimensions(
   props: {
+    displayId: DisplayId;
     origin: { x: number; y: number } | undefined;
     current: { x: number; y: number };
     onClose: () => void;
   },
   ref: ForwardedRef<DragDimensionsRef>
 ) {
-  const displayId = useDisplays()?.self.id;
-  if (!displayId) {
-    throw new Error("Must have displayId");
-  }
-
   const offset = 8;
   const mousePositionRef = useRef(props.current);
   const wrapper = useRef<HTMLDivElement | null>(null);
@@ -257,7 +256,7 @@ const DragDimensions = forwardRef(function DragDimensions(
     let unmounted = false;
     let blobUrl: string | undefined = undefined;
     const perform = async () => {
-      const source = await window.TlshotAPI.getDisplaySource(displayId);
+      const source = await TLShot.api.getDisplaySource(props.displayId);
       if (unmounted) {
         return;
       }
@@ -278,7 +277,7 @@ const DragDimensions = forwardRef(function DragDimensions(
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [displayId]);
+  }, [props.displayId]);
 
   const getWindow = useGetWindow();
 

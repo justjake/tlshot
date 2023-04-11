@@ -10,8 +10,7 @@ import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
 
-import Store from "electron-store";
-import { DisplaysState } from "../renderer/editor/Displays";
+import PreferenceStore from "electron-store";
 import {
   ChildWindowNanoid,
   WindowDisplayService,
@@ -22,7 +21,7 @@ interface StoreData {
   editorWindowBounds?: Electron.Rectangle;
   editorWindowDevtools?: boolean;
 }
-export const STORE = new Store<StoreData>();
+export const PREFERENCE_STORE = new PreferenceStore<StoreData>();
 
 // https://github.com/wulkano/Kap/blob/main/main/windows/cropper.ts
 
@@ -57,32 +56,6 @@ function installDevtoolsExtensions() {
   });
 }
 
-export class WindowHistoryLog {
-  static recentWindows = new WeakMap<
-    WebContents,
-    Array<WeakRef<BrowserWindow>>
-  >();
-
-  static track(browserWindow: BrowserWindow) {
-    browserWindow.webContents.on("did-create-window", (newWindow, details) => {
-      console.log(
-        "New window opened",
-        { from: browserWindow.id, to: newWindow.id },
-        details
-      );
-      this.didOpen(browserWindow.webContents, newWindow);
-      this.track(newWindow);
-    });
-  }
-
-  static didOpen(webContents: WebContents, newWindow: BrowserWindow) {
-    const ref = new WeakRef(newWindow);
-    const log = this.recentWindows.get(webContents) || [];
-    log.push(ref);
-    this.recentWindows.set(webContents, log);
-  }
-}
-
 export type TlshotApiResponse = {
   [K in keyof TlshotApi]: TlshotApi[K] extends (...args: any) => infer R
     ? Awaited<R>
@@ -107,8 +80,17 @@ export type TlshotApiClient = {
 export type CaptureSource = TlshotApiResponse["getSources"][number];
 
 export class TlshotApi {
+  private static instance: TlshotApi | undefined;
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new TlshotApi();
+      this.connect(this.instance);
+    }
+    return this.instance;
+  }
+
   // https://www.electronjs.org/docs/latest/api/ipc-renderer#ipcrendererinvokechannel-args
-  static connect(instance: TlshotApi) {
+  private static connect(instance: TlshotApi) {
     const methodNames = Object.getOwnPropertyNames(
       TlshotApi.prototype
     ) as Array<keyof TlshotApi>;
@@ -126,8 +108,8 @@ export class TlshotApi {
     }
   }
 
-  private storeService = new StoreService();
-  private windowPositionService = new WindowDisplayService();
+  public storeService = new StoreService();
+  public windowDisplayService = new WindowDisplayService();
 
   focusTopWindowNearMouse() {
     const mouse = screen.getCursorScreenPoint();
@@ -223,23 +205,6 @@ export class TlshotApi {
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   }
 
-  async getRecentWindowId(event: Electron.IpcMainInvokeEvent) {
-    const lastWindowCreated =
-      WindowHistoryLog.recentWindows.get(event.sender)?.at(-1)?.deref() ||
-      BrowserWindow.fromWebContents(event.sender);
-    if (lastWindowCreated) {
-      return {
-        caller: {
-          webContentsId: event.sender.id,
-        },
-        latestWindow: {
-          webContentsId: lastWindowCreated.webContents.id,
-          browserWindowId: lastWindowCreated.id,
-        },
-      };
-    }
-  }
-
   async setAlwaysOnTop(
     _event: Electron.IpcMainInvokeEvent,
     browserWindowId: number
@@ -257,7 +222,7 @@ export class TlshotApi {
     childWindowId: ChildWindowNanoid
   ) {
     this.storeService.addSubscriber(event.sender);
-    this.windowPositionService.addSubscriberAndUpdateWindow(
+    this.windowDisplayService.addSubscriberAndUpdateWindow(
       event.sender,
       childWindowId
     );
@@ -267,7 +232,7 @@ export class TlshotApi {
 export async function startServices() {
   applyContentSecurityPolicy();
   await installDevtoolsExtensions();
-  TlshotApi.connect(new TlshotApi());
+  TlshotApi.getInstance();
 }
 
 export type AllServices = {

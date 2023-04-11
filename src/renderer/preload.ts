@@ -9,7 +9,7 @@ import type {
   TlshotApiResponse,
 } from "../main/services";
 
-const DEBUG = false;
+const DEBUG = true;
 
 class TlshotApiClientImpl implements TlshotApiClient {
   createMethod<T extends keyof TlshotApiClient>(name: T): TlshotApiClient[T] {
@@ -25,7 +25,6 @@ class TlshotApiClientImpl implements TlshotApiClient {
 
   getSources = this.createMethod("getSources");
   getCurrentDisplay = this.createMethod("getCurrentDisplay");
-  getRecentWindowId = this.createMethod("getRecentWindowId");
   setAlwaysOnTop = this.createMethod("setAlwaysOnTop");
   captureAllDisplays = this.createMethod("captureAllDisplays");
   getDisplaySource = this.createMethod("getDisplaySource");
@@ -38,7 +37,12 @@ class TlshotApiClientImpl implements TlshotApiClient {
   ) => {
     const listener = (_: unknown, event: AllServiceEvents[ChannelName]) => {
       if (DEBUG) {
-        console.warn("TlshotApiClient: event:", channelName, event);
+        console.warn(
+          "TlshotApiClient: event:",
+          channelName,
+          event.type,
+          event.data
+        );
       }
       handler(event);
     };

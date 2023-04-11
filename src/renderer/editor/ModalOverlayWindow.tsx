@@ -1,28 +1,37 @@
 import React, { useEffect } from "react";
 import { ChildWindow, useGetWindow } from "./ChildWindow";
 import { Display } from "electron";
+import { TLShot } from "../TLShotRendererApp";
+import { waitUntil } from "../../shared/signiaHelpers";
+import { DisplayRecord } from "../../shared/records/DisplayRecord";
 
 export function ModalOverlayWindow(props: {
   children: React.ReactNode;
   onClose: () => void;
-  display?: Display;
+  display?: DisplayRecord;
 }) {
-  const getWindow = useGetWindow();
+  const getParent = useGetWindow();
 
   const left = props.display?.bounds.x ?? 0;
   const top = props.display?.bounds.y ?? 0;
-  const width = props.display?.bounds.width ?? getWindow().screen.width;
-  const height = props.display?.bounds.height ?? getWindow().screen.height;
+  const width = props.display?.bounds.width ?? getParent().screen.width;
+  const height = props.display?.bounds.height ?? getParent().screen.height;
 
   return (
     <ChildWindow
       name="Take screenshot"
       onUnload={props.onClose}
       onOpen={async (_, handle) => {
-        await handle.registered;
-        if (handle.browserWindowId) {
-          window.TlshotAPI.setAlwaysOnTop(handle.browserWindowId);
-        }
+        const query = TLShot.store.query.record("window", () => ({
+          childWindowId: {
+            eq: handle,
+          },
+        }));
+        const browserId = await waitUntil(
+          "modalOverlayBrowserId",
+          () => query.value?.browserWindowId
+        );
+        TLShot.api.setAlwaysOnTop(browserId);
       }}
       center={props.display ? "none" : "screen"}
       features={{

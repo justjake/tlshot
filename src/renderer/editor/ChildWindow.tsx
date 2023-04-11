@@ -3,13 +3,14 @@ import NewWindow, { IWindowFeatures } from "react-new-window";
 import {
   BrowserWindowId,
   ChildWindowNanoid,
-} from "../../main/WindowPositionService";
+} from "../../main/WindowDisplayService";
 import { nanoid } from "nanoid";
 
 interface ChildWindowInfo {
   childWindowId: ChildWindowNanoid;
   registered: Promise<void>;
   window?: WeakRef<Window>;
+  browserWindowId?: BrowserWindowId;
 }
 
 class ChildWindowRegistry {
@@ -19,7 +20,7 @@ class ChildWindowRegistry {
 
   constructor() {
     this.ROOT_WINDOW = this.createId();
-    this.registerWindow(this.ROOT_WINDOW, globalThis.window);
+    this.register(this.ROOT_WINDOW, globalThis.window);
   }
 
   createId(): ChildWindowNanoid {

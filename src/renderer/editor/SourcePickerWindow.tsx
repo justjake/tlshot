@@ -4,12 +4,13 @@ import { SourcesGrid } from "./SourcePicker";
 import { CaptureSource } from "../../main/services";
 import { captureUserMediaSource, createShapeFromBlob } from "./captureHelpers";
 import { useApp } from "@tldraw/editor";
+import { TLShot } from "../TLShotRendererApp";
 
 export function SourcePickerWindow(props: { onClose: () => void }) {
   const [sources, setSource] = useState<CaptureSource[] | undefined>();
   useEffect(() => {
     const get = async () => {
-      const sources = await window.TlshotAPI.getSources();
+      const sources = await TLShot.api.getSources();
       setSource(sources);
     };
     void get();

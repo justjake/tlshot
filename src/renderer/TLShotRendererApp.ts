@@ -3,9 +3,10 @@ import { ChildWindowNanoid } from "../main/WindowDisplayService";
 import { AllServiceEvents } from "../main/services";
 import { createTLShotStore } from "../shared/store";
 import { createContext, useContext } from "react";
+import { Windows } from "./editor/ChildWindow";
+import { DEBUGGING } from "../shared/debugging";
 
 export class TLShotRendererApp {
-  public readonly rootWindowNanoid = nanoid() as ChildWindowNanoid;
   public readonly api = globalThis.window.TlshotAPI;
   public readonly store = createTLShotStore({
     process: "renderer",
@@ -13,7 +14,7 @@ export class TLShotRendererApp {
 
   constructor() {
     this.api.addServiceListener("Service/TLShotStore", this.handleStoreEvent);
-    this.api.subscribeToStore(this.rootWindowNanoid);
+    this.api.subscribeToStore(Windows.ROOT_WINDOW);
   }
 
   private handleStoreEvent = (
@@ -36,15 +37,15 @@ export class TLShotRendererApp {
         );
     }
   };
-}
 
-const TLShotContext = createContext<TLShotRendererApp | undefined>(undefined);
-TLShotContext.displayName = "TLShot";
-
-export function useTLShot(): TLShotRendererApp {
-  const tlshot = useContext(TLShotContext);
-  if (!tlshot) {
-    throw new Error("TLShot context not found");
+  private queries() {
+    this.store.query.record("window", () => ({
+      childWindowId: {
+        eq: Windows.ROOT_WINDOW,
+      },
+    }));
   }
-  return tlshot;
 }
+
+export const TLShot = new TLShotRendererApp();
+DEBUGGING.TLShot = TLShot;

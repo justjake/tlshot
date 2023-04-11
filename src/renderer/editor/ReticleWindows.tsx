@@ -3,34 +3,40 @@
  */
 
 import React from "react";
-import { DisplayProvider, useDisplays } from "./Displays";
 import { ModalOverlayWindow } from "./ModalOverlayWindow";
 import { Reticle } from "./Reticle";
-import { Display } from "electron";
 import { captureUserMediaSource, createShapeFromBlob } from "./captureHelpers";
 import { App, useApp } from "@tldraw/editor";
+import { TLShot } from "../TLShotRendererApp";
+import { useComputed, useValue } from "signia-react";
+import { DisplayRecord } from "../../shared/records/DisplayRecord";
 
 export function ReticleWindows(props: { onClose: () => void }) {
-  const displays = useDisplays();
+  const displays = useValue(
+    useComputed(
+      "displays",
+      () => TLShot.store.query.records("display").value,
+      []
+    )
+  );
   const app = useApp();
 
   if (!displays) {
     return null;
   }
 
-  const windows = Array.from(displays.displays.values()).map((display) => {
+  const windows = displays.map((display) => {
     return (
       <ModalOverlayWindow
         key={display.id}
         onClose={props.onClose}
         display={display}
       >
-        <DisplayProvider self={display}>
-          <Reticle
-            onClose={props.onClose}
-            onSelect={(rect) => onSelectDisplay(app, display, rect)}
-          />
-        </DisplayProvider>
+        <Reticle
+          onClose={props.onClose}
+          displayId={display.displayId}
+          onSelect={(rect) => onSelectDisplay(app, display, rect)}
+        />
       </ModalOverlayWindow>
     );
   });
@@ -38,8 +44,12 @@ export function ReticleWindows(props: { onClose: () => void }) {
   return <>{windows}</>;
 }
 
-async function onSelectDisplay(app: App, display: Display, rect: DOMRect) {
-  const source = await window.TlshotAPI.getDisplaySource(display.id);
+async function onSelectDisplay(
+  app: App,
+  display: DisplayRecord,
+  rect: DOMRect
+) {
+  const source = await TLShot.api.getDisplaySource(display.displayId);
   if (!source) {
     throw new Error(`No source for display ${display.id}`);
   }

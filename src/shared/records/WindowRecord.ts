@@ -5,7 +5,7 @@ import {
   DisplayId,
   ChildWindowNanoid,
   BrowserWindowId,
-} from "../../main/WindowPositionService";
+} from "../../main/WindowDisplayService";
 
 const WindowRecordTypeName = "window" as const;
 type WindowRecordTypeName = typeof WindowRecordTypeName;

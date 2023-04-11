@@ -1,14 +1,6 @@
-import React, { CSSProperties, useCallback, useMemo } from "react";
-import { useState } from "react";
-import { TlshotApiResponse } from "../../main/services";
 import "./captureView.css";
-import { createShapesFromFiles, useApp } from "@tldraw/editor";
-import { ChildWindow, useGetWindow } from "./ChildWindow";
-import { ModalOverlayWindow } from "./ModalOverlayWindow";
+import React, { CSSProperties, useCallback, useMemo, useState } from "react";
 import { useStyles } from "./useStyles";
-import { Reticle } from "./Reticle";
-import { useDisplays } from "./Displays";
-import { SourcesGrid } from "./SourcePicker";
 import { ReticleWindows } from "./ReticleWindows";
 import { SourcePickerWindow } from "./SourcePickerWindow";
 

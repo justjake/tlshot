@@ -8,7 +8,7 @@ import {
 import { nanoid } from "nanoid";
 import { ChildWindowFeatures } from "../renderer/editor/ChildWindow";
 import { MainProcessStore } from "./MainProcessStore";
-import { WindowRecord } from "../shared/records/WindowRecord";
+import { WindowRecord, WindowRecordId } from "../shared/records/WindowRecord";
 import { DisplayRecord } from "../shared/records/DisplayRecord";
 import { Service } from "./Service";
 
@@ -134,9 +134,11 @@ export class WindowDisplayService extends Service<
       return;
     }
 
+    // TODO: what about if the window's webcontents reload - then there'll be a new call w/ a new ownId,
+    // but it's the same browser window 🧐
     if (browserWindow.childWindowId && browserWindow.childWindowId !== ownId) {
-      throw new Error(
-        `BrowserWindow already has a childWindowId: ${browserWindow.childWindowId}`
+      console.warn(
+        `BrowserWindow(${browserWindow.id}): Changing childWindowId from ${browserWindow.childWindowId} to ${ownId}`
       );
     }
 
@@ -190,8 +192,9 @@ export class WindowDisplayService extends Service<
     browserWindow.on("resized", () => {
       this.handleWindowChanged(browserWindow);
     });
+    const id = this.windowRecordId(browserWindow.id);
     browserWindow.on("closed", () => {
-      this.handleWindowClosed(browserWindow);
+      this.handleWindowClosed(id);
     });
 
     this.handleWindowChanged(browserWindow);
@@ -201,8 +204,8 @@ export class WindowDisplayService extends Service<
     MainProcessStore.put([this.getWindowRecord(browserWindow)]);
   }
 
-  handleWindowClosed(browserWindow: BrowserWindow) {
-    MainProcessStore.remove([this.windowRecordId(browserWindow.id)]);
+  handleWindowClosed(id: WindowRecordId) {
+    MainProcessStore.remove([id]);
   }
 
   getWindowRecord(browserWindow: BrowserWindow): WindowRecord {
