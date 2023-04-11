@@ -7,6 +7,10 @@ import {
 } from "electron";
 import { nanoid } from "nanoid";
 import { ChildWindowFeatures } from "../renderer/editor/ChildWindow";
+import { MainProcessStore } from "./MainProcessStore";
+import { WindowRecord } from "../shared/records/WindowRecord";
+import { DisplayRecord } from "../shared/records/DisplayRecord";
+import { Service } from "./Service";
 
 export type WebContentsId = number & { __typename__?: "WebContents" };
 export type BrowserWindowId = number & { __typename__?: "BrowserWindow" };
@@ -77,22 +81,53 @@ export type WindowPositionServiceEvent = {
   };
 }[keyof WindowPositionServiceEvents];
 
-export class WindowPositionService {
-  subscribers = new Set<WebContents>();
-
+export class WindowDisplayService extends Service<
+  "Services/WindowDisplay",
+  Record<string, never>
+> {
   constructor() {
-    screen.on("display-added", (_event, display) =>
-      this.handleDisplayChanged(display)
-    );
-    screen.on("display-metrics-changed", (_event, display) =>
-      this.handleDisplayChanged(display)
-    );
-    screen.on("display-removed", (_event, display) =>
-      this.handleDisplayRemoved(display)
-    );
+    super("Services/WindowDisplay", () => {
+      const handleDisplayChanged = (_event: unknown, display: Display) => {
+        this.handleDisplayChanged(display);
+      };
+      const handleDisplayRemoved = (_event: unknown, display: Display) => {
+        this.handleDisplayRemoved(display);
+      };
+      screen.on("display-added", handleDisplayChanged);
+      screen.on("display-metrics-changed", handleDisplayChanged);
+      screen.on("display-removed", handleDisplayRemoved);
+
+      MainProcessStore.put([
+        ...screen
+          .getAllDisplays()
+          .map((display) => this.getDisplayRecord(display)),
+        ...BrowserWindow.getAllWindows().map((browserWindow) =>
+          this.getWindowRecord(browserWindow)
+        ),
+      ]);
+
+      return () => {
+        screen.off("display-added", handleDisplayChanged);
+        screen.off("display-metrics-changed", handleDisplayChanged);
+        screen.off("display-removed", handleDisplayRemoved);
+
+        // TODO: should we remove all the Display / Window records?
+      };
+    });
   }
 
-  addSubscriber(subscriber: WebContents, ownId: ChildWindowNanoid) {
+  windowRecordId(id: BrowserWindowId) {
+    return WindowRecord.createCustomId(String(id));
+  }
+
+  displayRecordId(id: DisplayId) {
+    return DisplayRecord.createCustomId(String(id));
+  }
+
+  addSubscriberAndUpdateWindow(
+    subscriber: WebContents,
+    ownId: ChildWindowNanoid
+  ) {
     const browserWindow: BrowserWindow | null =
       BrowserWindow.fromWebContents(subscriber);
     if (!browserWindow) {
@@ -108,20 +143,23 @@ export class WindowPositionService {
     browserWindow.childWindowId = ownId;
     this.handleWindowChanged(browserWindow);
 
-    this.subscribers.add(subscriber);
-    subscriber.once("destroyed", () => {
-      this.subscribers.delete(subscriber);
-    });
-
-    this.dispatch("window-display-subscribed", this.getWindowsAndDisplays());
+    this.addSubscriber(subscriber);
   }
 
   handleDisplayChanged(display: Electron.Display) {
-    this.dispatch("display-changed", display);
+    MainProcessStore.put([this.getDisplayRecord(display)]);
   }
 
   handleDisplayRemoved(display: Electron.Display) {
-    this.dispatch("display-removed", display.id);
+    MainProcessStore.remove([this.displayRecordId(display.id)]);
+  }
+
+  getDisplayRecord(display: Display): DisplayRecord {
+    return DisplayRecord.create({
+      ...display,
+      id: this.displayRecordId(display.id),
+      displayId: display.id,
+    });
   }
 
   handleWindowCreated(
@@ -160,46 +198,23 @@ export class WindowPositionService {
   }
 
   handleWindowChanged(browserWindow: BrowserWindow) {
-    this.dispatch("window-changed", this.getBrowserWindowInfo(browserWindow));
+    MainProcessStore.put([this.getWindowRecord(browserWindow)]);
   }
 
   handleWindowClosed(browserWindow: BrowserWindow) {
-    this.dispatch("window-removed", browserWindow.id);
+    MainProcessStore.remove([this.windowRecordId(browserWindow.id)]);
   }
 
-  getBrowserWindowInfo(browserWindow: BrowserWindow): BrowserWindowInfo {
+  getWindowRecord(browserWindow: BrowserWindow): WindowRecord {
     const display = screen.getDisplayMatching(browserWindow.getBounds());
-    return {
+    return WindowRecord.create({
+      id: this.windowRecordId(browserWindow.id),
       browserWindowId: browserWindow.id as BrowserWindowId,
       childWindowId: browserWindow.childWindowId,
       displayId: display.id as DisplayId,
       bounds: browserWindow.getBounds(),
       isVisible: browserWindow.isVisible(),
       isAlwaysOnTop: browserWindow.isAlwaysOnTop(),
-    };
-  }
-
-  getWindowsAndDisplays(): WindowsAndDisplays {
-    const result: WindowsAndDisplays = {
-      windows: {},
-      displays: {},
-    };
-    for (const bw of BrowserWindow.getAllWindows()) {
-      result.windows[bw.id] = this.getBrowserWindowInfo(bw);
-    }
-    for (const display of screen.getAllDisplays()) {
-      result.displays[display.id] = display;
-    }
-    return result;
-  }
-
-  private dispatch<T extends keyof WindowPositionServiceEvents>(
-    event: T,
-    info: WindowPositionServiceEvents[T]
-  ) {
-    console.log(`WindowPositionService: ${event}:`, info);
-    this.subscribers.forEach((wc) =>
-      wc.send("WindowPositionService", { type: event, data: info })
-    );
+    });
   }
 }

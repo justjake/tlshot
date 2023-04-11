@@ -14,8 +14,10 @@ import Store from "electron-store";
 import { DisplaysState } from "../renderer/editor/Displays";
 import {
   ChildWindowNanoid,
-  WindowPositionService,
-} from "./WindowPositionService";
+  WindowDisplayService,
+} from "./WindowDisplayService";
+import { StoreService } from "./StoreService";
+import { AnyServiceEvent, Service } from "./Service";
 interface StoreData {
   editorWindowBounds?: Electron.Rectangle;
   editorWindowDevtools?: boolean;
@@ -124,7 +126,8 @@ export class TlshotApi {
     }
   }
 
-  private windowPositionService = new WindowPositionService();
+  private storeService = new StoreService();
+  private windowPositionService = new WindowDisplayService();
 
   focusTopWindowNearMouse() {
     const mouse = screen.getCursorScreenPoint();
@@ -249,53 +252,15 @@ export class TlshotApi {
     browserWindow.setAlwaysOnTop(true, "screen-saver");
   }
 
-  subscribeToDisplays(event: Electron.IpcMainInvokeEvent) {
-    const getDisplaysState = (): DisplaysState => {
-      const map = new Map<number, Electron.Display>();
-      for (const display of screen.getAllDisplays()) {
-        map.set(display.id, display);
-      }
-      return {
-        currentDisplay: this.getCurrentDisplay().id,
-        displays: map,
-      };
-    };
-
-    const sendDisplayState = () => {
-      event.sender.send("displaysChanged", getDisplaysState());
-    };
-
-    // TODO: better way than polling?
-    let currentDisplay = this.getCurrentDisplay();
-    const interval = setInterval(() => {
-      const newDisplay = this.getCurrentDisplay();
-      if (newDisplay.id !== currentDisplay.id) {
-        currentDisplay = newDisplay;
-        sendDisplayState();
-      }
-    }, 500);
-
-    screen.on("display-added", sendDisplayState);
-    screen.on("display-metrics-changed", sendDisplayState);
-    screen.on("display-removed", sendDisplayState);
-
-    const cleanUp = () => {
-      clearInterval(interval);
-      screen.off("display-added", sendDisplayState);
-      screen.off("display-metrics-changed", sendDisplayState);
-      screen.off("display-removed", sendDisplayState);
-    };
-
-    event.sender.once("destroyed", cleanUp);
-
-    return getDisplaysState();
-  }
-
-  subscribeToWindowPositionService(
+  subscribeToStore(
     event: Electron.IpcMainInvokeEvent,
-    ownId: ChildWindowNanoid
+    childWindowId: ChildWindowNanoid
   ) {
-    this.windowPositionService.addSubscriber(event.sender, ownId);
+    this.storeService.addSubscriber(event.sender);
+    this.windowPositionService.addSubscriberAndUpdateWindow(
+      event.sender,
+      childWindowId
+    );
   }
 }
 
@@ -304,3 +269,15 @@ export async function startServices() {
   await installDevtoolsExtensions();
   TlshotApi.connect(new TlshotApi());
 }
+
+export type AllServices = {
+  [K in WindowDisplayService["channelName"]]: WindowDisplayService;
+} & {
+  [K in StoreService["channelName"]]: StoreService;
+};
+
+export type AllServiceEvents = {
+  [K in keyof AllServices]: AllServices[K] extends Service<any, infer E>
+    ? AnyServiceEvent<E>
+    : never;
+};

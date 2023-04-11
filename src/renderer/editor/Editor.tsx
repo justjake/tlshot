@@ -11,10 +11,11 @@ import {
   ContextMenu,
   TldrawUiContextProviderProps,
 } from "@tldraw/ui";
-import React from "react";
+import React, { useState } from "react";
 import { CaptureView } from "./CaptureToolbar";
 import { useColorScheme } from "./useColorScheme";
 import { DisplaysListener } from "./Displays";
+import { TLShotRendererApp } from "../TLShotRendererApp";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format(url) {
@@ -28,6 +29,7 @@ const UIContextProps: TldrawUiContextProviderProps = {
 
 export function Editor() {
   const scheme = useColorScheme();
+  const [tlshot] = useState(() => new TLShotRendererApp());
 
   return (
     <TldrawEditor
