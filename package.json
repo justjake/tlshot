@@ -36,6 +36,7 @@
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "node-loader": "^2.0.0",
     "patch-package": "^6.5.1",
+    "prettier": "^2.8.7",
     "style-loader": "^3.0.0",
     "ts-loader": "^9.2.2",
     "ts-node": "^10.0.0",
