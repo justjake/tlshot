@@ -10,7 +10,8 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint .",
+    "fix": "yarn lint --fix; prettier -w ."
   },
   "keywords": [],
   "author": {
@@ -40,7 +41,7 @@
     "style-loader": "^3.0.0",
     "ts-loader": "^9.2.2",
     "ts-node": "^10.0.0",
-    "typescript": "5.5.4"
+    "typescript": "5.0.4"
   },
   "dependencies": {
     "@tldraw/assets": "^2.0.0-canary.dc7c1416a",

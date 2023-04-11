@@ -212,7 +212,7 @@ export class WindowDisplayService extends Service<
     const display = screen.getDisplayMatching(browserWindow.getBounds());
     return WindowRecord.create({
       id: this.windowRecordId(browserWindow.id),
-      browserWindowId: browserWindow.id as BrowserWindowId,
+      browserWindowId: browserWindow.id,
       childWindowId: browserWindow.childWindowId,
       displayId: display.id as DisplayId,
       bounds: browserWindow.getBounds(),

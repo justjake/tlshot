@@ -100,7 +100,7 @@ export class TlshotApi {
     for (const methodName of methodNames) {
       if (methodName === ("constructor" as any)) continue;
 
-      const method = instance[methodName as keyof TlshotApi];
+      const method = instance[methodName];
       if (typeof method !== "function") continue;
 
       console.log("TlshotApi: connecting method:", methodName, method);

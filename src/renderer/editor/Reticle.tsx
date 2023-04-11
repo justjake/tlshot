@@ -1,4 +1,4 @@
-import {
+import React, {
   CSSProperties,
   ForwardedRef,
   forwardRef,
@@ -11,7 +11,6 @@ import {
   useState,
 } from "react";
 import { useStyles } from "./useStyles";
-import React from "react";
 import { useGetWindow } from "./ChildWindow";
 import { captureUserMediaSource } from "./captureHelpers";
 import { TLShot } from "../TLShotRendererApp";

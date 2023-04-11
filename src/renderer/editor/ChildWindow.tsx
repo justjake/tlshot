@@ -29,7 +29,7 @@ class ChildWindowRegistry {
       childWindowId,
     } as ChildWindowInfo;
     handle.registered = new Promise((resolve) => {
-      this.ready.set(handle as ChildWindowInfo, resolve);
+      this.ready.set(handle, resolve);
     });
     this.handles.set(childWindowId, handle);
     return childWindowId;
