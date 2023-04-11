@@ -1,11 +1,4 @@
-import {
-  screen,
-  Display,
-  BrowserWindow,
-  webContents,
-  WebContents,
-} from "electron";
-import { nanoid } from "nanoid";
+import { screen, Display, BrowserWindow, WebContents } from "electron";
 import { ChildWindowFeatures } from "../renderer/editor/ChildWindow";
 import { MainProcessStore } from "./MainProcessStore";
 import { WindowRecord, WindowRecordId } from "../shared/records/WindowRecord";

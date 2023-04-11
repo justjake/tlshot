@@ -7,7 +7,6 @@ import { useApp } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { useComputed, useValue } from "signia-react";
 import { useGetWindow } from "./ChildWindow";
-import { DisplayRecord } from "../../shared/records/DisplayRecord";
 
 export function SourcePickerWindow(props: { onClose: () => void }) {
   const [sources, setSource] = useState<CaptureSource[] | undefined>();

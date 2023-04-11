@@ -19,8 +19,8 @@ class TlshotApiClientImpl implements TlshotApiClient {
       if (DEBUG) {
         console.warn("TlshotApiClient: call:", name, args);
       }
-      return ipcRenderer.invoke(name, ...args);
-    } as any;
+      return ipcRenderer.invoke(name, ...args) as Promise<TlshotApiResponse[T]>;
+    } as any as TlshotApiClient[T];
   }
 
   getSources = this.createMethod("getSources");

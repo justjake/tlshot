@@ -1,8 +1,5 @@
-import { nanoid } from "nanoid";
-import { ChildWindowNanoid } from "../main/WindowDisplayService";
 import { AllServiceEvents } from "../main/services";
 import { createTLShotStore } from "../shared/store";
-import { createContext, useContext } from "react";
 import { Windows } from "./editor/ChildWindow";
 import { DEBUGGING } from "../shared/debugging";
 

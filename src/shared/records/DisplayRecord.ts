@@ -1,11 +1,7 @@
 import { BaseRecord, ID, createRecordType } from "@tldraw/tlstore";
 import { T } from "@tldraw/tlvalidate";
-import { Display, Rectangle } from "electron";
-import {
-  DisplayId,
-  ChildWindowNanoid,
-  BrowserWindowId,
-} from "../../main/WindowDisplayService";
+import { Display } from "electron";
+import { DisplayId } from "../../main/WindowDisplayService";
 
 const DisplayRecordTypeName = "display" as const;
 type DisplayRecordTypeName = typeof DisplayRecordTypeName;

@@ -4,7 +4,6 @@ import {
   ipcMain,
   screen,
   BrowserWindow,
-  WebContents,
 } from "electron";
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
@@ -72,9 +71,9 @@ export type TlshotApiRequest = {
 };
 
 export type TlshotApiClient = {
-  [K in keyof TlshotApi]: (
-    ...args: TlshotApiRequest[K]
-  ) => Promise<TlshotApiResponse[K]>;
+  [K in keyof TlshotApi]: TlshotApi[K] extends (...args: any) => any
+    ? (...args: TlshotApiRequest[K]) => Promise<TlshotApiResponse[K]>
+    : never;
 };
 
 export type CaptureSource = TlshotApiResponse["getSources"][number];
@@ -205,10 +204,7 @@ export class TlshotApi {
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   }
 
-  async setAlwaysOnTop(
-    _event: Electron.IpcMainInvokeEvent,
-    browserWindowId: number
-  ) {
+  setAlwaysOnTop(_event: Electron.IpcMainInvokeEvent, browserWindowId: number) {
     const browserWindow = BrowserWindow.fromId(browserWindowId);
     if (!browserWindow) {
       console.log("id not found", browserWindowId);

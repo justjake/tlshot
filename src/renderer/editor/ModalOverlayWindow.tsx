@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { ChildWindow, useGetWindow } from "./ChildWindow";
-import { Display } from "electron";
 import { TLShot } from "../TLShotRendererApp";
 import { waitUntil } from "../../shared/signiaHelpers";
 import { DisplayRecord } from "../../shared/records/DisplayRecord";

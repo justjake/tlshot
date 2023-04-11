@@ -11,10 +11,9 @@ import {
   ContextMenu,
   TldrawUiContextProviderProps,
 } from "@tldraw/ui";
-import React, { useState } from "react";
+import React from "react";
 import { CaptureView } from "./CaptureToolbar";
 import { useColorScheme } from "./useColorScheme";
-import { TLShotRendererApp } from "../TLShotRendererApp";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format(url) {
