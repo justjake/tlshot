@@ -2,8 +2,10 @@ import {
   CSSProperties,
   ForwardedRef,
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -222,6 +224,7 @@ interface DragDimensionsRef {
   setPosition(point: { x: number; y: number }): void;
 }
 
+// Needs a rewrite
 const DragDimensions = forwardRef(function DragDimensions(
   props: {
     displayId: DisplayId;
@@ -234,19 +237,24 @@ const DragDimensions = forwardRef(function DragDimensions(
   const offset = 8;
   const mousePositionRef = useRef(props.current);
   const wrapper = useRef<HTMLDivElement | null>(null);
+  const setPosition = useCallback((point: { x: number; y: number }) => {
+    mousePositionRef.current = point;
+    if (wrapper.current) {
+      wrapper.current.style.left = `${point.x + offset}px`;
+      wrapper.current.style.top = `${point.y + offset}px`;
+    }
+  }, []);
   useImperativeHandle(
     ref,
     () => ({
-      setPosition(point) {
-        mousePositionRef.current = point;
-        if (wrapper.current) {
-          wrapper.current.style.left = `${point.x + offset}px`;
-          wrapper.current.style.top = `${point.y + offset}px`;
-        }
-      },
+      setPosition,
     }),
-    []
+    [setPosition]
   );
+
+  useLayoutEffect(() => {
+    setPosition(mousePositionRef.current);
+  }, []);
 
   const bgImageElement = useRef<HTMLImageElement | null>(null);
 
@@ -357,6 +365,8 @@ const DragDimensions = forwardRef(function DragDimensions(
         textAlign: "center",
         overflow: "clip",
         imageRendering: "pixelated",
+        top: mousePositionRef.current.y,
+        left: mousePositionRef.current.x,
       },
       texts: {
         display: "flex",

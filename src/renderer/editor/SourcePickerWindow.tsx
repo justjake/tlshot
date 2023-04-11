@@ -5,6 +5,9 @@ import { CaptureSource } from "../../main/services";
 import { captureUserMediaSource, createShapeFromBlob } from "./captureHelpers";
 import { useApp } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
+import { useComputed, useValue } from "signia-react";
+import { useGetWindow } from "./ChildWindow";
+import { DisplayRecord } from "../../shared/records/DisplayRecord";
 
 export function SourcePickerWindow(props: { onClose: () => void }) {
   const [sources, setSource] = useState<CaptureSource[] | undefined>();
@@ -18,12 +21,36 @@ export function SourcePickerWindow(props: { onClose: () => void }) {
 
   const app = useApp();
 
+  const getWindow = useGetWindow();
+
+  const display = useValue(
+    useComputed(
+      "activeDisplay",
+      () => {
+        const windowRecord = TLShot.store.query.record("window", () => ({
+          childWindowId: {
+            eq: getWindow.childWindowNanoid,
+          },
+        })).value;
+        const display =
+          windowRecord &&
+          TLShot.store.query.record("display", () => ({
+            displayId: {
+              eq: windowRecord?.displayId,
+            },
+          })).value;
+        return display;
+      },
+      [getWindow.childWindowNanoid]
+    )
+  );
+
   if (!sources) {
     return null;
   }
 
   return (
-    <ModalOverlayWindow onClose={props.onClose}>
+    <ModalOverlayWindow display={display} onClose={props.onClose}>
       <SourcesGrid
         sources={sources}
         onClose={props.onClose}
