@@ -20,6 +20,7 @@ export function ModalOverlayWindow(props: {
     <ChildWindow
       name="Take screenshot"
       onUnload={props.onClose}
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onOpen={async (_, handle) => {
         const query = TLShot.store.query.record("window", () => ({
           childWindowId: {
@@ -30,7 +31,7 @@ export function ModalOverlayWindow(props: {
           "modalOverlayBrowserId",
           () => query.value?.browserWindowId
         );
-        TLShot.api.setAlwaysOnTop(browserId);
+        void TLShot.api.setAlwaysOnTop(browserId);
       }}
       center={props.display ? "none" : "screen"}
       features={{
@@ -66,16 +67,17 @@ export function ChildWindowEscapeListener(props: {
   onEscape?: () => void;
   onBlur?: () => void;
 }) {
+  const { onEscape, onBlur } = props;
   const getWindow = useGetWindow();
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        props.onEscape?.();
+        onEscape?.();
       }
     }
 
     function handleBlur() {
-      props.onBlur?.();
+      onBlur?.();
     }
 
     getWindow().addEventListener("keydown", handleKeyDown);
@@ -84,7 +86,7 @@ export function ChildWindowEscapeListener(props: {
       getWindow().removeEventListener("keydown", handleKeyDown);
       getWindow().removeEventListener("blur", handleBlur);
     };
-  }, [getWindow]);
+  }, [getWindow, onBlur, onEscape]);
 
   return null;
 }

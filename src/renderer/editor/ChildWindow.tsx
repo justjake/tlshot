@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+// eslint-disable-next-line import/default
 import NewWindow, { IWindowFeatures } from "react-new-window";
 import {
   BrowserWindowId,
@@ -127,7 +128,7 @@ export function ChildWindow(props: ChildWindowProps) {
       ({
         ...props.features,
         childWindowId: id,
-      } as any),
+      } as never),
     [props.features, id]
   );
 
@@ -138,7 +139,7 @@ export function ChildWindow(props: ChildWindowProps) {
       features={features}
       onOpen={handleOpen}
       onUnload={handleUnload}
-      center={props.center as any}
+      center={props.center as never}
     >
       {open && (
         <ChildWindowNanoidContext.Provider value={id}>

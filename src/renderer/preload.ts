@@ -7,7 +7,7 @@ import type {
   TlshotApiClient,
   TlshotApiRequest,
   TlshotApiResponse,
-} from "../main/services";
+} from "@/main/services";
 
 const DEBUG = true;
 

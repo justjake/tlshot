@@ -1,7 +1,7 @@
-import { AllServiceEvents } from "../main/services";
-import { createTLShotStore } from "../shared/store";
+import { AllServiceEvents } from "@/main/services";
+import { createTLShotStore } from "@/shared/store";
 import { Windows } from "./editor/ChildWindow";
-import { DEBUGGING } from "../shared/debugging";
+import { DEBUGGING } from "@/shared/debugging";
 
 export class TLShotRendererApp {
   public readonly api = globalThis.window.TlshotAPI;
@@ -11,7 +11,7 @@ export class TLShotRendererApp {
 
   constructor() {
     this.api.addServiceListener("Service/TLShotStore", this.handleStoreEvent);
-    this.api.subscribeToStore(Windows.ROOT_WINDOW);
+    void this.api.subscribeToStore(Windows.ROOT_WINDOW);
   }
 
   private handleStoreEvent = (
@@ -30,7 +30,7 @@ export class TLShotRendererApp {
         break;
       default:
         throw new Error(
-          `Unknown TLShotStore event type: ${(event as any).type}`
+          `Unknown TLShotStore event type: ${(event as { type: string }).type}`
         );
     }
   };
@@ -45,4 +45,5 @@ export class TLShotRendererApp {
 }
 
 export const TLShot = new TLShotRendererApp();
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 DEBUGGING.TLShot = TLShot;

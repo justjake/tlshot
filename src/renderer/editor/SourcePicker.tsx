@@ -32,7 +32,7 @@ export function SourcesGrid(props: {
         onClick={() => props.onClickSource(source)}
       />
     ));
-  }, [props.sources]);
+  }, [props]);
 
   return (
     <div className="sources-grid" style={styles.grid}>

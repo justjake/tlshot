@@ -11,14 +11,11 @@ import {
   ContextMenu,
   TldrawUiContextProviderProps,
 } from "@tldraw/ui";
-import React from "react";
 import { CaptureView } from "./CaptureToolbar";
 import { useColorScheme } from "./useColorScheme";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
-  format(url) {
-    return url;
-  },
+  format: (url: string) => url,
 });
 
 const UIContextProps: TldrawUiContextProviderProps = {

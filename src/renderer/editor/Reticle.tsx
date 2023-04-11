@@ -90,7 +90,7 @@ export function Reticle(props: {
   useEffect(() => {
     if (hasMouseState) {
       console.log("become active");
-      TLShot.api.focusTopWindowNearMouse();
+      void TLShot.api.focusTopWindowNearMouse();
     }
   }, [hasMouseState]);
 
@@ -188,7 +188,7 @@ export function Reticle(props: {
       getWindow().removeEventListener("mouseleave", handleLoseMouse);
       getWindow().removeEventListener("blur", handleLoseMouse);
     };
-  }, [props.onSelect, getWindow]);
+  }, [props.onSelect, getWindow, props]);
 
   return (
     <div ref={wrapper} style={styles.wrapper}>
@@ -253,7 +253,7 @@ const DragDimensions = forwardRef(function DragDimensions(
 
   useLayoutEffect(() => {
     setPosition(mousePositionRef.current);
-  }, []);
+  }, [setPosition]);
 
   const bgImageElement = useRef<HTMLImageElement | null>(null);
 
@@ -315,7 +315,7 @@ const DragDimensions = forwardRef(function DragDimensions(
     );
     const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
     return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
-  }, [canvas, props.current]);
+  }, [canvas]);
 
   const style = useStyles(() => {
     const bgSize = 128;
@@ -382,7 +382,7 @@ const DragDimensions = forwardRef(function DragDimensions(
       bg: {
         width: bgSize,
         height: bgSize,
-        backgroundImage: `url(${bg})`,
+        backgroundImage: bg && `url(${bg})`,
         backgroundSize: currentWindowWidth * bgScale,
         backgroundRepeat: "no-repeat",
         backgroundPositionX: -mousePositionRef.current.x * bgScale + bgSize / 2,
@@ -406,7 +406,7 @@ const DragDimensions = forwardRef(function DragDimensions(
         borderBottom: hairStroke,
       },
     };
-  }, [mousePositionRef.current, props.origin, canvas]);
+  }, [getWindow, props.origin, currentColor, bg]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {

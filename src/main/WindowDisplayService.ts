@@ -1,8 +1,8 @@
 import { screen, Display, BrowserWindow, WebContents } from "electron";
-import { ChildWindowFeatures } from "../renderer/editor/ChildWindow";
+import { ChildWindowFeatures } from "@/renderer/editor/ChildWindow";
 import { MainProcessStore } from "./MainProcessStore";
-import { WindowRecord, WindowRecordId } from "../shared/records/WindowRecord";
-import { DisplayRecord } from "../shared/records/DisplayRecord";
+import { WindowRecord, WindowRecordId } from "@/shared/records/WindowRecord";
+import { DisplayRecord } from "@/shared/records/DisplayRecord";
 import { Service } from "./Service";
 
 export type WebContentsId = number & { __typename__?: "WebContents" };

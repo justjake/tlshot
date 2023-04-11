@@ -2,7 +2,7 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "strict": true,
-    "jsx": "react",
+    "jsx": "react-jsxdev",
     "target": "ES2021",
     "allowJs": true,
     "module": "commonjs",
@@ -12,7 +12,10 @@
     "sourceMap": true,
     "outDir": "dist",
     "moduleResolution": "node",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*"]
 }

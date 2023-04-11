@@ -21,6 +21,7 @@ module.exports = {
   },
   root: true,
   rules: {
+    "@typescript-eslint/no-explicit-any": "off",
     "react-hooks/exhaustive-deps": [
       "error",
       {
@@ -38,5 +39,12 @@ module.exports = {
         argsIgnorePattern: "^_",
       },
     ],
+  },
+  settings: {
+    "import/resolver": {
+      typescript: {
+        project: "./tsconfig.eslint.json",
+      },
+    },
   },
 };

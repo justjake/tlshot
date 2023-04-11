@@ -35,7 +35,7 @@ export function ReticleWindows(props: { onClose: () => void }) {
         <Reticle
           onClose={props.onClose}
           displayId={display.displayId}
-          onSelect={(rect) => onSelectDisplay(app, display, rect)}
+          onSelect={(rect) => void onSelectDisplay(app, display, rect)}
         />
       </ModalOverlayWindow>
     );

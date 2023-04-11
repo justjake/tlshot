@@ -37,10 +37,6 @@ function cropImageToBlob(
     canvas.width = imageOrVideo.width;
     canvas.height = imageOrVideo.height;
     ctx.drawImage(imageOrVideo, 0, 0, imageOrVideo.width, imageOrVideo.height);
-    console.log(canvas, imageOrVideo, {
-      width: imageOrVideo.width,
-      height: imageOrVideo.height,
-    });
   }
 
   return debugPromise(
@@ -74,6 +70,7 @@ export async function captureUserMediaSource(
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     video: electronParameters as any,
   });
 
@@ -90,7 +87,7 @@ export async function captureUserMediaSource(
 
   video.width = video.videoWidth;
   video.height = video.videoHeight;
-  video.play();
+  void video.play();
 
   const blob = await cropImageToBlob(video, rect);
 
@@ -108,9 +105,9 @@ export async function captureUserMediaSource(
 }
 
 export function createShapeFromBlob(app: App, blob: Blob) {
-  createShapesFromFiles(
+  return createShapesFromFiles(
     app,
-    [Object.assign(blob as any, { name: "capture.png" })],
+    [Object.assign(blob as any, { name: "capture.png" }) as File],
     app.viewportPageBounds.center,
     false
   );
@@ -119,19 +116,20 @@ export function createShapeFromBlob(app: App, blob: Blob) {
 const TIMEOUT = Symbol("Timeout reached");
 
 async function debugPromise<T>(promise: Promise<T>): Promise<T> {
-  const timeout = new Promise((resolve) => setTimeout(resolve, 500)).then(
-    () => TIMEOUT
-  );
+  return promise;
+  // const timeout = new Promise((resolve) => setTimeout(resolve, 500)).then(
+  //   () => TIMEOUT
+  // );
 
-  try {
-    const result = await Promise.race([promise, timeout]);
-    if (result === TIMEOUT) {
-      throw new Error("Promise timed out");
-    }
-    console.log("Promise resolved", result);
-    return result as any;
-  } catch (e) {
-    console.log("Promise error", e);
-    throw e;
-  }
+  // try {
+  //   const result = await Promise.race([promise, timeout]);
+  //   if (result === TIMEOUT) {
+  //     throw new Error("Promise timed out");
+  //   }
+  //   console.log("Promise resolved", result);
+  //   return result as any;
+  // } catch (e) {
+  //   console.log("Promise error", e);
+  //   throw e;
+  // }
 }

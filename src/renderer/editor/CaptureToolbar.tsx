@@ -23,7 +23,7 @@ export function CaptureView() {
     return { toolbar };
   }, []);
 
-  const startCapture = async (type: "picker" | "reticle") => {
+  const startCapture = (type: "picker" | "reticle") => {
     setState({
       type,
     });

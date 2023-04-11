@@ -1,5 +1,5 @@
 import { RecordsDiff, StoreSnapshot } from "@tldraw/tlstore";
-import { TLShotRecord } from "../shared/store";
+import { TLShotRecord } from "@/shared/store";
 import { Service } from "./Service";
 import { MainProcessStore } from "./MainProcessStore";
 

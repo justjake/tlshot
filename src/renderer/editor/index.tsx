@@ -28,8 +28,8 @@
 
 import "./index.css";
 import { Editor } from "./Editor";
-import ReactDOM from "react-dom/client";
+import { createRoot } from "react-dom/client";
 import React from "react";
 
-const root = ReactDOM.createRoot(document.getElementById("root")!);
+const root = createRoot(document.getElementById("root")!);
 root.render(<Editor />);

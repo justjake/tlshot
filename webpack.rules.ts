@@ -1,4 +1,12 @@
-import type { ModuleOptions } from "webpack";
+import path from "path";
+import type { ModuleOptions, ResolveOptions } from "webpack";
+
+export const resolve: ResolveOptions = {
+  alias: {
+    "@": path.resolve(__dirname, "./src"),
+  },
+  extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"],
+};
 
 export const rules: Required<ModuleOptions>["rules"] = [
   // Add support for native node modules
