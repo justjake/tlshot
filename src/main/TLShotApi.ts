@@ -136,33 +136,6 @@ export class TLShotApi {
     };
   }
 
-  // TODO: this is still quite low rez :(
-  // We'll need to shell out to `screencapture` on macOS and similar elsewhere
-  // if we want good results.
-  async captureAllDisplays() {
-    let maxWidth = 0;
-    let maxHeight = 0;
-    for (const display of screen.getAllDisplays()) {
-      maxHeight = Math.max(maxHeight, display.bounds.height);
-      maxWidth = Math.max(maxWidth, display.bounds.width);
-    }
-
-    const sources = await desktopCapturer.getSources({
-      types: ["screen"],
-      fetchWindowIcons: false,
-      thumbnailSize: {
-        width: maxWidth,
-        height: maxHeight,
-      },
-    });
-
-    return sources.map((source) => ({
-      ...source,
-      appIcon: undefined,
-      thumbnail: source.thumbnail.toDataURL(),
-    }));
-  }
-
   getCurrentDisplay() {
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   }
