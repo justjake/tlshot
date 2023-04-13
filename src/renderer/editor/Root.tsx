@@ -11,6 +11,7 @@ import { CaptureSource } from "@/main/TLShotApi";
 import { ReticleWindows } from "./ReticleWindows";
 import { ChildWindow } from "./ChildWindow";
 import { useColorScheme } from "./useColorScheme";
+import { useStyles } from "./useStyles";
 
 export function Root() {
   const hasActivities = useValue(TLShot.queries.hasActivities);
@@ -51,7 +52,7 @@ export function Root() {
 
   return (
     <>
-      <div>This window should remain hidden.</div>
+      <RootDebugView />
       <EditorViews />
       <CaptureActivityView />
     </>
@@ -182,3 +183,42 @@ const CaptureWindowActivity = track(function CaptureWindowActivity() {
     />
   );
 });
+
+/**
+ * Rendered in the root window in case it's visible for debugging.
+ */
+export function RootDebugView() {
+  const style = useStyles(() => {
+    return {
+      root: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1em 12%",
+      },
+    };
+  }, []);
+
+  return (
+    <div style={style.root}>
+      <h1>TLShot Debugger</h1>
+      <p>
+        This window is only visible when debugging TLShot. During normal
+        operation it's hidden.
+      </p>
+      <p>
+        This window will open automatically at launch if the DevTools were open
+        when the window closed.
+      </p>
+      <p>
+        <button onClick={() => void TLShot.api.openDevTools()}>
+          Open DevTools
+        </button>{" "}
+        <button onClick={() => void TLShot.api.closeDevTools()}>
+          Close DevTools & Hide
+        </button>
+      </p>
+    </div>
+  );
+}

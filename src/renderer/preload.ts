@@ -32,6 +32,8 @@ class TlshotApiClientImpl implements TLShotApiClient {
   subscribeToStore = this.createMethod("subscribeToStore");
   sendStoreUpdate = this.createMethod("sendStoreUpdate");
   log = this.createMethod("log");
+  openDevTools = this.createMethod("openDevTools");
+  closeDevTools = this.createMethod("closeDevTools");
 
   addServiceListener = <ChannelName extends keyof AllServiceEvents>(
     channelName: ChannelName,

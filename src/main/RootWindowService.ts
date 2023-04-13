@@ -24,7 +24,7 @@ export class RootWindowService {
   constructor() {
     react("createRootWindowWhenNeeded", () => {
       if (this.needsRootWindow() && this.rootWindow.value === undefined) {
-        void this.upsertRootWindow();
+        void Promise.resolve().then(() => this.upsertRootWindow());
       }
     });
 
@@ -81,6 +81,18 @@ export class RootWindowService {
     const rootWindow = await this.upsertRootWindow();
     rootWindow.webContents.openDevTools();
     rootWindow.show();
+    MainProcessPreferences.set("editorWindowDevtools", true);
+  }
+
+  async closeDevTools() {
+    const rootWindow = await this.getRootWindow();
+
+    if (rootWindow) {
+      rootWindow.webContents.closeDevTools();
+      rootWindow.hide();
+    }
+
+    MainProcessPreferences.set("editorWindowDevtools", false);
   }
 
   private async createRootWindow() {
@@ -101,6 +113,7 @@ export class RootWindowService {
       },
       show: false,
       backgroundColor,
+      title: "TLShot Debugger",
     });
 
     const prevBounds = MainProcessPreferences.get("editorWindowBounds", {
@@ -140,6 +153,10 @@ export class RootWindowService {
       rootWindow.webContents.openDevTools();
       rootWindow.show();
     }
+
+    rootWindow.webContents.on("devtools-closed", () => {
+      void this.closeDevTools();
+    });
 
     return rootWindow;
   }

@@ -208,6 +208,14 @@ export class TLShotApi {
   captureFullscreen() {
     this.storeService.upsertCaptureActivity("fullScreen");
   }
+
+  openDevTools() {
+    return this.rootWindowService.openDevTools();
+  }
+
+  closeDevTools() {
+    return this.rootWindowService.closeDevTools();
+  }
 }
 
 export async function startServices() {
