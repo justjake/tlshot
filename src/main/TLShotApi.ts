@@ -11,6 +11,7 @@ import { installDevtoolsExtensions } from "./devtools";
 import { RecordsDiff } from "@tldraw/tlstore";
 import { TLShotRecord } from "@/shared/store";
 import { RootWindowService } from "./RootWindowService";
+import { MainProcessStore } from "./MainProcessStore";
 
 export type TLShotApiResponse = {
   [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
@@ -166,15 +167,6 @@ export class TLShotApi {
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   }
 
-  setAlwaysOnTop(_event: Electron.IpcMainInvokeEvent, browserWindowId: number) {
-    const browserWindow = BrowserWindow.fromId(browserWindowId);
-    if (!browserWindow) {
-      console.log("id not found", browserWindowId);
-      return;
-    }
-    browserWindow.setAlwaysOnTop(true, "screen-saver");
-  }
-
   subscribeToStore(
     event: Electron.IpcMainInvokeEvent,
     childWindowId: ChildWindowNanoid
@@ -215,6 +207,45 @@ export class TLShotApi {
 
   closeDevTools() {
     return this.rootWindowService.closeDevTools();
+  }
+
+  updateChildWindow(
+    _event: Electron.IpcMainInvokeEvent,
+    id: ChildWindowNanoid,
+    options: {
+      show?: boolean;
+      alwaysOnTop?: boolean | "screen-saver";
+    }
+  ) {
+    const windowRecord = MainProcessStore.query.record("window", () => ({
+      childWindowId: {
+        eq: id,
+      },
+    })).value;
+    if (!windowRecord) {
+      throw new Error(`updateChildWindow: not found: ${id}`);
+    }
+    const browserWindow = BrowserWindow.fromId(windowRecord.browserWindowId);
+    if (!browserWindow) {
+      throw new Error(`updateChildWindow: not found: ${id}`);
+    }
+    for (const [key, value] of Object.entries(options)) {
+      if (key === "show") {
+        if (value) {
+          browserWindow.show();
+        } else {
+          browserWindow.hide();
+        }
+      }
+
+      if (key === "alwaysOnTop") {
+        browserWindow.setAlwaysOnTop(
+          Boolean(value),
+          typeof value === "string" ? value : undefined,
+          value === "screen-saver" ? 1 : undefined
+        );
+      }
+    }
   }
 }
 

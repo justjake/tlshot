@@ -143,18 +143,23 @@ const NEW_EDITOR_CAPTURES = new RecordAttachmentMap<EditorRecord, Blob>(
 
 export function startEditorForCapture(capture: Blob) {
   const editor = EditorRecord.create({
-    hidden: false,
+    hidden: true,
     filePath: undefined,
   });
   NEW_EDITOR_CAPTURES.map.set(editor.id, capture);
   TLShot.store.put([editor]);
 }
 
-export function completeEditorForCapture(editor: EditorRecord, app: App) {
+export async function completeEditorForCapture(editor: EditorRecord, app: App) {
   const capture = NEW_EDITOR_CAPTURES.map.get(editor.id);
   if (capture) {
     NEW_EDITOR_CAPTURES.map.delete(editor.id);
-    return createShapeFromBlob(app, capture);
+    await createShapeFromBlob(app, capture);
+    const updatedRecord = {
+      ...editor,
+      hidden: false,
+    };
+    TLShot.store.put([updatedRecord]);
   }
 }
 

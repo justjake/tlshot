@@ -25,7 +25,6 @@ class TlshotApiClientImpl implements TLShotApiClient {
 
   getSources = this.createMethod("getSources");
   getCurrentDisplay = this.createMethod("getCurrentDisplay");
-  setAlwaysOnTop = this.createMethod("setAlwaysOnTop");
   captureAllDisplays = this.createMethod("captureAllDisplays");
   getDisplaySource = this.createMethod("getDisplaySource");
   focusTopWindowNearMouse = this.createMethod("focusTopWindowNearMouse");
@@ -34,6 +33,7 @@ class TlshotApiClientImpl implements TLShotApiClient {
   log = this.createMethod("log");
   openDevTools = this.createMethod("openDevTools");
   closeDevTools = this.createMethod("closeDevTools");
+  updateChildWindow = this.createMethod("updateChildWindow");
 
   addServiceListener = <ChannelName extends keyof AllServiceEvents>(
     channelName: ChannelName,

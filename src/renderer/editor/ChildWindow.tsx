@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 // eslint-disable-next-line import/default
 import NewWindow, { IWindowFeatures } from "react-new-window";
 import {
@@ -6,6 +6,7 @@ import {
   ChildWindowNanoid,
 } from "../../main/WindowDisplayService";
 import { nanoid } from "nanoid";
+import { TLShot } from "../TLShotRendererApp";
 
 interface ChildWindowInfo {
   childWindowId: ChildWindowNanoid;
@@ -95,14 +96,27 @@ export interface ChildWindowProps {
   onUnload?: () => void;
   children: React.ReactNode;
   center: "parent" | "screen" | "none";
+  hidden?: boolean;
+  alwaysOnTop?: boolean | "screen-saver";
 }
 
 export function ChildWindow(props: ChildWindowProps) {
+  const { hidden, alwaysOnTop } = props;
   const [id] = useState(() => Windows.createId());
   const [open, setOpen] = useState(false);
 
+  const applyProps = useCallback(
+    () =>
+      TLShot.api.updateChildWindow(id, {
+        show: !hidden,
+        alwaysOnTop,
+      }),
+    [id, hidden, alwaysOnTop]
+  );
+
   const handleOpen = (childWindow: Window) => {
     Windows.register(id, childWindow);
+    void applyProps();
     props.onOpen?.(childWindow, id);
     setOpen(true);
   };
@@ -126,11 +140,19 @@ export function ChildWindow(props: ChildWindowProps) {
   const features: ChildWindowFeatures = useMemo(
     () =>
       ({
+        show: !hidden,
+        alwaysOnTop: Boolean(alwaysOnTop),
         ...props.features,
         childWindowId: id,
-      } as never),
-    [props.features, id]
+      } as ChildWindowFeatures),
+    [hidden, alwaysOnTop, props.features, id]
   );
+
+  useEffect(() => {
+    if (open) {
+      void applyProps();
+    }
+  }, [applyProps, open]);
 
   return (
     <NewWindow

@@ -1,7 +1,5 @@
 import React, { useEffect } from "react";
 import { ChildWindow, useGetWindow } from "./ChildWindow";
-import { TLShot } from "../TLShotRendererApp";
-import { waitUntil } from "../../shared/signiaHelpers";
 import { DisplayRecord } from "../../shared/records/DisplayRecord";
 
 export function ModalOverlayWindow(props: {
@@ -19,20 +17,9 @@ export function ModalOverlayWindow(props: {
   return (
     <ChildWindow
       name="Take screenshot"
+      alwaysOnTop="screen-saver"
       onUnload={props.onClose}
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      onOpen={async (_, handle) => {
-        const query = TLShot.store.query.record("window", () => ({
-          childWindowId: {
-            eq: handle,
-          },
-        }));
-        const browserId = await waitUntil(
-          "modalOverlayBrowserId",
-          () => query.value?.browserWindowId
-        );
-        void TLShot.api.setAlwaysOnTop(browserId);
-      }}
       center={props.display ? "none" : "screen"}
       features={{
         // Styling.

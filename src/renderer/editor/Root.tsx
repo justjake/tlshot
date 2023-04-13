@@ -91,6 +91,7 @@ const EditorWindow = track(function EditorWindow(props: {
         height: 600,
         backgroundColor,
       }}
+      hidden={editor.hidden}
       onUnload={() => {
         TLShot.store.remove([props.id]);
       }}

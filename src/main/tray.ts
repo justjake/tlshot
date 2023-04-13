@@ -1,5 +1,4 @@
-import { Menu } from "electron";
-import { Tray } from "electron";
+import { Menu, Tray } from "electron";
 import { TLShotApi } from "./TLShotApi";
 import TRAY_ICON from "./tray-icon.png";
 import path from "path";
