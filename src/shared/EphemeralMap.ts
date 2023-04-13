@@ -7,7 +7,7 @@ export class RecordAttachmentMap<Record extends TLShotRecord, Value> {
   public map = new Map<Record["id"], Value>();
   public readonly dispose: () => void;
 
-  constructor(private store: TLShotStore) {
+  constructor(store: TLShotStore) {
     this.dispose = store.listen(({ changes }) => {
       for (const record of Object.values(changes.removed)) {
         this.map.delete(record.id);
