@@ -30,6 +30,8 @@ class TlshotApiClientImpl implements TLShotApiClient {
   getDisplaySource = this.createMethod("getDisplaySource");
   focusTopWindowNearMouse = this.createMethod("focusTopWindowNearMouse");
   subscribeToStore = this.createMethod("subscribeToStore");
+  sendStoreUpdate = this.createMethod("sendStoreUpdate");
+  log = this.createMethod("log");
 
   addServiceListener = <ChannelName extends keyof AllServiceEvents>(
     channelName: ChannelName,

@@ -21,3 +21,9 @@ export const DisplayRecord = createRecordType<DisplayRecord>(
     validator: T.any,
   }
 );
+
+export const DisplayRecordId = {
+  fromDisplayId(displayId: DisplayId) {
+    return DisplayRecord.createCustomId(String(displayId));
+  },
+} as const;

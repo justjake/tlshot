@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from "electron";
-import { startServices } from "./TLShotApi";
-import { createEditorWindow } from "./editor";
+import { app } from "electron";
+import { startServices, TLShotApi } from "./TLShotApi";
 import { createTray } from "./tray";
+import { MainProcessQueries } from "./MainProcessStore";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -14,7 +14,6 @@ if (require("electron-squirrel-startup")) {
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 app.on("ready", async () => {
   await startServices();
-  await createEditorWindow();
   createTray();
 });
 
@@ -30,8 +29,9 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
-    void createEditorWindow();
+  if (!MainProcessQueries.hasActivities.value) {
+    TLShotApi.getInstance().storeService.createEditorWindow();
+    console.log("activate: create editor window");
   }
 });
 

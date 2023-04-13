@@ -11,40 +11,19 @@ import { TLShot } from "../TLShotRendererApp";
 import { useComputed, useValue } from "signia-react";
 import { DisplayRecord } from "../../shared/records/DisplayRecord";
 
-export function ReticleWindows(props: { onClose: () => void }) {
-  const displays = useValue(
-    useComputed(
-      "displays",
-      () => TLShot.store.query.records("display").value,
-      []
-    )
-  );
+export function AppReticleWindows(props: { onClose: () => void }) {
   const app = useApp();
-
-  if (!displays) {
-    return null;
-  }
-
-  const windows = displays.map((display) => {
-    return (
-      <ModalOverlayWindow
-        key={display.id}
-        onClose={props.onClose}
-        display={display}
-      >
-        <Reticle
-          onClose={props.onClose}
-          displayId={display.displayId}
-          onSelect={(rect) => void onSelectDisplay(app, display, rect)}
-        />
-      </ModalOverlayWindow>
-    );
-  });
-
-  return <>{windows}</>;
+  return (
+    <ReticleWindows
+      onClose={props.onClose}
+      onSelect={(display, rect) =>
+        void captureDisplayRectToApp(app, display, rect)
+      }
+    />
+  );
 }
 
-async function onSelectDisplay(
+async function captureDisplayRectToApp(
   app: App,
   display: DisplayRecord,
   rect: DOMRect
@@ -56,4 +35,35 @@ async function onSelectDisplay(
 
   const blob = await captureUserMediaSource(source.id, rect);
   await createShapeFromBlob(app, blob);
+}
+
+export function ReticleWindows(props: {
+  onClose: () => void;
+  onSelect: (display: DisplayRecord, rect: DOMRect) => void;
+}) {
+  const displays = useValue(
+    useComputed(
+      "displays",
+      () => TLShot.store.query.records("display").value,
+      []
+    )
+  );
+
+  const windows = displays.map((display) => {
+    return (
+      <ModalOverlayWindow
+        key={display.id}
+        onClose={props.onClose}
+        display={display}
+      >
+        <Reticle
+          onClose={props.onClose}
+          displayId={display.displayId}
+          onSelect={(rect) => props.onSelect(display, rect)}
+        />
+      </ModalOverlayWindow>
+    );
+  });
+
+  return <>{windows}</>;
 }

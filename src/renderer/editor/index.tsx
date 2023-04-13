@@ -27,9 +27,14 @@
  */
 
 import "./index.css";
-import { Editor } from "./Editor";
 import { createRoot } from "react-dom/client";
-import React from "react";
+import { Root } from "./Root";
+import { TLShot } from "../TLShotRendererApp";
 
-const root = createRoot(document.getElementById("root")!);
-root.render(<Editor />);
+async function main() {
+  await TLShot.ready;
+  const root = createRoot(document.getElementById("root")!);
+  root.render(<Root />);
+}
+
+void main();

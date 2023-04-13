@@ -10,23 +10,28 @@ export function createTray() {
     {
       label: "Capture Area",
       accelerator: "CmdOrCtrl+Alt+5",
-      click: () => TLShotApi.captureArea(),
+      click: () => TLShotApi.getInstance().captureArea(),
     },
     {
       label: "Capture Fullscreen",
       accelerator: "CmdOrCtrl+Alt+6",
-      click: () => TLShotApi.captureFullscreen(),
+      click: () => TLShotApi.getInstance().captureFullscreen(),
     },
     {
       label: "Capture Window",
       accelerator: "CmdOrCtrl+Alt+7",
-      click: () => TLShotApi.captureWindow(),
+      click: () => TLShotApi.getInstance().captureWindow(),
     },
     { type: "separator" },
     {
+      label: "Open DevTools",
+      click: () =>
+        void TLShotApi.getInstance().rootWindowService.openDevTools(),
+    },
+    {
       label: "Quit",
       accelerator: "CmdOrCtrl+Q",
-      click: () => TLShotApi.quit(),
+      click: () => TLShotApi.getInstance().quit(),
     },
   ]);
   tray.setContextMenu(trayMenu);

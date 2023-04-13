@@ -1,4 +1,7 @@
+import { EditorRecord } from "@/shared/records/EditorRecord";
 import { App, createShapesFromFiles } from "@tldraw/editor";
+import { TLShot } from "../TLShotRendererApp";
+import { RecordAttachmentMap } from "@/shared/EphemeralMap";
 
 // function loadImageFromDataURL(dataUrl: string): Promise<Image> {
 //   return new Promise((resolve, reject) => {
@@ -132,4 +135,33 @@ async function debugPromise<T>(promise: Promise<T>): Promise<T> {
   //   console.log("Promise error", e);
   //   throw e;
   // }
+}
+
+const NEW_EDITOR_CAPTURES = new RecordAttachmentMap<EditorRecord, Blob>(
+  TLShot.store
+);
+
+export function startEditorForCapture(capture: Blob) {
+  const editor = EditorRecord.create({
+    hidden: false,
+    filePath: undefined,
+  });
+  NEW_EDITOR_CAPTURES.map.set(editor.id, capture);
+  TLShot.store.put([editor]);
+}
+
+export function completeEditorForCapture(editor: EditorRecord, app: App) {
+  const capture = NEW_EDITOR_CAPTURES.map.get(editor.id);
+  if (capture) {
+    NEW_EDITOR_CAPTURES.map.delete(editor.id);
+    return createShapeFromBlob(app, capture);
+  }
+}
+
+// TODO: actually do all displays, currently only does the main display.
+export async function captureFullScreen() {
+  const display = await TLShot.api.getCurrentDisplay();
+  const source = await TLShot.api.getDisplaySource(display.id);
+  const blob = await captureUserMediaSource(source.id, undefined);
+  startEditorForCapture(blob);
 }

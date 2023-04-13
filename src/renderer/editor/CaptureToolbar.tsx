@@ -1,8 +1,8 @@
 import "./captureView.css";
 import React, { CSSProperties, useCallback, useMemo, useState } from "react";
 import { useStyles } from "./useStyles";
-import { ReticleWindows } from "./ReticleWindows";
-import { SourcePickerWindow } from "./SourcePickerWindow";
+import { AppReticleWindows } from "./ReticleWindows";
+import { AppSourcePickerWindow } from "./SourcePickerWindow";
 
 type CaptureViewState =
   | { type: "closed" }
@@ -38,9 +38,9 @@ export function CaptureView() {
       case "closed":
         return null;
       case "picker":
-        return <SourcePickerWindow onClose={handleClose} />;
+        return <AppSourcePickerWindow onClose={handleClose} />;
       case "reticle":
-        return <ReticleWindows onClose={handleClose} />;
+        return <AppReticleWindows onClose={handleClose} />;
       default:
         throw new Error("Unknown capture view type");
     }

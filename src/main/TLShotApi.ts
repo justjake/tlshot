@@ -1,4 +1,4 @@
-import { desktopCapturer, ipcMain, screen, BrowserWindow } from "electron";
+import { app, desktopCapturer, ipcMain, screen, BrowserWindow } from "electron";
 
 import {
   ChildWindowNanoid,
@@ -8,6 +8,9 @@ import { StoreService } from "./StoreService";
 import { AnyServiceEvent, Service } from "./Service";
 import { applyContentSecurityPolicy } from "./contentSecurityPolicy";
 import { installDevtoolsExtensions } from "./devtools";
+import { RecordsDiff } from "@tldraw/tlstore";
+import { TLShotRecord } from "@/shared/store";
+import { RootWindowService } from "./RootWindowService";
 
 export type TLShotApiResponse = {
   [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
@@ -63,6 +66,11 @@ export class TLShotApi {
 
   public storeService = new StoreService();
   public windowDisplayService = new WindowDisplayService();
+  public rootWindowService = new RootWindowService();
+
+  log(_event: Electron.IpcMainInvokeEvent, ...msg: unknown[]) {
+    console.log("Renderer:", ...msg);
+  }
 
   focusTopWindowNearMouse() {
     const mouse = screen.getCursorScreenPoint();
@@ -176,6 +184,29 @@ export class TLShotApi {
       event.sender,
       childWindowId
     );
+  }
+
+  sendStoreUpdate(
+    _event: Electron.IpcMainInvokeEvent,
+    data: RecordsDiff<TLShotRecord>
+  ) {
+    this.storeService.handleRendererUpdate(data);
+  }
+
+  quit() {
+    app.quit();
+  }
+
+  captureArea() {
+    this.storeService.upsertCaptureActivity("area");
+  }
+
+  captureWindow() {
+    this.storeService.upsertCaptureActivity("window");
+  }
+
+  captureFullscreen() {
+    this.storeService.upsertCaptureActivity("fullScreen");
   }
 }
 

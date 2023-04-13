@@ -1,5 +1,5 @@
 import { AllServiceEvents } from "@/main/TLShotApi";
-import { createTLShotStore } from "@/shared/store";
+import { TLShotStoreQueries, createTLShotStore } from "@/shared/store";
 import { Windows } from "./editor/ChildWindow";
 import { DEBUGGING } from "@/shared/debugging";
 
@@ -8,10 +8,18 @@ export class TLShotRendererApp {
   public readonly store = createTLShotStore({
     process: "renderer",
   });
+  public readonly queries = new TLShotStoreQueries(this.store);
+  public readonly ready: Promise<void>;
+  private becomeReady!: () => void;
 
   constructor() {
     this.api.addServiceListener("Service/TLShotStore", this.handleStoreEvent);
     void this.api.subscribeToStore(Windows.ROOT_WINDOW);
+    this.store.listen(({ source, changes }) => {
+      if (source === "remote") return;
+      void this.api.sendStoreUpdate(changes);
+    });
+    this.ready = new Promise<void>((resolve) => (this.becomeReady = resolve));
   }
 
   private handleStoreEvent = (
@@ -22,6 +30,7 @@ export class TLShotRendererApp {
         this.store.mergeRemoteChanges(() => {
           this.store.deserialize(event.data);
         });
+        this.becomeReady();
         break;
       case "Changes":
         this.store.mergeRemoteChanges(() => {
@@ -34,14 +43,6 @@ export class TLShotRendererApp {
         );
     }
   };
-
-  private queries() {
-    this.store.query.record("window", () => ({
-      childWindowId: {
-        eq: Windows.ROOT_WINDOW,
-      },
-    }));
-  }
 }
 
 export const TLShot = new TLShotRendererApp();

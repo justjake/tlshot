@@ -7,21 +7,11 @@ import { useApp } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { useComputed, useValue } from "signia-react";
 import { useGetWindow } from "./ChildWindow";
+import { DisplayRecord } from "@/shared/records/DisplayRecord";
 
-export function SourcePickerWindow(props: { onClose: () => void }) {
-  const [sources, setSource] = useState<CaptureSource[] | undefined>();
-  useEffect(() => {
-    const get = async () => {
-      const sources = await TLShot.api.getSources();
-      setSource(sources);
-    };
-    void get();
-  }, []);
-
+export function AppSourcePickerWindow(props: { onClose: () => void }) {
   const app = useApp();
-
   const getWindow = useGetWindow();
-
   const display = useValue(
     useComputed(
       "activeDisplay",
@@ -44,23 +34,48 @@ export function SourcePickerWindow(props: { onClose: () => void }) {
     )
   );
 
+  const onPickSource = (source: CaptureSource) => {
+    props.onClose();
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
+    requestAnimationFrame(async () => {
+      const blob = await captureUserMediaSource(source.id, undefined);
+      void createShapeFromBlob(app, blob);
+    });
+  };
+
+  return (
+    <SourcePickerWindow
+      coverDisplay={display}
+      onClose={props.onClose}
+      onPickSource={onPickSource}
+    />
+  );
+}
+
+export function SourcePickerWindow(props: {
+  coverDisplay: DisplayRecord | undefined;
+  onClose: () => void;
+  onPickSource: (source: CaptureSource) => void;
+}) {
+  const [sources, setSource] = useState<CaptureSource[] | undefined>();
+  useEffect(() => {
+    const get = async () => {
+      const sources = await TLShot.api.getSources();
+      setSource(sources);
+    };
+    void get();
+  }, []);
+
   if (!sources) {
     return null;
   }
 
   return (
-    <ModalOverlayWindow display={display} onClose={props.onClose}>
+    <ModalOverlayWindow display={props.coverDisplay} onClose={props.onClose}>
       <SourcesGrid
         sources={sources}
         onClose={props.onClose}
-        onClickSource={(source) => {
-          props.onClose();
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          requestAnimationFrame(async () => {
-            const blob = await captureUserMediaSource(source.id, undefined);
-            void createShapeFromBlob(app, blob);
-          });
-        }}
+        onClickSource={props.onPickSource}
       />
     </ModalOverlayWindow>
   );
