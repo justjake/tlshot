@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { startServices } from "./TLShotApi";
 import { createEditorWindow } from "./editor";
+import { createTray } from "./tray";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -14,6 +15,7 @@ if (require("electron-squirrel-startup")) {
 app.on("ready", async () => {
   await startServices();
   await createEditorWindow();
+  createTray();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
