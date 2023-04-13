@@ -11,7 +11,8 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint .",
-    "fix": "yarn lint --fix; prettier -w ."
+    "fix": "yarn lint --fix; prettier -w .",
+    "postinstall": "patch-package"
   },
   "keywords": [],
   "author": {
