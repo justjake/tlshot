@@ -26,7 +26,9 @@ import { EditorRecord } from "@/shared/records/EditorRecord";
 import { completeEditorForCapture } from "./captureHelpers";
 import { RecordAttachmentMap } from "@/shared/EphemeralMap";
 import { TLShot } from "../TLShotRendererApp";
-import { atom } from "signia";
+import { atom, react } from "signia";
+import { isEqual } from "lodash";
+import { PREFERENCES_ID } from "@/shared/records/PreferencesRecord";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format: (url: string) => url,
@@ -53,6 +55,7 @@ export function Editor(props: { editor: EditorRecord }) {
       userId: TLUser.createId(),
     })
   );
+
   return (
     <TldrawEditor
       instanceId={editorStore.props.instanceId}
@@ -67,27 +70,68 @@ export function Editor(props: { editor: EditorRecord }) {
       isDarkMode={scheme === "dark"}
       {...UIContextProps}
     >
+      <EditorEffects editor={editor} />
+
       <TldrawUi {...UIContextProps}>
         <ContextMenu>
           <Canvas />
         </ContextMenu>
 
         <CaptureView />
-        <CompleteCaptureEffect editor={editor} />
+        <EditorEffects editor={editor} />
       </TldrawUi>
     </TldrawEditor>
   );
 }
 
-function CompleteCaptureEffect(props: { editor: EditorRecord | undefined }) {
+function EditorEffects(props: { editor: EditorRecord }) {
   const { editor } = props;
+  useComputeEditorForCapture(editor);
+  useSaveShapeStyle();
+  return null;
+}
 
+function useComputeEditorForCapture(editor: EditorRecord) {
   const app = useApp();
 
   useEffect(() => {
     if (!editor) return;
     void completeEditorForCapture(editor, app);
   }, [app, editor]);
+}
 
-  return null;
+function useSaveShapeStyle() {
+  const app = useApp();
+
+  // When the app boots, restore the user's previous shape style.
+  useEffect(() => {
+    const propsForNextShape =
+      TLShot.queries.preferences.value?.propsForNextShape;
+    if (propsForNextShape) {
+      console.log("restore propsForNextShape", propsForNextShape);
+      app.updateInstanceState({ propsForNextShape });
+    }
+  }, [app]);
+
+  // When shape style changes, save it to the user's preferences.
+  useEffect(() => {
+    let first = true;
+    return react("saveShapeStyle", () => {
+      const nextShapeStyle = app.instanceState.propsForNextShape;
+      const currentShapeStyle =
+        TLShot.queries.preferences.value?.propsForNextShape;
+      if (!isEqual(nextShapeStyle, currentShapeStyle)) {
+        if (first) {
+          first = false;
+          return;
+        }
+        void Promise.resolve().then(() => {
+          TLShot.store.update(PREFERENCES_ID, (prefs) => ({
+            ...prefs,
+            propsForNextShape: nextShapeStyle,
+          }));
+        });
+      }
+    });
+  }, [app]);
 }

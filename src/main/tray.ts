@@ -64,7 +64,7 @@ export function createTray() {
         enabled: false,
       },
       {
-        label: `Choose save folder...`,
+        label: `Choose folder...`,
         click: async () => {
           const shownInDock = app.dock.isVisible();
           if (!shownInDock) {
@@ -98,7 +98,7 @@ export function createTray() {
         },
       },
       {
-        label: "Show DevTools",
+        label: "Debug",
         type: "checkbox",
         checked: Preferences.showDevToolsOnStartup,
         sublabel: "hello.",
