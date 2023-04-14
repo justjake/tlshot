@@ -1,9 +1,10 @@
 import { Menu, Tray } from "electron";
 import { TLShotApi } from "./TLShotApi";
-import TRAY_ICON from "./tray-icon.png";
+import TRAY_ICON from "./tray-Template@2x.png";
 import path from "path";
 
 export function createTray() {
+  // https://bjango.com/articles/designingmenubarextras/#menu-bar-extra-size
   const tray = new Tray(path.resolve(__dirname, TRAY_ICON));
   const trayMenu = Menu.buildFromTemplate([
     {
