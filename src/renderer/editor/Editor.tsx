@@ -29,6 +29,7 @@ import { TLShot } from "../TLShotRendererApp";
 import { atom, react } from "signia";
 import { isEqual } from "lodash";
 import { PREFERENCES_ID } from "@/shared/records/PreferencesRecord";
+import { useGetWindow } from "./ChildWindow";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format: (url: string) => url,
@@ -88,7 +89,21 @@ function EditorEffects(props: { editor: EditorRecord }) {
   const { editor } = props;
   useComputeEditorForCapture(editor);
   useSaveShapeStyle();
+  useUpdateWindowEdited();
   return null;
+}
+
+function useUpdateWindowEdited() {
+  const window = useGetWindow();
+  const app = useApp();
+  useEffect(() => {
+    return react("updateWindowEdited", () => {
+      const hasEdits = app.shapeIds.size > 0;
+      void TLShot.api.updateChildWindow(window.childWindowNanoid, {
+        edited: hasEdits,
+      });
+    });
+  }, [app, window]);
 }
 
 function useComputeEditorForCapture(editor: EditorRecord) {

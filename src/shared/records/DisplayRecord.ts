@@ -23,7 +23,10 @@ export const DisplayRecord = createRecordType<DisplayRecord>(
 );
 
 export const DisplayRecordId = {
-  fromDisplayId(displayId: DisplayId) {
+  fromDisplayId(displayId: DisplayId | DisplayRecordId) {
+    if (typeof displayId === "string" && DisplayRecord.isId(displayId)) {
+      return displayId;
+    }
     return DisplayRecord.createCustomId(String(displayId));
   },
 } as const;

@@ -2,16 +2,19 @@ import { BaseRecord, ID, createRecordType } from "@tldraw/tlstore";
 import { T } from "@tldraw/tlvalidate";
 import { PreferencesRecord } from "./PreferencesRecord";
 import path from "path";
+import { DisplayRecordId } from "./DisplayRecord";
+import { Rectangle, Size } from "electron";
 
 const EditorRecordTypeName = "editor" as const;
 type EditorRecordTypeName = typeof EditorRecordTypeName;
 export type EditorRecordId = ID<EditorRecord>;
 
 export interface EditorRecord extends BaseRecord<EditorRecordTypeName> {
-  // Placeholder stuff, just for brainstorming.
   hidden: boolean;
   filePath: string | undefined;
   createdAt: number | undefined;
+  targetBounds?: Size & Partial<Rectangle>;
+  targetDisplay?: DisplayRecordId;
 }
 
 export const EditorRecord = createRecordType<EditorRecord>(

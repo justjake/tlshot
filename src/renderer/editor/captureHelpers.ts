@@ -5,6 +5,9 @@ import {
 import { App, createShapesFromFiles } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { RecordAttachmentMap } from "@/shared/EphemeralMap";
+import { DisplayId } from "@/main/WindowDisplayService";
+import { DisplayRecordId } from "@/shared/records/DisplayRecord";
+import { Rectangle, Size } from "electron";
 
 // function loadImageFromDataURL(dataUrl: string): Promise<Image> {
 //   return new Promise((resolve, reject) => {
@@ -15,43 +18,50 @@ import { RecordAttachmentMap } from "@/shared/EphemeralMap";
 //   });
 // }
 
+interface BlobRect {
+  blob: Blob;
+  rect: Size & Partial<Rectangle>;
+}
+
 function cropImageToBlob(
   imageOrVideo: Exclude<CanvasImageSource, SVGImageElement>,
   rect: DOMRect | undefined
-): Promise<Blob> {
+): Promise<BlobRect> {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Could not get canvas context");
   }
 
-  if (rect) {
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    ctx.drawImage(
-      imageOrVideo,
-      rect.x,
-      rect.y,
-      rect.width,
-      rect.height,
-      0,
-      0,
-      rect.width,
-      rect.height
-    );
-  } else {
-    canvas.width = imageOrVideo.width;
-    canvas.height = imageOrVideo.height;
-    ctx.drawImage(imageOrVideo, 0, 0, imageOrVideo.width, imageOrVideo.height);
+  if (!rect) {
+    rect = new DOMRect(0, 0, imageOrVideo.width, imageOrVideo.height);
   }
 
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  ctx.drawImage(
+    imageOrVideo,
+    rect.x,
+    rect.y,
+    rect.width,
+    rect.height,
+    0,
+    0,
+    rect.width,
+    rect.height
+  );
+
+  const finalRect = rect;
   return debugPromise(
-    new Promise<Blob>((resolve, reject) =>
+    new Promise<BlobRect>((resolve, reject) =>
       canvas.toBlob((blob) => {
         if (!blob) {
           reject(new Error("Could not get blob from canvas"));
         } else {
-          resolve(blob);
+          resolve({
+            blob,
+            rect: finalRect,
+          });
         }
         canvas.remove();
       }, "image/png")
@@ -144,15 +154,25 @@ const NEW_EDITOR_CAPTURES = new RecordAttachmentMap<EditorRecord, Blob>(
   TLShot.store
 );
 
-export function startEditorForCapture(capture: Blob) {
+export function startEditorForCapture(
+  capture: BlobRect,
+  displayId: DisplayId | DisplayRecordId
+) {
   const preferences = TLShot.queries.preferences.value;
   const now = Date.now();
   const editor = EditorRecord.create({
     hidden: true,
     createdAt: now,
     filePath: preferences && getDefaultFilePath(preferences, now),
+    targetBounds: {
+      x: capture.rect.x,
+      y: capture.rect.y,
+      width: capture.rect.width,
+      height: capture.rect.height,
+    },
+    targetDisplay: DisplayRecordId.fromDisplayId(displayId),
   });
-  NEW_EDITOR_CAPTURES.map.set(editor.id, capture);
+  NEW_EDITOR_CAPTURES.map.set(editor.id, capture.blob);
   TLShot.store.put([editor]);
 }
 
@@ -174,5 +194,5 @@ export async function captureFullScreen() {
   const display = await TLShot.api.getCurrentDisplay();
   const source = await TLShot.api.getDisplaySource(display.id);
   const blob = await captureUserMediaSource(source.id, undefined);
-  startEditorForCapture(blob);
+  startEditorForCapture(blob, display.id);
 }

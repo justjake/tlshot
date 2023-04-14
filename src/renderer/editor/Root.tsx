@@ -90,18 +90,56 @@ const EditorWindow = track(function EditorWindow(props: {
   );
 
   const editor = TLShot.store.get(props.id);
+  const display =
+    editor?.targetDisplay && TLShot.store.get(editor?.targetDisplay);
+  const targetBounds = editor?.targetBounds;
+
+  const proposedBounds = useMemo(() => {
+    let {
+      // eslint-disable-next-line prefer-const
+      x = -1,
+      // eslint-disable-next-line prefer-const
+      y = -1,
+      width = 800,
+      height = 600,
+    } = targetBounds ?? display?.bounds ?? {};
+
+    // Add estimated padding for TLDraw's UI
+    width += 30;
+    height += 160;
+
+    // Contain inside display working area. Not intended to be precise,
+    // because the window manager will fix any issues.
+    x = Math.max(display?.workArea.x ?? 0, x);
+    y = Math.max(display?.workArea.y ?? 0, y);
+    width = Math.min(display?.workAreaSize.width ?? 0, Math.max(width, 640));
+    height = Math.min(display?.workAreaSize.height ?? 0, Math.max(height, 480));
+
+    return {
+      x,
+      y,
+      width,
+      height,
+    };
+  }, [display, targetBounds]);
+
   if (!editor) {
     return null;
   }
+
+  const name = `${path.basename(editor.filePath || "Untitled")} - TLShot`;
+
   return (
     <ChildWindow
       key={props.id}
-      center="screen"
-      name="tlshot"
+      center="none"
+      name={name}
       // TODO: we should make these smarter...
       features={{
-        width: 800,
-        height: 600,
+        x: proposedBounds.x,
+        y: proposedBounds.y,
+        width: proposedBounds.width,
+        height: proposedBounds.height,
         backgroundColor,
         titleBarStyle: "hiddenInset",
       }}
@@ -295,7 +333,7 @@ function CaptureAreaActivity() {
           source.id,
           rect
         );
-        captureHelpers.startEditorForCapture(blob);
+        captureHelpers.startEditorForCapture(blob, display.displayId);
       }}
     />
   );
@@ -313,17 +351,23 @@ const CaptureWindowActivity = track(function CaptureWindowActivity() {
     })();
   }, []);
 
-  const handlePickSource = useCallback((source: CaptureSource) => {
-    endCurrentActivity();
-    const asyncAction = async () => {
-      const blob = await captureHelpers.captureUserMediaSource(
-        source.id,
-        undefined
-      );
-      captureHelpers.startEditorForCapture(blob);
-    };
-    requestAnimationFrame(() => void asyncAction());
-  }, []);
+  const handlePickSource = useCallback(
+    (source: CaptureSource) => {
+      if (!currentDisplayId) {
+        return;
+      }
+      endCurrentActivity();
+      const asyncAction = async () => {
+        const blob = await captureHelpers.captureUserMediaSource(
+          source.id,
+          undefined
+        );
+        captureHelpers.startEditorForCapture(blob, currentDisplayId);
+      };
+      requestAnimationFrame(() => void asyncAction());
+    },
+    [currentDisplayId]
+  );
 
   const display = currentDisplayId && TLShot.store.get(currentDisplayId);
   if (!display) {

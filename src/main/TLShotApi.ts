@@ -22,6 +22,7 @@ import { installDevtoolsExtensions } from "./devtools";
 import { RecordsDiff } from "@tldraw/tlstore";
 import { TLShotRecord } from "@/shared/store";
 import { RootWindowService } from "./RootWindowService";
+import { objectEntries } from "@/shared/typeUtils";
 
 export type TLShotApiResponse = {
   [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
@@ -229,11 +230,12 @@ export class TLShotApi {
     options: {
       show?: boolean;
       alwaysOnTop?: boolean | "screen-saver";
+      edited?: boolean;
     }
   ) {
     const browserWindow =
       TLShotApi.getInstance().windowDisplayService.mustGetBrowserWindow(id);
-    for (const [key, value] of Object.entries(options)) {
+    for (const [key, value] of objectEntries(options)) {
       if (key === "show") {
         if (value) {
           browserWindow.show();
@@ -248,6 +250,10 @@ export class TLShotApi {
           typeof value === "string" ? value : undefined,
           value === "screen-saver" ? 1 : undefined
         );
+      }
+
+      if (key === "edited") {
+        browserWindow.setDocumentEdited(Boolean(value));
       }
     }
   }
