@@ -273,7 +273,7 @@ const DragDimensions = forwardRef(function DragDimensions(
         return;
       }
 
-      blobUrl = URL.createObjectURL(blob);
+      blobUrl = URL.createObjectURL(blob.blob);
       setBg(blobUrl);
     };
     void perform();
@@ -304,8 +304,8 @@ const DragDimensions = forwardRef(function DragDimensions(
     }
     ctx.drawImage(
       bgImageElement.current,
-      mousePositionRef.current.x,
-      mousePositionRef.current.y,
+      props.current.x,
+      props.current.y,
       1,
       1,
       0,
@@ -315,7 +315,7 @@ const DragDimensions = forwardRef(function DragDimensions(
     );
     const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
     return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
-  }, [canvas]);
+  }, [canvas, props]);
 
   const style = useStyles(() => {
     const bgSize = 128;
@@ -406,7 +406,7 @@ const DragDimensions = forwardRef(function DragDimensions(
         borderBottom: hairStroke,
       },
     };
-  }, [getWindow, props.origin, currentColor, bg]);
+  }, [getWindow, props.origin, props.current, currentColor, bg]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {

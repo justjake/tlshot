@@ -2,7 +2,6 @@
  * Renders a Reticle window for each display.
  */
 
-import React from "react";
 import { ModalOverlayWindow } from "./ModalOverlayWindow";
 import { Reticle } from "./Reticle";
 import { captureUserMediaSource, createShapeFromBlob } from "./captureHelpers";
@@ -34,7 +33,8 @@ async function captureDisplayRectToApp(
   }
 
   const blob = await captureUserMediaSource(source.id, rect);
-  await createShapeFromBlob(app, blob);
+  await createShapeFromBlob(app, blob.blob);
+  app.zoomToFit();
 }
 
 export function ReticleWindows(props: {
