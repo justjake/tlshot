@@ -112,7 +112,7 @@ const EditorWindow = track(function EditorWindow(props: {
     >
       <div style={styles.wrapper}>
         <EditorTitleBar editor={editor} />
-        <Editor editor={editor} />;
+        <Editor editor={editor} />
       </div>
     </ChildWindow>
   );
