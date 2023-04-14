@@ -2,11 +2,21 @@ import { app } from "electron";
 import { startServices, TLShotApi } from "./TLShotApi";
 import { createTray } from "./tray";
 import { MainProcessQueries } from "./MainProcessStore";
+import { react } from "signia";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
+
+// Show the dock icon when we have Editor activities, otherwise hide it.
+react("controlDockIcon", () => {
+  if (MainProcessQueries.hasEditors.value) {
+    void app.dock.show();
+  } else {
+    app.dock.hide();
+  }
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -17,23 +27,13 @@ app.on("ready", async () => {
   createTray();
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
-});
-
 app.on("activate", () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (!MainProcessQueries.hasActivities.value) {
-    TLShotApi.getInstance().storeService.createEditorWindow();
-    console.log("activate: create editor window");
+  if (process.platform === "darwin") {
+    if (!MainProcessQueries.hasActivities.value) {
+      TLShotApi.getInstance().storeService.createEditorWindow();
+      console.log("activate: create editor window");
+    }
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.

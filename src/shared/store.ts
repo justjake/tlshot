@@ -35,9 +35,13 @@ export function createTLShotStore(props: TLShotStoreProps) {
 export class TLShotStoreQueries {
   constructor(private store: TLShotStore) {}
 
+  allEditors = this.store.query.records("editor");
+
+  hasEditors = computed("hasEditors", () => this.allEditors.value.length > 0);
+
   allActivities = computed("allActivities", () => [
     ...this.store.query.records("capture").value,
-    ...this.store.query.records("editor").value,
+    ...this.allEditors.value,
   ]);
 
   hasActivities = computed(
