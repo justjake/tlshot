@@ -15,7 +15,7 @@ export interface Preferences {
   editorWindowBounds: Electron.Rectangle;
   showDevToolsOnStartup: boolean;
   saveLocation: string;
-  propsForNextShape: TLInstancePropsForNextShape | undefined
+  propsForNextShape: TLInstancePropsForNextShape | undefined;
 }
 
 export class ReactivePreferences implements Required<Preferences> {
@@ -103,7 +103,7 @@ react("updatePreferencesRecord", () => {
 
 MainProcessStore.listen((history) => {
   if (history.source === "user") {
-    return
+    return;
   }
 
   for (const [id, _before, after] of iterateChanges(history.changes)) {
@@ -111,20 +111,27 @@ MainProcessStore.listen((history) => {
       transact(() => {
         for (const [key, value] of objectEntries(after)) {
           if (!(key in Preferences)) {
-            continue
+            continue;
           }
 
-          const prefKey = key as keyof ReactivePreferences
-          const differs = JSON.stringify(Preferences[prefKey]) !== JSON.stringify(value)
+          const prefKey = key as keyof ReactivePreferences;
+          const differs =
+            JSON.stringify(Preferences[prefKey]) !== JSON.stringify(value);
           if (differs) {
-            console.log('MainProcessPreferences: updated', prefKey, Preferences[prefKey], '->', value)
+            console.log(
+              "MainProcessPreferences: updated",
+              prefKey,
+              Preferences[prefKey],
+              "->",
+              value
+            );
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            Preferences[prefKey] = value as any
+            Preferences[prefKey] = value as any;
           }
         }
-      })
+      });
     }
   }
-})
+});

@@ -181,6 +181,7 @@ export async function completeEditorForCapture(editor: EditorRecord, app: App) {
   if (capture) {
     NEW_EDITOR_CAPTURES.map.delete(editor.id);
     await createShapeFromBlob(app, capture);
+    app.zoomToFit();
     const updatedRecord = {
       ...editor,
       hidden: false,

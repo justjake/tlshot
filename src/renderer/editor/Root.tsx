@@ -112,8 +112,14 @@ const EditorWindow = track(function EditorWindow(props: {
     // because the window manager will fix any issues.
     x = Math.max(display?.workArea.x ?? 0, x);
     y = Math.max(display?.workArea.y ?? 0, y);
-    width = Math.min(display?.workAreaSize.width ?? 0, Math.max(width, 640));
-    height = Math.min(display?.workAreaSize.height ?? 0, Math.max(height, 480));
+    width = Math.min(
+      (display?.workAreaSize.width ?? 0) * 0.8,
+      Math.max(width, 640)
+    );
+    height = Math.min(
+      (display?.workAreaSize.height ?? 0) * 0.8,
+      Math.max(height, 480)
+    );
 
     return {
       x,
