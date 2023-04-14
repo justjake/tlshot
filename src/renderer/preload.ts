@@ -37,6 +37,8 @@ class TlshotApiClientImpl implements TLShotApiClient {
   captureArea = this.createMethod("captureArea");
   captureWindow = this.createMethod("captureWindow");
   captureFullscreen = this.createMethod("captureFullscreen");
+  saveDialog = this.createMethod("saveDialog");
+  writeFile = this.createMethod("writeFile");
 
   addServiceListener = <ChannelName extends keyof AllServiceEvents>(
     channelName: ChannelName,

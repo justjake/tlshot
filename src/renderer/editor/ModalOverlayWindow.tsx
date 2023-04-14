@@ -19,7 +19,6 @@ export function ModalOverlayWindow(props: {
       name="Take screenshot"
       alwaysOnTop="screen-saver"
       onUnload={props.onClose}
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       center={props.display ? "none" : "screen"}
       features={{
         // Styling.

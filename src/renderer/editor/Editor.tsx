@@ -12,6 +12,7 @@ import {
   TLInstance,
   TldrawEditorConfig,
   TLUser,
+  App,
 } from "@tldraw/editor";
 import {
   TldrawUi,
@@ -23,6 +24,9 @@ import { useColorScheme } from "./useColorScheme";
 import { useEffect, useState } from "react";
 import { EditorRecord } from "@/shared/records/EditorRecord";
 import { completeEditorForCapture } from "./captureHelpers";
+import { RecordAttachmentMap } from "@/shared/EphemeralMap";
+import { TLShot } from "../TLShotRendererApp";
+import { atom } from "signia";
 
 const TLDRAW_ASSETS = getBundlerAssetUrls({
   format: (url: string) => url,
@@ -32,7 +36,16 @@ const UIContextProps: TldrawUiContextProviderProps = {
   assetUrls: TLDRAW_ASSETS,
 };
 
-export function Editor(props: { editor: EditorRecord | undefined }) {
+const EDITOR_TO_APP = new RecordAttachmentMap<EditorRecord, App>(TLShot.store);
+const EDITOR_MAP_DID_CHANGE = atom("EditorToAppDidChange", 0);
+
+export function getEditorApp(editor: EditorRecord): App | undefined {
+  EDITOR_MAP_DID_CHANGE.value;
+  return EDITOR_TO_APP.map.get(editor.id);
+}
+
+export function Editor(props: { editor: EditorRecord }) {
+  const { editor } = props;
   const scheme = useColorScheme();
   const [editorStore] = useState(() =>
     TldrawEditorConfig.default.createStore({
@@ -44,11 +57,13 @@ export function Editor(props: { editor: EditorRecord | undefined }) {
     <TldrawEditor
       instanceId={editorStore.props.instanceId}
       store={editorStore}
-      onMount={(app) =>
+      onMount={(app) => {
         app.updateInstanceState({
           isDebugMode: false,
-        })
-      }
+        });
+        EDITOR_TO_APP.map.set(editor.id, app);
+        EDITOR_MAP_DID_CHANGE.update((n) => n + 1);
+      }}
       isDarkMode={scheme === "dark"}
       {...UIContextProps}
     >
@@ -58,7 +73,7 @@ export function Editor(props: { editor: EditorRecord | undefined }) {
         </ContextMenu>
 
         <CaptureView />
-        <CompleteCaptureEffect editor={props.editor} />
+        <CompleteCaptureEffect editor={editor} />
       </TldrawUi>
     </TldrawEditor>
   );

@@ -49,8 +49,8 @@ export function CaptureView() {
   return (
     <>
       <div className="capture-view-toolbar" style={styles.toolbar}>
-        <button onClick={() => startCapture("reticle")}>Drag</button>{" "}
-        <button onClick={() => startCapture("picker")}>Pick Window</button>
+        <button onClick={() => startCapture("reticle")}>Grab Area</button>{" "}
+        <button onClick={() => startCapture("picker")}>Grab Window</button>
       </div>
       {activeCaptureView}
     </>

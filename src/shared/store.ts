@@ -4,12 +4,14 @@ import { WindowRecord } from "./records/WindowRecord";
 import { EditorRecord } from "./records/EditorRecord";
 import { CaptureActivityRecord } from "./records/CaptureActivityRecord";
 import { computed } from "signia";
+import { PreferencesRecord } from "./records/PreferencesRecord";
 
 export type TLShotRecord =
   | DisplayRecord
   | WindowRecord
   | CaptureActivityRecord
-  | EditorRecord;
+  | EditorRecord
+  | PreferencesRecord;
 
 export type TLShotStoreProps = {
   // Just for fun. Not used.
@@ -23,6 +25,7 @@ const schema = StoreSchema.create<TLShotRecord, TLShotStoreProps>({
   window: WindowRecord,
   capture: CaptureActivityRecord,
   editor: EditorRecord,
+  preferences: PreferencesRecord,
 });
 
 export function createTLShotStore(props: TLShotStoreProps) {
@@ -35,9 +38,22 @@ export function createTLShotStore(props: TLShotStoreProps) {
 export class TLShotStoreQueries {
   constructor(private store: TLShotStore) {}
 
+  preferences = this.store.query.record("preferences");
+
   allEditors = this.store.query.records("editor");
 
   hasEditors = computed("hasEditors", () => this.allEditors.value.length > 0);
+
+  visibleWindows = this.store.query.records("window", () => ({
+    isVisible: {
+      eq: true,
+    },
+  }));
+
+  hasVisibleWindows = computed(
+    "hasVisibleWindows",
+    () => this.visibleWindows.value.length > 0
+  );
 
   allActivities = computed("allActivities", () => [
     ...this.store.query.records("capture").value,

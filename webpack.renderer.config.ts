@@ -13,5 +13,10 @@ export const rendererConfig: Configuration = {
     rules,
   },
   plugins,
-  resolve,
+  resolve: {
+    ...resolve,
+    fallback: {
+      path: require.resolve("path-browserify"),
+    },
+  },
 };

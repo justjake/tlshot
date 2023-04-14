@@ -21,6 +21,7 @@ module.exports = {
   },
   root: true,
   rules: {
+    "@typescript-eslint/no-misused-promises": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "react-hooks/exhaustive-deps": [
       "error",

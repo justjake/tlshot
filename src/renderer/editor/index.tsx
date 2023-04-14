@@ -32,7 +32,32 @@ import { Root } from "./Root";
 import { TLShot } from "../TLShotRendererApp";
 
 async function main() {
-  await TLShot.ready;
+  const handleError = (e: PromiseRejectionEvent | ErrorEvent) => {
+    console.error("Opening DevTools due to unhandled error");
+    void TLShot.api.log("Unhandled error:", e);
+    void TLShot.api.openDevTools({ once: true });
+  };
+
+  window.addEventListener("unhandledrejection", handleError);
+  window.addEventListener("error", handleError);
+
+  let launched = false;
+  const launchTimeout = async () => {
+    const timeout = 1000;
+    await new Promise((resolve) => setTimeout(resolve, timeout));
+    if (launched) return;
+    throw new Error(
+      `TLShot failed to receive state from main process within ${timeout}ms`
+    );
+  };
+
+  await Promise.race([
+    TLShot.ready.then(() => {
+      launched = true;
+    }),
+    launchTimeout(),
+  ]);
+
   const root = createRoot(document.getElementById("root")!);
   root.render(<Root />);
 }

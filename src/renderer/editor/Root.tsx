@@ -1,17 +1,19 @@
 import { track, useValue } from "signia-react";
 import { TLShot } from "../TLShotRendererApp";
-import { EditorRecordId } from "@/shared/records/EditorRecord";
-import { Editor } from "./Editor";
+import { EditorRecord, EditorRecordId } from "@/shared/records/EditorRecord";
+import { Editor, getEditorApp } from "./Editor";
 import { CAPTURE_ACTIVITY_ID } from "@/shared/records/CaptureActivityRecord";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import * as captureHelpers from "./captureHelpers";
 import { DisplayRecordId } from "@/shared/records/DisplayRecord";
 import { SourcePickerWindow } from "./SourcePickerWindow";
 import { CaptureSource } from "@/main/TLShotApi";
 import { ReticleWindows } from "./ReticleWindows";
-import { ChildWindow } from "./ChildWindow";
+import { ChildWindow, useGetWindow } from "./ChildWindow";
 import { useColorScheme } from "./useColorScheme";
 import { useStyles } from "./useStyles";
+import path from "path";
+import { TLExportType, getSvgAsImage } from "@tldraw/editor";
 
 export function Root() {
   const hasActivities = useValue(TLShot.queries.hasActivities);
@@ -32,7 +34,6 @@ export function Root() {
         hasActivities,
         hasActivityAtLaunch,
       });
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       const timeout = window.setTimeout(async () => {
         if (!TLShot.queries.hasActivities.value) {
           await TLShot.api.log("Root: closing window after 10 seconds idle");
@@ -76,6 +77,18 @@ const EditorWindow = track(function EditorWindow(props: {
   const scheme = useColorScheme();
   const backgroundColor = scheme === "dark" ? "#212529" : "#f8f9fa";
 
+  const styles = useStyles(
+    () => ({
+      wrapper: {
+        backgroundColor,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      },
+    }),
+    [backgroundColor]
+  );
+
   const editor = TLShot.store.get(props.id);
   if (!editor) {
     return null;
@@ -90,14 +103,156 @@ const EditorWindow = track(function EditorWindow(props: {
         width: 800,
         height: 600,
         backgroundColor,
+        titleBarStyle: "hiddenInset",
       }}
       hidden={editor.hidden}
       onUnload={() => {
         TLShot.store.remove([props.id]);
       }}
     >
-      <Editor editor={editor} />;
+      <div style={styles.wrapper}>
+        <EditorTitleBar editor={editor} />
+        <Editor editor={editor} />;
+      </div>
     </ChildWindow>
+  );
+});
+
+const EditorTitleBar = track(function EditorTitleBar(props: {
+  editor: EditorRecord;
+}) {
+  const { editor } = props;
+  const preferences = TLShot.queries.preferences.value;
+  const defaultFilePath = preferences
+    ? preferences.saveLocation + "/"
+    : undefined;
+  const filePath = editor.filePath || defaultFilePath;
+
+  const styles = useStyles(
+    () => ({
+      titleBar: {
+        height: 42,
+        paddingLeft: 70,
+        WebkitAppRegion: "drag",
+        width: "100%",
+
+        display: "flex",
+        justifyContent: "space-around",
+        alignItems: "center",
+      },
+      inputArea: {
+        WebkitAppRegion: "no-drag",
+        flexGrow: 1,
+        maxWidth: "calc(min(800px, 80%))",
+        display: "flex",
+        gap: 10,
+        alignItems: "stretch",
+        justifyContent: "center",
+      },
+      input: {
+        flexGrow: 1,
+      },
+    }),
+    []
+  );
+
+  const handleInputChange = useCallback(
+    (e: string | React.ChangeEvent<HTMLInputElement>) => {
+      TLShot.store.update(editor.id, (editor) => ({
+        ...editor,
+        filePath: typeof e === "string" ? e : e.target.value,
+      }));
+    },
+    [editor.id]
+  );
+
+  const pathIsValid = useMemo(() => {
+    if (!filePath) {
+      return false;
+    }
+
+    if (filePath.endsWith("/")) {
+      return false;
+    }
+
+    const ext = path.extname(filePath);
+    switch (ext) {
+      case ".png":
+      case ".jpg":
+        return true;
+      default:
+        return false;
+    }
+  }, [filePath]);
+
+  const app = getEditorApp(editor);
+  const valid = app?.shapeIds.size ?? 0 > 0;
+
+  const getWindow = useGetWindow();
+  const handleSaveClick = useCallback(async () => {
+    let saveTo = filePath;
+    if (!pathIsValid || !filePath) {
+      // When invalid, open a save dialog.
+      const result = await TLShot.api.saveDialog(getWindow.childWindowNanoid, {
+        defaultPath: filePath,
+        filters: [{ name: "Images", extensions: [".png", ".jpg"] }],
+      });
+      if (result.canceled || result.filePath === undefined) {
+        return;
+      }
+      saveTo = result.filePath;
+    }
+    const app = getEditorApp(editor);
+    if (!app) {
+      throw new Error(`No app for editor ${editor.id}`);
+    }
+
+    // See @tldraw/ui/hooks/useExportAs.ts
+    const format: TLExportType =
+      path.extname(saveTo!) === ".jpg" ? "jpeg" : "png";
+    const svg = await app.getSvg([...app.shapeIds], {
+      // TODO: bigger scale = better line sharpness, but blurry image...
+      scale: 1,
+      background: false,
+    });
+    if (!svg) {
+      throw new Error(`Failed to generate SVG`);
+    }
+    const image = await getSvgAsImage(svg, {
+      type: format,
+      quality: 1,
+      scale: 1,
+    });
+    if (!image) {
+      throw new Error(`Failed to generate image`);
+    }
+    await TLShot.api.writeFile(saveTo!, await image.arrayBuffer());
+  }, [editor, filePath, getWindow.childWindowNanoid, pathIsValid]);
+
+  const handleSaveAndCloseClick = async () => {
+    await handleSaveClick();
+    getWindow().close();
+  };
+
+  return (
+    <div style={styles.titleBar}>
+      <div style={styles.inputArea}>
+        {filePath && (
+          <input
+            disabled={!valid}
+            style={styles.input}
+            value={filePath}
+            onChange={handleInputChange}
+          />
+        )}
+        {valid ? (
+          <button onClick={handleSaveAndCloseClick}>Done</button>
+        ) : (
+          <button onClick={() => getWindow().close()}>Close</button>
+        )}
+      </div>
+      <div />
+    </div>
   );
 });
 
@@ -134,7 +289,6 @@ function CaptureAreaActivity() {
   return (
     <ReticleWindows
       onClose={endCurrentActivity}
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       onSelect={async (display, rect) => {
         const source = await TLShot.api.getDisplaySource(display.displayId);
         const blob = await captureHelpers.captureUserMediaSource(
@@ -213,9 +367,6 @@ export function RootDebugView() {
         when the window closed.
       </p>
       <p>
-        <button onClick={() => void TLShot.api.openDevTools()}>
-          Open DevTools
-        </button>{" "}
         <button onClick={() => void TLShot.api.closeDevTools()}>
           Close DevTools & Hide
         </button>

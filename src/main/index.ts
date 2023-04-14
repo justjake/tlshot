@@ -1,5 +1,5 @@
 import { app } from "electron";
-import { startServices, TLShotApi } from "./TLShotApi";
+import { TLShotApi, startServices } from "./TLShotApi";
 import { createTray } from "./tray";
 import { MainProcessQueries } from "./MainProcessStore";
 import { react } from "signia";
@@ -9,19 +9,25 @@ if (require("electron-squirrel-startup")) {
   app.quit();
 }
 
-// Show the dock icon when we have Editor activities, otherwise hide it.
+// Show the dock icon when we have windows.
 react("controlDockIcon", () => {
-  if (MainProcessQueries.hasEditors.value) {
+  if (
+    MainProcessQueries.hasVisibleWindows.value ||
+    MainProcessQueries.hasEditors.value
+  ) {
     void app.dock.show();
   } else {
     app.dock.hide();
   }
 });
 
+app.on("window-all-closed", () => {
+  // Do nothing. If we don't subscribe, quits when all windows are closed.
+});
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-// eslint-disable-next-line @typescript-eslint/no-misused-promises
 app.on("ready", async () => {
   await startServices();
   createTray();

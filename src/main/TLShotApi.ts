@@ -1,4 +1,15 @@
-import { app, desktopCapturer, ipcMain, screen, BrowserWindow } from "electron";
+import {
+  app,
+  desktopCapturer,
+  ipcMain,
+  screen,
+  BrowserWindow,
+  dialog,
+  SaveDialogOptions,
+  SaveDialogReturnValue,
+} from "electron";
+import fs from "fs-extra";
+import path from "path";
 
 import {
   ChildWindowNanoid,
@@ -11,7 +22,6 @@ import { installDevtoolsExtensions } from "./devtools";
 import { RecordsDiff } from "@tldraw/tlstore";
 import { TLShotRecord } from "@/shared/store";
 import { RootWindowService } from "./RootWindowService";
-import { MainProcessStore } from "./MainProcessStore";
 
 export type TLShotApiResponse = {
   [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
@@ -35,6 +45,17 @@ export type TLShotApiClient = {
 };
 
 export type CaptureSource = TLShotApiResponse["getSources"][number];
+
+interface DialogKind {
+  open: {
+    req: Electron.OpenDialogOptions;
+    res: Electron.OpenDialogReturnValue;
+  };
+  save: {
+    req: Electron.SaveDialogOptions;
+    res: Electron.SaveDialogReturnValue;
+  };
+}
 
 export class TLShotApi {
   private static instance: TLShotApi | undefined;
@@ -136,6 +157,26 @@ export class TLShotApi {
     };
   }
 
+  async saveDialog<T extends keyof DialogKind>(
+    _event: Electron.IpcMainInvokeEvent,
+    childWindowId: ChildWindowNanoid,
+    options: SaveDialogOptions
+  ): Promise<SaveDialogReturnValue> {
+    return dialog.showSaveDialog(
+      this.windowDisplayService.mustGetBrowserWindow(childWindowId),
+      options
+    );
+  }
+
+  async writeFile(
+    _event: Electron.IpcMainInvokeEvent,
+    filePath: string,
+    contents: ArrayBuffer
+  ) {
+    await fs.mkdirp(path.dirname(filePath));
+    await fs.writeFile(filePath, Buffer.from(contents));
+  }
+
   getCurrentDisplay() {
     return screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   }
@@ -174,8 +215,8 @@ export class TLShotApi {
     this.storeService.upsertCaptureActivity("fullScreen");
   }
 
-  openDevTools() {
-    return this.rootWindowService.openDevTools();
+  openDevTools(_: unknown, options = { once: false }) {
+    return this.rootWindowService.openDevTools(options);
   }
 
   closeDevTools() {
@@ -190,18 +231,8 @@ export class TLShotApi {
       alwaysOnTop?: boolean | "screen-saver";
     }
   ) {
-    const windowRecord = MainProcessStore.query.record("window", () => ({
-      childWindowId: {
-        eq: id,
-      },
-    })).value;
-    if (!windowRecord) {
-      throw new Error(`updateChildWindow: not found: ${id}`);
-    }
-    const browserWindow = BrowserWindow.fromId(windowRecord.browserWindowId);
-    if (!browserWindow) {
-      throw new Error(`updateChildWindow: not found: ${id}`);
-    }
+    const browserWindow =
+      TLShotApi.getInstance().windowDisplayService.mustGetBrowserWindow(id);
     for (const [key, value] of Object.entries(options)) {
       if (key === "show") {
         if (value) {

@@ -4,7 +4,7 @@
 
 import { nativeTheme, BrowserWindow, app } from "electron";
 import { TLShotApi } from "./TLShotApi";
-import { MainProcessPreferences } from "./MainProcessPreferences";
+import { Preferences } from "./MainProcessPreferences";
 import { MainProcessQueries, MainProcessStore } from "./MainProcessStore";
 import { atom, react } from "signia";
 import { waitUntil } from "@/shared/signiaHelpers";
@@ -37,12 +37,7 @@ export class RootWindowService {
     return MainProcessQueries.hasActivities.value;
   }
 
-  handleRootWindowClose(rootWindow: BrowserWindow) {
-    MainProcessPreferences.set(
-      "editorWindowDevtools",
-      rootWindow.webContents.isDevToolsOpened()
-    );
-    MainProcessPreferences.set("editorWindowBounds", rootWindow.getBounds());
+  handleRootWindowClose() {
     MainProcessStore.remove(
       MainProcessQueries.allActivities.value.map((a) => a.id)
     );
@@ -77,11 +72,21 @@ export class RootWindowService {
     return this.rootWindow.value;
   }
 
-  async openDevTools() {
+  isDevToolsOpen(): boolean {
+    const rootWindow = this.rootWindow.value;
+    if (!rootWindow || rootWindow === "pending") {
+      return false;
+    }
+    return rootWindow.webContents.isDevToolsOpened();
+  }
+
+  async openDevTools(options = { once: false }) {
     const rootWindow = await this.upsertRootWindow();
     rootWindow.webContents.openDevTools();
     rootWindow.show();
-    MainProcessPreferences.set("editorWindowDevtools", true);
+    if (!options.once) {
+      Preferences.showDevToolsOnStartup = true;
+    }
   }
 
   async closeDevTools() {
@@ -92,7 +97,7 @@ export class RootWindowService {
       rootWindow.hide();
     }
 
-    MainProcessPreferences.set("editorWindowDevtools", false);
+    Preferences.showDevToolsOnStartup = false;
   }
 
   private async createRootWindow() {
@@ -116,12 +121,7 @@ export class RootWindowService {
       title: "TLShot Debugger",
     });
 
-    const prevBounds = MainProcessPreferences.get("editorWindowBounds", {
-      width: 1024,
-      height: 768,
-      x: -1,
-      y: -1,
-    });
+    const prevBounds = Preferences.editorWindowBounds;
 
     if (prevBounds.x >= 0 && prevBounds.y >= 0) {
       rootWindow.setBounds(prevBounds);
@@ -130,14 +130,9 @@ export class RootWindowService {
       rootWindow.center();
     }
 
-    rootWindow.on("close", () => {
-      console.log('RootWindowService: "close" event');
-      this.handleRootWindowClose(rootWindow);
-    });
-
     rootWindow.on("closed", () => {
       console.log('RootWindowService: "closed" event');
-      this.rootWindow.set(undefined);
+      this.handleRootWindowClose();
     });
 
     // and load the index.html of the app.
@@ -149,7 +144,7 @@ export class RootWindowService {
     );
 
     // Open the DevTools.
-    if (MainProcessPreferences.get("editorWindowDevtools", false)) {
+    if (Preferences.showDevToolsOnStartup) {
       rootWindow.webContents.openDevTools();
       rootWindow.show();
     }

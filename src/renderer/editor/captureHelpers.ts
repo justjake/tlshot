@@ -1,4 +1,7 @@
-import { EditorRecord } from "@/shared/records/EditorRecord";
+import {
+  EditorRecord,
+  getDefaultFilePath,
+} from "@/shared/records/EditorRecord";
 import { App, createShapesFromFiles } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { RecordAttachmentMap } from "@/shared/EphemeralMap";
@@ -142,9 +145,12 @@ const NEW_EDITOR_CAPTURES = new RecordAttachmentMap<EditorRecord, Blob>(
 );
 
 export function startEditorForCapture(capture: Blob) {
+  const preferences = TLShot.queries.preferences.value;
+  const now = Date.now();
   const editor = EditorRecord.create({
     hidden: true,
-    filePath: undefined,
+    createdAt: now,
+    filePath: preferences && getDefaultFilePath(preferences, now),
   });
   NEW_EDITOR_CAPTURES.map.set(editor.id, capture);
   TLShot.store.put([editor]);

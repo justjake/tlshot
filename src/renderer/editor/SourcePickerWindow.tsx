@@ -36,7 +36,6 @@ export function AppSourcePickerWindow(props: { onClose: () => void }) {
 
   const onPickSource = (source: CaptureSource) => {
     props.onClose();
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     requestAnimationFrame(async () => {
       const blob = await captureUserMediaSource(source.id, undefined);
       void createShapeFromBlob(app, blob);

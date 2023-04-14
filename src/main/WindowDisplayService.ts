@@ -109,6 +109,22 @@ export class WindowDisplayService extends Service<
     });
   }
 
+  mustGetBrowserWindow(id: ChildWindowNanoid): BrowserWindow {
+    const windowRecord = MainProcessStore.query.record("window", () => ({
+      childWindowId: {
+        eq: id,
+      },
+    })).value;
+    if (!windowRecord) {
+      throw new Error(`updateChildWindow: not found: ${id}`);
+    }
+    const browserWindow = BrowserWindow.fromId(windowRecord.browserWindowId);
+    if (!browserWindow) {
+      throw new Error(`updateChildWindow: not found: ${id}`);
+    }
+    return browserWindow;
+  }
+
   windowRecordId(id: BrowserWindowId) {
     return WindowRecord.createCustomId(String(id));
   }
@@ -178,13 +194,23 @@ export class WindowDisplayService extends Service<
       );
     });
 
-    // Follow window positioning
+    // bounds
     browserWindow.on("moved", () => {
       this.handleWindowChanged(browserWindow);
     });
     browserWindow.on("resized", () => {
       this.handleWindowChanged(browserWindow);
     });
+
+    // isVisible
+    browserWindow.on("hide", () => this.handleWindowChanged(browserWindow));
+    browserWindow.on("show", () => this.handleWindowChanged(browserWindow));
+
+    // alwaysOnTop
+    browserWindow.on("always-on-top-changed", () =>
+      this.handleWindowChanged(browserWindow)
+    );
+
     const id = this.windowRecordId(browserWindow.id);
     browserWindow.on("closed", () => {
       this.handleWindowClosed(id);

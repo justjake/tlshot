@@ -58,6 +58,7 @@ export class StoreService extends Service<
       EditorRecord.create({
         filePath: undefined,
         hidden: false,
+        createdAt: Date.now(),
       }),
     ]);
   }
