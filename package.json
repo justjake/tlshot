@@ -49,11 +49,11 @@
     "typescript": "5.0.4"
   },
   "dependencies": {
-    "@tldraw/assets": "^2.0.0-canary.dc7c1416a",
-    "@tldraw/editor": "^2.0.0-canary.dc7c1416a",
-    "@tldraw/tldraw": "^2.0.0-canary.dc7c1416a",
-    "@tldraw/tlstore": "^2.0.0-canary.dc7c1416a",
-    "@tldraw/ui": "^2.0.0-canary.dc7c1416a",
+    "@tldraw/assets": "^2.0.0-canary.e59200e42",
+    "@tldraw/editor": "^2.0.0-canary.e59200e42",
+    "@tldraw/tldraw": "^2.0.0-canary.e59200e42",
+    "@tldraw/tlstore": "^2.0.0-canary.e59200e42",
+    "@tldraw/ui": "^2.0.0-canary.e59200e42",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
     "execa": "^7.1.1",

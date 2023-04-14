@@ -1,0 +1,53 @@
+diff --git a/node_modules/@tldraw/editor/dist-cjs/lib/utils/dom.js b/node_modules/@tldraw/editor/dist-cjs/lib/utils/dom.js
+index 5fdf724..d15d02d 100644
+--- a/node_modules/@tldraw/editor/dist-cjs/lib/utils/dom.js
++++ b/node_modules/@tldraw/editor/dist-cjs/lib/utils/dom.js
+@@ -31,8 +31,11 @@ module.exports = __toCommonJS(dom_exports);
+ var import_primitives = require("@tldraw/primitives");
+ var import_react = require("react");
+ var import_debug_flags = require("./debug-flags");
++function getOwnerWindow(node) {
++	return node.ownerDocument?.defaultView ?? globalThis.window
++}
+ function loopToHtmlElement(elm) {
+-  if (elm instanceof HTMLElement)
++  if (elm instanceof getOwnerWindow(elm).HTMLElement)
+     return elm;
+   if (elm.parentElement)
+     return loopToHtmlElement(elm.parentElement);
+diff --git a/node_modules/@tldraw/editor/dist-esm/lib/utils/dom.mjs b/node_modules/@tldraw/editor/dist-esm/lib/utils/dom.mjs
+index b69b7b5..c856fa1 100644
+--- a/node_modules/@tldraw/editor/dist-esm/lib/utils/dom.mjs
++++ b/node_modules/@tldraw/editor/dist-esm/lib/utils/dom.mjs
+@@ -1,8 +1,11 @@
+ import { Vec2d } from "@tldraw/primitives";
+ import { useEffect, useState } from "react";
+ import { debugFlags } from "./debug-flags.mjs";
++function getOwnerWindow(node) {
++	return node.ownerDocument?.defaultView ?? globalThis.window
++}
+ function loopToHtmlElement(elm) {
+-  if (elm instanceof HTMLElement)
++  if (elm instanceof getOwnerWindow(elm).HTMLElement)
+     return elm;
+   if (elm.parentElement)
+     return loopToHtmlElement(elm.parentElement);
+diff --git a/node_modules/@tldraw/editor/src/lib/utils/dom.ts b/node_modules/@tldraw/editor/src/lib/utils/dom.ts
+index e825cfc..43319ab 100644
+--- a/node_modules/@tldraw/editor/src/lib/utils/dom.ts
++++ b/node_modules/@tldraw/editor/src/lib/utils/dom.ts
+@@ -17,9 +17,13 @@ import { Vec2d } from '@tldraw/primitives'
+ import React, { useEffect, useState } from 'react'
+ import { debugFlags } from './debug-flags'
+ 
++function getOwnerWindow(node: Node): typeof globalThis & Window {
++	return node.ownerDocument?.defaultView ?? globalThis.window
++}
++
+ /** @public */
+ export function loopToHtmlElement(elm: Element): HTMLElement {
+-	if (elm instanceof HTMLElement) return elm
++	if (elm instanceof getOwnerWindow(elm).HTMLElement) return elm
+ 	if (elm.parentElement) return loopToHtmlElement(elm.parentElement)
+ 	else throw Error('Could not find a parent element of an HTML type!')
+ }

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /**
  * This file will automatically be loaded by webpack and run in the "renderer" context.
  * To learn more about the differences between the "main" and the "renderer" context in
@@ -32,9 +34,18 @@ import { Root } from "./Root";
 import { TLShot } from "../TLShotRendererApp";
 
 async function main() {
-  const handleError = (e: PromiseRejectionEvent | ErrorEvent) => {
+  const handleError = (errorEvent: ErrorEvent | PromiseRejectionEvent) => {
+    const both = errorEvent as ErrorEvent & PromiseRejectionEvent;
+    const error = both.error || both.reason;
+    const serialized = {
+      name: error?.name,
+      message: both?.message ?? error?.message,
+      stack: error?.stack,
+      filename: both?.filename,
+      lineno: both?.lineno,
+    };
     console.error("Opening DevTools due to unhandled error");
-    void TLShot.api.log("Unhandled error:", e);
+    void TLShot.api.log("Unhandled error:", serialized);
     void TLShot.api.openDevTools({ once: true });
   };
 

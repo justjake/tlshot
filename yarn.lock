@@ -939,23 +939,23 @@
   dependencies:
     defer-to-connect "^2.0.0"
 
-"@tldraw/assets@^2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/assets/-/assets-2.0.0-canary.dc7c1416a.tgz#7b18ed7e9110029b64d2e3d6978dd4413509ce65"
-  integrity sha512-6Hh/mKVN5k7224bZCFEIUzB3qbj+vIpMTK//vBPk75k620GLbRyDUxrMuvyL4Fw8BYiCMb5PgqesV9zwzS69eQ==
+"@tldraw/assets@^2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/assets/-/assets-2.0.0-canary.e59200e42.tgz#27f70446988acbfe4618250ebf547294381fe7b8"
+  integrity sha512-p295/lrmQEbyo8i8h0sAZhwgWEqcAmfJQo3ip1VYrYUZNUdblltJLJRj8RTotp7exF3MczV4xC348TO7Y4MMxw==
   dependencies:
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
 
-"@tldraw/editor@2.0.0-canary.dc7c1416a", "@tldraw/editor@^2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/editor/-/editor-2.0.0-canary.dc7c1416a.tgz#9bcac1031f2f687b25cc86f95f282a0763964731"
-  integrity sha512-SeG0BXX3B5pZKe3eoeSWE2Wngj5yiR72OFl0Lk1maK5S81HUV+N6NyiwroJnFHxERhc5Br/oAC4ddcCBstkSEA==
+"@tldraw/editor@2.0.0-canary.e59200e42", "@tldraw/editor@^2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/editor/-/editor-2.0.0-canary.e59200e42.tgz#db8e66254c2d4004126b55dc8d8ed1b727437111"
+  integrity sha512-xrMbaKgtv/1d/KsGjOQKGJrpT2JzDjQqkE2MsXkMfnsLKH+JDhPRBnYsLhJ/G7nWf5ojxzUsK0DaXVc2VRfAiQ==
   dependencies:
-    "@tldraw/primitives" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlschema" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlstore" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlvalidate" "2.0.0-canary.dc7c1416a"
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/primitives" "2.0.0-canary.e59200e42"
+    "@tldraw/tlschema" "2.0.0-canary.e59200e42"
+    "@tldraw/tlstore" "2.0.0-canary.e59200e42"
+    "@tldraw/tlvalidate" "2.0.0-canary.e59200e42"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
     "@use-gesture/react" "^10.2.24"
     classnames "^2.3.2"
     escape-string-regexp "^5.0.0"
@@ -965,72 +965,72 @@
     lodash.uniq "^4.5.0"
     nanoid "^3.0.0"
 
-"@tldraw/polyfills@2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/polyfills/-/polyfills-2.0.0-canary.dc7c1416a.tgz#e2fb1fd01733503ab38257d243a156c334fa47b3"
-  integrity sha512-wcos9RtcsaTqk8b0NNsObAo0WYvvQGY7vaBC4VtRFaA1vjfHEYIzAcRghlXGnWaK6/s+JS4xiOH9/BLuJyElug==
+"@tldraw/polyfills@2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/polyfills/-/polyfills-2.0.0-canary.e59200e42.tgz#01996078e6b35dea17fb617cf5840be31b2a96b8"
+  integrity sha512-ESJ4bW5MmznzJxLwWaNFlFwHRZvllwO3siBGQG7LMGZknoKmvnA396cRHHBhA2u1ILZUK0UiQ7mUNay6HVrcEw==
   dependencies:
     core-js "^3.27.2"
 
-"@tldraw/primitives@2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/primitives/-/primitives-2.0.0-canary.dc7c1416a.tgz#6bb484acc16ddc7757e21a4fe459cbb597bd36e0"
-  integrity sha512-+ibPleLiiDPjEvZ4cOWYFcp8/I+Te4ou8v87gfpRqTFC2OWSH/M43RiqDxvxzkF+61ta6BZZRVdn2oDspCxNCA==
+"@tldraw/primitives@2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/primitives/-/primitives-2.0.0-canary.e59200e42.tgz#e198d77e948248cde9d215316e1df1a292946206"
+  integrity sha512-nvPHCxybTFrtsLSYfxzz8yGGjwRh6k3Avk4D0Jn0OvwtfkQH9D8oxmGhtCILKbMVUtyQmYeaJmDAahYb+5kYyg==
   dependencies:
-    "@tldraw/tlschema" "2.0.0-canary.dc7c1416a"
+    "@tldraw/tlschema" "2.0.0-canary.e59200e42"
 
-"@tldraw/tldraw@^2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/tldraw/-/tldraw-2.0.0-canary.dc7c1416a.tgz#0f6cd174c326e610faab7ab42453313454e787b6"
-  integrity sha512-qt8gh8bg8YBcA6twTtzBatXq/lyEXCAxbOcc0qSvpTvd0Lt4vaAFnx/HtSzC1RPDxFoJuj+xAWqgozi5S0tWUw==
+"@tldraw/tldraw@^2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/tldraw/-/tldraw-2.0.0-canary.e59200e42.tgz#803d13224c1260c8f867164d087aa8ffa5877c57"
+  integrity sha512-hh+QmjZUcutXrtTGtEhBX4sufXphoTW7/kRgqJ38vvC+00aDaU5QfRZdyirAQ3prLZeKByRQL0m6X+PkI4SeMA==
   dependencies:
-    "@tldraw/editor" "2.0.0-canary.dc7c1416a"
-    "@tldraw/polyfills" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlsync-client" "2.0.0-canary.dc7c1416a"
-    "@tldraw/ui" "2.0.0-canary.dc7c1416a"
+    "@tldraw/editor" "2.0.0-canary.e59200e42"
+    "@tldraw/polyfills" "2.0.0-canary.e59200e42"
+    "@tldraw/tlsync-client" "2.0.0-canary.e59200e42"
+    "@tldraw/ui" "2.0.0-canary.e59200e42"
 
-"@tldraw/tlschema@2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/tlschema/-/tlschema-2.0.0-canary.dc7c1416a.tgz#0f0ff105a61200c232d00456ea5055cd8f848745"
-  integrity sha512-F6jxIV9XvuF9DYZXU5chxnIGmL1a8mP4ObRmRvoZpvqjGvvmwSt5mTzWh4SQLZB6W0YE69CGRJceD74xzzbT1g==
+"@tldraw/tlschema@2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/tlschema/-/tlschema-2.0.0-canary.e59200e42.tgz#0fefe6325647f62db44f8e7222196673a5f9df7f"
+  integrity sha512-vU8yc/LuSb46CTShZwDG6AQUOb0kR1lnkgKRT8JJ1tTuWhcpvE/JZz/rG7h7stO+BUjJ3oUgmItsxAzjBSpjOQ==
   dependencies:
-    "@tldraw/tlstore" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlvalidate" "2.0.0-canary.dc7c1416a"
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/tlstore" "2.0.0-canary.e59200e42"
+    "@tldraw/tlvalidate" "2.0.0-canary.e59200e42"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
     nanoid "^3.0.0"
 
-"@tldraw/tlstore@2.0.0-canary.dc7c1416a", "@tldraw/tlstore@^2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/tlstore/-/tlstore-2.0.0-canary.dc7c1416a.tgz#5de98d605724431e4dae08da567b3de7b0d23806"
-  integrity sha512-oxUAZu5GOD1Jgurp4Lwsu98sbm24+88iI6xd4nYL7GDNhYnyqaAKnfzlecYeySf36ca5Svh5/HYFU9qoO5k3/A==
+"@tldraw/tlstore@2.0.0-canary.e59200e42", "@tldraw/tlstore@^2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/tlstore/-/tlstore-2.0.0-canary.e59200e42.tgz#87793e23471b0421fc2ce0fe0aa28198682695e1"
+  integrity sha512-SbDyEAqqSAHK8X5+CiZFS5/4uJwxh5ObisQCsoR+SCBvbHi+RGuVkmBab4HBa4sSwVB8DTVFgqTAQjglj5diNg==
   dependencies:
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
     lodash.isequal "^4.5.0"
     nanoid "^3.0.0"
 
-"@tldraw/tlsync-client@2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/tlsync-client/-/tlsync-client-2.0.0-canary.dc7c1416a.tgz#d6cda7ed35100c03be7fdfeec08b2521f0e078cb"
-  integrity sha512-PhxI3AwGE0ZyN56YNH9DQ3CMHAkWsFmq75ewmg+qzusXzBIvoow5NiCFE8r0phBymOYnkhvD7w4sODhA598TSA==
+"@tldraw/tlsync-client@2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/tlsync-client/-/tlsync-client-2.0.0-canary.e59200e42.tgz#3a4b4cb972b896d4e755c405d785a0c71dcd09f0"
+  integrity sha512-QBGUC3zxlHybPRXDbrphTuDVNKKqVgpq0DKHFlnGUM3GV5aG8Lv7W8MTf7Fi1llEP7VQAcbsprbs9SvR22sTIA==
   dependencies:
-    "@tldraw/editor" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlstore" "2.0.0-canary.dc7c1416a"
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/editor" "2.0.0-canary.e59200e42"
+    "@tldraw/tlstore" "2.0.0-canary.e59200e42"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
     idb "^7.1.0"
   optionalDependencies:
     react "*"
 
-"@tldraw/tlvalidate@2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/tlvalidate/-/tlvalidate-2.0.0-canary.dc7c1416a.tgz#1a4acf86fa1926f482ac5b2f4bae932d2934d676"
-  integrity sha512-m53toqMPzZRE05OkmjbDCcZZlJOJb1K8TzxHrNZZ3NF8JvCc/WPsUM7Mc644jPTROKK6EvVasmSnKnrs8FFpwQ==
+"@tldraw/tlvalidate@2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/tlvalidate/-/tlvalidate-2.0.0-canary.e59200e42.tgz#2889384a9ee91e0545cab0db3f24f38dad2c64ae"
+  integrity sha512-5zRwhG9FI1R37rPnVKfj5YKZkV9xSpD/PWiMw8Sdx4Sho7a6K5ed9tutnJbe3EoK8cCOQkkjpHWtiFTbIngNeQ==
   dependencies:
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
 
-"@tldraw/ui@2.0.0-canary.dc7c1416a", "@tldraw/ui@^2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/ui/-/ui-2.0.0-canary.dc7c1416a.tgz#941cc69868c504c6da53b9dd2f37d6e22d50dbb5"
-  integrity sha512-0H143cJLYKaW4CAZng6gE1wTpWZTGj+fLGDMMc3E5ou8jPvfYqG+vW+Gdx12RHKoIDM75BCZAyMMZYw//N7kFA==
+"@tldraw/ui@2.0.0-canary.e59200e42", "@tldraw/ui@^2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/ui/-/ui-2.0.0-canary.e59200e42.tgz#5a2f44324eabc3d1a118b6be019b1968a43f7726"
+  integrity sha512-HoDVfIwdjTs9xelFOAb9W4vKBwtcsetGTaZ6dX9UbEUUOE2WEEMMwGhWwTstf0snCJLpO1cQaDV0hWfoAVl0Xg==
   dependencies:
     "@radix-ui/react-alert-dialog" "^1.0.0"
     "@radix-ui/react-context-menu" "^2.1.1"
@@ -1040,21 +1040,21 @@
     "@radix-ui/react-select" "^1.2.0"
     "@radix-ui/react-slider" "^1.1.0"
     "@radix-ui/react-toast" "^1.1.1"
-    "@tldraw/editor" "2.0.0-canary.dc7c1416a"
-    "@tldraw/primitives" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlschema" "2.0.0-canary.dc7c1416a"
-    "@tldraw/tlsync-client" "2.0.0-canary.dc7c1416a"
-    "@tldraw/utils" "2.0.0-canary.dc7c1416a"
+    "@tldraw/editor" "2.0.0-canary.e59200e42"
+    "@tldraw/primitives" "2.0.0-canary.e59200e42"
+    "@tldraw/tlschema" "2.0.0-canary.e59200e42"
+    "@tldraw/tlsync-client" "2.0.0-canary.e59200e42"
+    "@tldraw/utils" "2.0.0-canary.e59200e42"
     browser-fs-access "^0.31.0"
     classnames "^2.3.2"
     hotkeys-js "^3.9.4"
     idb "^7.1.1"
     lz-string "^1.4.4"
 
-"@tldraw/utils@2.0.0-canary.dc7c1416a":
-  version "2.0.0-canary.dc7c1416a"
-  resolved "https://registry.yarnpkg.com/@tldraw/utils/-/utils-2.0.0-canary.dc7c1416a.tgz#5ca90e00bd5b1769463ed400b6ed8b34626c430e"
-  integrity sha512-drMdnuFxpDXFXYFcclD0Yw7POMimJZL8ewBmVJnIYzuzy+t4XQqNVpFdgmOgr5X8kvn1FNAXgQITjCxbfvqj4w==
+"@tldraw/utils@2.0.0-canary.e59200e42":
+  version "2.0.0-canary.e59200e42"
+  resolved "https://registry.yarnpkg.com/@tldraw/utils/-/utils-2.0.0-canary.e59200e42.tgz#24f3ccc61240013b04fd35b9b3fceb7164ba257b"
+  integrity sha512-T9v1nf2lRPpIRXzfhR6IYBpmob7MM8jUMdgv82WbYU9S8i+qSbKcexjN1U8o/VRb6ujOpj2D+8qfy+i17OhU7w==
 
 "@tootallnate/once@2":
   version "2.0.0"
