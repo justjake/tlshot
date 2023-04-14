@@ -1,0 +1,89 @@
+diff --git a/node_modules/@tldraw/ui/dist-cjs/lib/components/primitives/ButtonPicker.js b/node_modules/@tldraw/ui/dist-cjs/lib/components/primitives/ButtonPicker.js
+index 2bd0912..d27b73e 100644
+--- a/node_modules/@tldraw/ui/dist-cjs/lib/components/primitives/ButtonPicker.js
++++ b/node_modules/@tldraw/ui/dist-cjs/lib/components/primitives/ButtonPicker.js
+@@ -57,9 +57,10 @@ function _ButtonPicker(props) {
+     handleButtonPointerEnter,
+     handleButtonPointerUp
+   } = React.useMemo(() => {
++    let buttonWindow = window;
+     const handlePointerUp = () => {
+       rPointing.current = false;
+-      window.removeEventListener("pointerup", handlePointerUp);
++      buttonWindow.removeEventListener("pointerup", handlePointerUp);
+     };
+     const handleButtonClick2 = (e) => {
+       const { id } = e.currentTarget.dataset;
+@@ -70,10 +71,11 @@ function _ButtonPicker(props) {
+     };
+     const handleButtonPointerDown2 = (e) => {
+       const { id } = e.currentTarget.dataset;
++      e.currentTarget?.ownerDocument?.defaultView && (buttonWindow = e.currentTarget.ownerDocument.defaultView)
+       app.mark("point picker item");
+       onValueChange(items.find((i) => i.id === id), true);
+       rPointing.current = true;
+-      window.addEventListener("pointerup", handlePointerUp);
++      buttonWindow.addEventListener("pointerup", handlePointerUp);
+     };
+     const handleButtonPointerEnter2 = (e) => {
+       if (!rPointing.current)
+diff --git a/node_modules/@tldraw/ui/dist-esm/lib/components/primitives/ButtonPicker.mjs b/node_modules/@tldraw/ui/dist-esm/lib/components/primitives/ButtonPicker.mjs
+index 4cce4c7..674cec0 100644
+--- a/node_modules/@tldraw/ui/dist-esm/lib/components/primitives/ButtonPicker.mjs
++++ b/node_modules/@tldraw/ui/dist-esm/lib/components/primitives/ButtonPicker.mjs
+@@ -24,9 +24,10 @@ function _ButtonPicker(props) {
+     handleButtonPointerEnter,
+     handleButtonPointerUp
+   } = React.useMemo(() => {
++    let buttonWindow = window;
+     const handlePointerUp = () => {
+       rPointing.current = false;
+-      window.removeEventListener("pointerup", handlePointerUp);
++      buttonWindow.removeEventListener("pointerup", handlePointerUp);
+     };
+     const handleButtonClick2 = (e) => {
+       const { id } = e.currentTarget.dataset;
+@@ -37,10 +38,11 @@ function _ButtonPicker(props) {
+     };
+     const handleButtonPointerDown2 = (e) => {
+       const { id } = e.currentTarget.dataset;
++      e.currentTarget?.ownerDocument?.defaultView && (buttonWindow = e.currentTarget.ownerDocument.defaultView)
+       app.mark("point picker item");
+       onValueChange(items.find((i) => i.id === id), true);
+       rPointing.current = true;
+-      window.addEventListener("pointerup", handlePointerUp);
++      buttonWindow.addEventListener("pointerup", handlePointerUp);
+     };
+     const handleButtonPointerEnter2 = (e) => {
+       if (!rPointing.current)
+diff --git a/node_modules/@tldraw/ui/src/lib/components/primitives/ButtonPicker.tsx b/node_modules/@tldraw/ui/src/lib/components/primitives/ButtonPicker.tsx
+index 8b1a417..80a1f10 100644
+--- a/node_modules/@tldraw/ui/src/lib/components/primitives/ButtonPicker.tsx
++++ b/node_modules/@tldraw/ui/src/lib/components/primitives/ButtonPicker.tsx
+@@ -39,9 +39,10 @@ function _ButtonPicker<T extends TLStyleItem>(props: ButtonPickerProps<T>) {
+ 		handleButtonPointerEnter,
+ 		handleButtonPointerUp,
+ 	} = React.useMemo(() => {
++		let buttonWindow = window
+ 		const handlePointerUp = () => {
+ 			rPointing.current = false
+-			window.removeEventListener('pointerup', handlePointerUp)
++			buttonWindow.removeEventListener('pointerup', handlePointerUp)
+ 		}
+ 
+ 		const handleButtonClick = (e: React.PointerEvent<HTMLButtonElement>) => {
+@@ -54,12 +55,13 @@ function _ButtonPicker<T extends TLStyleItem>(props: ButtonPickerProps<T>) {
+ 
+ 		const handleButtonPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+ 			const { id } = e.currentTarget.dataset
++			e.currentTarget?.ownerDocument?.defaultView && (buttonWindow = e.currentTarget.ownerDocument.defaultView)
+ 
+ 			app.mark('point picker item')
+ 			onValueChange(items.find((i) => i.id === id)!, true)
+ 
+ 			rPointing.current = true
+-			window.addEventListener('pointerup', handlePointerUp) // see TLD-658
++			buttonWindow.addEventListener('pointerup', handlePointerUp) // see TLD-658
+ 		}
+ 
+ 		const handleButtonPointerEnter = (e: React.PointerEvent<HTMLButtonElement>) => {
