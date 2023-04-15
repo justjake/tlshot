@@ -3,13 +3,13 @@
  */
 
 import { ModalOverlayWindow } from "./ModalOverlayWindow";
-import { Reticle, ReticleState, useDisplayImageBitmap } from "./Reticle";
+import { Reticle, ReticleState } from "./Reticle";
 import { captureDisplay, createShapeFromBlob } from "./captureHelpers";
 import { App, useApp } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { useComputed, useValue } from "signia-react";
 import { DisplayRecord } from "../../shared/records/DisplayRecord";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export function AppReticleWindows(props: { onClose: () => void }) {
   const app = useApp();
@@ -66,8 +66,6 @@ function ReticleWindow(props: {
   onSelect: (display: DisplayRecord, rect: DOMRect) => void;
 }) {
   const { display, onClose, onSelect } = props;
-  const loupeSrc = useDisplayImageBitmap(props.display);
-  if (!loupeSrc) return null;
   return (
     <ModalOverlayWindow
       key={display.id}
@@ -78,7 +76,7 @@ function ReticleWindow(props: {
         state={props.state}
         onClose={props.onClose}
         onSelect={(rect) => onSelect(display, rect)}
-        src={loupeSrc}
+        display={display}
       />
     </ModalOverlayWindow>
   );

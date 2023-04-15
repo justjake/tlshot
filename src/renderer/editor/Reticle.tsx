@@ -63,9 +63,9 @@ export function Reticle(props: {
   state: ReticleState;
   onSelect: (rect: DOMRect) => void;
   onClose: () => void;
-  src: ImageBitmap;
+  display: DisplayRecord;
 }) {
-  const { onSelect, onClose, src, state } = props;
+  const { onSelect, onClose, display, state } = props;
   const getWindow = useGetWindow();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -182,7 +182,7 @@ export function Reticle(props: {
         loupeSize={200}
         loupePixelSize={15}
         loupeOffset={16}
-        loupeSrc={src}
+        display={display}
       />
     </div>
   );
@@ -203,9 +203,9 @@ function ReticleMouse(props: {
   loupePixelSize: number;
   loupeSize: number;
   loupeOffset: number;
-  loupeSrc: ImageBitmap;
+  display: DisplayRecord;
 }) {
-  const { state, loupeSize, loupePixelSize, loupeOffset, loupeSrc } = props;
+  const { state, loupeSize, loupePixelSize, loupeOffset } = props;
 
   const getWindow = useGetWindow();
   const bgRef = useRef<HTMLDivElement>(null);
@@ -267,7 +267,7 @@ function ReticleMouse(props: {
         const h = hRef.current;
         const loupe = loupeRef.current;
         const bg = bgRef.current;
-        if (!v || !h || !loupe || !bg) {
+        if (!v || !h || !bg) {
           return;
         }
 
@@ -303,7 +303,9 @@ function ReticleMouse(props: {
         // Hide other features if the mouse is missing
         const visibleWhenInWindow = [v, h, loupe];
         for (const el of visibleWhenInWindow) {
-          el.style.visibility = isInWindow ? "visible" : "hidden";
+          if (el) {
+            el.style.visibility = isInWindow ? "visible" : "hidden";
+          }
         }
 
         // Updating the crosshair is easy.
@@ -345,27 +347,33 @@ function ReticleMouse(props: {
           x: loupeOffset,
           y: loupeOffset,
         });
-        loupe.style.transform = `translate(${loupePos.x}px, ${loupePos.y}px)`;
+        if (loupe) {
+          loupe.style.transform = `translate(${loupePos.x}px, ${loupePos.y}px)`;
+        }
       }),
     [loupeSize, loupeOffset, state, getWindow]
   );
+
+  const loupeSrc = useDisplayImageBitmap(props.display);
 
   return (
     <>
       <div style={styles.bg} ref={bgRef} />
       <div style={styles.h} ref={hRef} />
       <div style={styles.v} ref={vRef} />
-      <div style={styles.loupe} ref={loupeRef}>
-        <Loupe
-          state={state}
-          src={loupeSrc}
-          loupeWidth={loupePixelSize}
-          loupeHeight={loupePixelSize}
-          viewportWidth={loupeSize}
-          viewportHeight={loupeSize}
-          legendText={state.legendText}
-        />
-      </div>
+      {loupeSrc && (
+        <div style={styles.loupe} ref={loupeRef}>
+          <Loupe
+            state={state}
+            src={loupeSrc}
+            loupeWidth={loupePixelSize}
+            loupeHeight={loupePixelSize}
+            viewportWidth={loupeSize}
+            viewportHeight={loupeSize}
+            legendText={state.legendText}
+          />
+        </div>
+      )}
     </>
   );
 }
