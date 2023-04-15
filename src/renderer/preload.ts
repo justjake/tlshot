@@ -9,8 +9,6 @@ import type {
   TLShotApiResponse,
 } from "@/main/TLShotApi";
 
-import { captureDisplayToFile } from "@/main/darwinDisplayCapture";
-
 const DEBUG = true;
 
 class TlshotApiClientImpl implements TLShotApiClient {
@@ -24,8 +22,6 @@ class TlshotApiClientImpl implements TLShotApiClient {
       return ipcRenderer.invoke(name, ...args) as Promise<TLShotApiResponse[T]>;
     } as any as TLShotApiClient[T];
   }
-
-  captureDisplayToFileNative = captureDisplayToFile;
 
   getSources = this.createMethod("getSources");
   getCurrentDisplay = this.createMethod("getCurrentDisplay");

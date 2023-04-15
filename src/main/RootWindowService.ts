@@ -13,14 +13,7 @@ import { waitUntil } from "@/shared/signiaHelpers";
 // plugin that tells the Electron app where to look for the Webpack-bundled app code (depending on
 // whether you're running in development or production).
 declare const EDITOR_WEBPACK_ENTRY: string;
-/** Don't use this - compliled incorrectly so it can't use Node import/require in preload */
 declare const EDITOR_PRELOAD_WEBPACK_ENTRY: string;
-/** Don't use this, we want to retain full isolation at runtime. */
-declare const EDITOR_NODE_WEBPACK_ENTRY: string;
-/** Use this for preload so we can import Node stuff there. */
-declare const EDITOR_NODE_PRELOAD_WEBPACK_ENTRY: string;
-
-console.log(process.env);
 
 export class RootWindowService {
   private rootWindow = atom(
@@ -122,7 +115,6 @@ export class RootWindowService {
     const rootWindow = new BrowserWindow({
       webPreferences: {
         preload: EDITOR_PRELOAD_WEBPACK_ENTRY,
-        // nodeIntegration: true,
       },
       show: false,
       backgroundColor,
