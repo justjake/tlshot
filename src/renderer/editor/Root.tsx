@@ -334,11 +334,7 @@ function CaptureAreaActivity() {
     <ReticleWindows
       onClose={endCurrentActivity}
       onSelect={async (display, rect) => {
-        const source = await TLShot.api.getDisplaySource(display.displayId);
-        const blob = await captureHelpers.captureUserMediaSource(
-          source.id,
-          rect
-        );
+        const blob = await captureHelpers.captureDisplay(display, rect);
         captureHelpers.startEditorForCapture(blob, display.displayId);
       }}
     />

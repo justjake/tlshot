@@ -31,6 +31,7 @@ export function ModalOverlayWindow(props: {
         frame: false,
         roundedCorners: false,
         hiddenInMissionControl: true,
+        resizable: false,
 
         // Sizing.
         left,

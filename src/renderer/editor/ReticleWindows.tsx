@@ -3,8 +3,8 @@
  */
 
 import { ModalOverlayWindow } from "./ModalOverlayWindow";
-import { Reticle } from "./Reticle";
-import { captureUserMediaSource, createShapeFromBlob } from "./captureHelpers";
+import { Reticle, useDisplayImageSrc } from "./Reticle";
+import { captureDisplay, createShapeFromBlob } from "./captureHelpers";
 import { App, useApp } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { useComputed, useValue } from "signia-react";
@@ -27,12 +27,7 @@ async function captureDisplayRectToApp(
   display: DisplayRecord,
   rect: DOMRect
 ) {
-  const source = await TLShot.api.getDisplaySource(display.displayId);
-  if (!source) {
-    throw new Error(`No source for display ${display.id}`);
-  }
-
-  const blob = await captureUserMediaSource(source.id, rect);
+  const blob = await captureDisplay(display, rect);
   await createShapeFromBlob(app, blob.blob);
   app.zoomToFit();
 }
@@ -49,21 +44,32 @@ export function ReticleWindows(props: {
     )
   );
 
-  const windows = displays.map((display) => {
-    return (
-      <ModalOverlayWindow
-        key={display.id}
-        onClose={props.onClose}
-        display={display}
-      >
-        <Reticle
-          onClose={props.onClose}
-          displayId={display.displayId}
-          onSelect={(rect) => props.onSelect(display, rect)}
-        />
-      </ModalOverlayWindow>
-    );
-  });
+  const windows = displays.map((display) => (
+    <ReticleWindow key={display.id} display={display} {...props} />
+  ));
 
   return <>{windows}</>;
+}
+
+function ReticleWindow(props: {
+  display: DisplayRecord;
+  onClose: () => void;
+  onSelect: (display: DisplayRecord, rect: DOMRect) => void;
+}) {
+  const { display, onClose, onSelect } = props;
+  const loupeSrc = useDisplayImageSrc(props.display);
+  if (!loupeSrc) return null;
+  return (
+    <ModalOverlayWindow
+      key={display.id}
+      onClose={props.onClose}
+      display={display}
+    >
+      <Reticle
+        onClose={props.onClose}
+        onSelect={(rect) => onSelect(display, rect)}
+        src={loupeSrc}
+      />
+    </ModalOverlayWindow>
+  );
 }

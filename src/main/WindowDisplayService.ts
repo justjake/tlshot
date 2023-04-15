@@ -4,6 +4,7 @@ import { MainProcessStore } from "./MainProcessStore";
 import { WindowRecord, WindowRecordId } from "@/shared/records/WindowRecord";
 import { DisplayRecord } from "@/shared/records/DisplayRecord";
 import { Service } from "./Service";
+import { SPDisplay, getSPDisplays } from "./darwinDisplayCapture";
 
 export type WebContentsId = number & { __typename__?: "WebContents" };
 export type BrowserWindowId = number & { __typename__?: "BrowserWindow" };
@@ -78,6 +79,8 @@ export class WindowDisplayService extends Service<
   "Services/WindowDisplay",
   Record<string, never>
 > {
+  private spDisplays: SPDisplay[] | undefined = undefined;
+
   constructor() {
     super("Services/WindowDisplay", () => {
       const handleDisplayChanged = (_event: unknown, display: Display) => {
@@ -98,6 +101,8 @@ export class WindowDisplayService extends Service<
           this.getWindowRecord(browserWindow)
         ),
       ]);
+
+      void this.refreshSPDisplays();
 
       return () => {
         screen.off("display-added", handleDisplayChanged);
@@ -159,10 +164,22 @@ export class WindowDisplayService extends Service<
 
   handleDisplayChanged(display: Electron.Display) {
     MainProcessStore.put([this.getDisplayRecord(display)]);
+    void this.refreshSPDisplays();
   }
 
   handleDisplayRemoved(display: Electron.Display) {
     MainProcessStore.remove([this.displayRecordId(display.id)]);
+    void this.refreshSPDisplays();
+  }
+
+  private async refreshSPDisplays() {
+    if (process.platform === "darwin") {
+      this.spDisplays = await getSPDisplays();
+    }
+  }
+
+  getSPDisplays() {
+    return this.spDisplays || getSPDisplays();
   }
 
   getDisplayRecord(display: Display): DisplayRecord {

@@ -6,7 +6,7 @@ import { App, createShapesFromFiles } from "@tldraw/editor";
 import { TLShot } from "../TLShotRendererApp";
 import { RecordAttachmentMap } from "@/shared/EphemeralMap";
 import { DisplayId } from "@/main/WindowDisplayService";
-import { DisplayRecordId } from "@/shared/records/DisplayRecord";
+import { DisplayRecord, DisplayRecordId } from "@/shared/records/DisplayRecord";
 import { Rectangle, Size } from "electron";
 
 // function loadImageFromDataURL(dataUrl: string): Promise<Image> {
@@ -23,7 +23,7 @@ interface BlobRect {
   rect: Size & Partial<Rectangle>;
 }
 
-function cropImageToBlob(
+export function cropImageToBlob(
   imageOrVideo: Exclude<CanvasImageSource, SVGImageElement>,
   rect: DOMRect | undefined
 ): Promise<BlobRect> {
@@ -67,6 +67,69 @@ function cropImageToBlob(
       }, "image/png")
     )
   );
+}
+
+interface UserAgentData {
+  platform: "macOS" | string;
+}
+
+export async function captureDisplay(
+  display: DisplayRecord,
+  rect: DOMRect | undefined
+) {
+  const userAgentData = (
+    window.navigator as unknown as { userAgentData: UserAgentData }
+  ).userAgentData;
+  if (userAgentData.platform === "macOS") {
+    // Use precise but slower method.
+    const scaledRect =
+      rect &&
+      new DOMRect(
+        rect.x * display.scaleFactor,
+        rect.y * display.scaleFactor,
+        rect.width * display.scaleFactor,
+        rect.height * display.scaleFactor
+      );
+    const { blob, rect: rescaledRect } = await captureDisplayViaFile(
+      display.displayId,
+      scaledRect
+    );
+    return {
+      blob,
+      rect: rect
+        ? rect
+        : new DOMRect(
+            (rescaledRect.x || 0) / display.scaleFactor,
+            (rescaledRect.y || 0) / display.scaleFactor,
+            rescaledRect.width / display.scaleFactor,
+            rescaledRect.height / display.scaleFactor
+          ),
+    };
+  } else {
+    // Fall back to Chrome userMedia API
+    const displaySource = await TLShot.api.getDisplaySource(display.displayId);
+    return captureUserMediaSource(displaySource.id, rect);
+  }
+}
+
+/**
+ * Only implemented for macOS
+ */
+export async function captureDisplayViaFile(
+  displayId: DisplayId,
+  rect: DOMRect | undefined
+) {
+  const tempPath = await TLShot.api.captureDisplayToFile(displayId);
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.src = tempPath;
+    img.onabort = reject;
+    img.onerror = reject;
+    img.onload = () => {
+      resolve(img);
+    };
+  });
+  return cropImageToBlob(img, rect);
 }
 
 export async function captureUserMediaSource(
@@ -193,7 +256,12 @@ export async function completeEditorForCapture(editor: EditorRecord, app: App) {
 // TODO: actually do all displays, currently only does the main display.
 export async function captureFullScreen() {
   const display = await TLShot.api.getCurrentDisplay();
-  const source = await TLShot.api.getDisplaySource(display.id);
-  const blob = await captureUserMediaSource(source.id, undefined);
+  const displayRecord = TLShot.store.get(
+    DisplayRecordId.fromDisplayId(display.id)
+  );
+  if (!displayRecord) {
+    throw new Error(`DisplayRecord not found: ${display.id}`);
+  }
+  const blob = await captureDisplay(displayRecord, undefined);
   startEditorForCapture(blob, display.id);
 }

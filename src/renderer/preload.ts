@@ -39,6 +39,10 @@ class TlshotApiClientImpl implements TLShotApiClient {
   captureFullscreen = this.createMethod("captureFullscreen");
   saveDialog = this.createMethod("saveDialog");
   writeFile = this.createMethod("writeFile");
+  captureDisplayToFile = this.createMethod("captureDisplayToFile");
+
+  // TODO: color copying is still busted...
+  writeClipboardPlaintext = this.createMethod("writeClipboardPlaintext");
 
   addServiceListener = <ChannelName extends keyof AllServiceEvents>(
     channelName: ChannelName,

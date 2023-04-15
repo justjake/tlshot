@@ -7,13 +7,13 @@ import React, {
 } from "react";
 import { useStyles } from "./useStyles";
 import { useGetWindow } from "./ChildWindow";
-import { captureUserMediaSource } from "./captureHelpers";
+import { captureDisplay } from "./captureHelpers";
 import { TLShot } from "../TLShotRendererApp";
-import { DisplayId } from "../../main/WindowDisplayService";
 import { Computed, Signal, atom, computed, react } from "signia";
 import { useComputed, useValue } from "signia-react";
 import { Box2d, Vec2d } from "@tldraw/primitives";
 import { Vec2dModel } from "@tldraw/editor";
+import { DisplayRecord } from "@/shared/records/DisplayRecord";
 
 class ReticleState {
   readonly origin = atom<{ x: number; y: number } | undefined>(
@@ -52,13 +52,12 @@ class ReticleState {
 }
 
 export function Reticle(props: {
-  displayId: DisplayId;
   onSelect: (rect: DOMRect) => void;
   onClose: () => void;
+  src: string;
 }) {
-  const { displayId, onSelect, onClose } = props;
+  const { onSelect, onClose, src } = props;
   const [state] = useState(() => new ReticleState());
-  const loupeSrc = useDisplayImageSrc(displayId);
   const getWindow = useGetWindow();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -135,7 +134,7 @@ export function Reticle(props: {
         loupeSize={200}
         loupePixelSize={15}
         loupeOffset={16}
-        loupeSrc={loupeSrc}
+        loupeSrc={src}
       />
     </div>
   );
@@ -194,6 +193,8 @@ function ReticleMouse(props: {
         top: 0,
         left: 0,
         boxShadow: `0px 0px 0px 1px ${HAIR_LIGHT}, 0px 0px 0px 2px ${HAIR_DARK}`,
+        overflow: "clip",
+        borderRadius: 3,
       },
       bg: {
         background: isDragging
@@ -387,9 +388,17 @@ function Loupe(props: {
     [img, transform]
   );
 
+  const getWindow = useGetWindow();
+
   return (
     <div style={styles.viewport}>
-      <img style={styles.img} src={src} ref={setImg} />
+      <img
+        style={styles.img}
+        src={src}
+        ref={setImg}
+        width={getWindow().innerWidth}
+        height={getWindow().innerHeight}
+      />
       <div style={styles.center} />
       <CopyInput current={color} onCopy={() => undefined /* TODO */} />
       <LoupeLegend text={props.legendText} color={color} />
@@ -480,8 +489,7 @@ function CopyInput(props: {
       readOnly
       onCopy={(e) => {
         const copiedColor = current.value;
-        console.log("onCopy", copiedColor);
-        e.clipboardData.setData("text/plain", copiedColor);
+        void TLShot.api.writeClipboardPlaintext(copiedColor);
         new Notification(`Copied ${copiedColor}`);
         requestAnimationFrame(() => {
           onCopy?.(copiedColor);
@@ -492,21 +500,15 @@ function CopyInput(props: {
   );
 }
 
-const TRANSPARENT_PIXEL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-function useDisplayImageSrc(displayId: DisplayId) {
-  const [src, setSrc] = useState<string>(TRANSPARENT_PIXEL);
+export function useDisplayImageSrc(display: DisplayRecord) {
+  const [src, setSrc] = useState<string | undefined>(undefined);
   useEffect(() => {
     let unmounted = false;
     let blobUrl: string | undefined;
 
     const effect = async () => {
-      const source = await TLShot.api.getDisplaySource(displayId);
-      if (unmounted) {
-        return;
-      }
-
-      const blob = await captureUserMediaSource(source.id, undefined);
+      console.log("useDisplayImageSrc");
+      const blob = await captureDisplay(display, undefined);
       if (unmounted) {
         return;
       }
@@ -520,11 +522,11 @@ function useDisplayImageSrc(displayId: DisplayId) {
     return () => {
       unmounted = true;
       if (blobUrl) {
-        setSrc(TRANSPARENT_PIXEL);
+        setSrc(undefined);
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [displayId]);
+  }, [display]);
   return src;
 }
 
@@ -589,10 +591,12 @@ function useColorAtPoint(
     "useColorAtPoint",
     () => {
       if (img) {
+        const xScale = img.naturalWidth / img.width;
+        const yScale = img.naturalHeight / img.height;
         eyeDropperCtx.drawImage(
           img,
-          point.value.x,
-          point.value.y,
+          point.value.x * xScale,
+          point.value.y * yScale,
           1,
           1,
           0,

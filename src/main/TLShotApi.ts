@@ -7,12 +7,14 @@ import {
   dialog,
   SaveDialogOptions,
   SaveDialogReturnValue,
+  clipboard,
 } from "electron";
 import fs from "fs-extra";
 import path from "path";
 
 import {
   ChildWindowNanoid,
+  DisplayId,
   WindowDisplayService,
 } from "./WindowDisplayService";
 import { StoreService } from "./StoreService";
@@ -23,6 +25,7 @@ import { RecordsDiff } from "@tldraw/tlstore";
 import { TLShotRecord } from "@/shared/store";
 import { RootWindowService } from "./RootWindowService";
 import { objectEntries } from "@/shared/typeUtils";
+import { captureDisplayToFile, getSPDisplays } from "./darwinDisplayCapture";
 
 export type TLShotApiResponse = {
   [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
@@ -158,7 +161,7 @@ export class TLShotApi {
     };
   }
 
-  async saveDialog<T extends keyof DialogKind>(
+  async saveDialog(
     _event: Electron.IpcMainInvokeEvent,
     childWindowId: ChildWindowNanoid,
     options: SaveDialogOptions
@@ -176,6 +179,10 @@ export class TLShotApi {
   ) {
     await fs.mkdirp(path.dirname(filePath));
     await fs.writeFile(filePath, Buffer.from(contents));
+  }
+
+  writeClipboardPlaintext(_event: Electron.IpcMainInvokeEvent, text: string) {
+    clipboard.writeText(text);
   }
 
   getCurrentDisplay() {
@@ -222,6 +229,14 @@ export class TLShotApi {
 
   closeDevTools() {
     return this.rootWindowService.closeDevTools();
+  }
+
+  async captureDisplayToFile(_: unknown, displayId: DisplayId) {
+    const absolutePath = await captureDisplayToFile({
+      displays: await this.windowDisplayService.getSPDisplays(),
+      _spdisplays_displayID: String(displayId),
+    });
+    return `temp://${absolutePath}`;
   }
 
   updateChildWindow(
