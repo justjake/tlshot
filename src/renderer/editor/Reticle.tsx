@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { useStyles } from "./useStyles";
-import { useGetWindow } from "./ChildWindow";
+import { Windows, useGetWindow } from "./ChildWindow";
 import { TLShot } from "../TLShotRendererApp";
 import { Computed, Signal, atom, computed, react } from "signia";
 import { useComputed, useValue } from "signia-react";
@@ -17,8 +17,13 @@ import {
   createScreenshotID,
   createScreenshotRequestURL,
 } from "@/shared/screenshotProtocol";
+import { ChildWindowNanoid } from "@/main/WindowDisplayService";
+import { waitUntil } from "@/shared/signiaHelpers";
+import { debugPromise } from "./captureHelpers";
 
-class ReticleState {
+export class ReticleState {
+  readonly windowId = atom("reticle.windowId", Windows.ROOT_WINDOW);
+
   readonly origin = atom<{ x: number; y: number } | undefined>(
     "reticle.origin",
     undefined
@@ -42,25 +47,25 @@ class ReticleState {
     return this.origin.value !== undefined;
   });
 
-  readonly isInWindow = computed("reticle.isInWindow", () => {
-    return this.mouse.value.x >= 0 && this.mouse.value.y >= 0;
-  });
-
   readonly legendText = computed("reticle.legendText", () => {
     const rect = this.rect.value;
     const mouse = this.mouse.value;
     const { x, y } = rect ? { x: rect.width, y: rect.height } : mouse;
     return `${String(x).padStart(4)} x ${String(y).padEnd(4)}`;
   });
+
+  isInWindow(windowId: ChildWindowNanoid) {
+    return this.windowId.value === windowId && this.mouse.value.x !== -1;
+  }
 }
 
 export function Reticle(props: {
+  state: ReticleState;
   onSelect: (rect: DOMRect) => void;
   onClose: () => void;
-  src: string;
+  src: ImageBitmap;
 }) {
-  const { onSelect, onClose, src } = props;
-  const [state] = useState(() => new ReticleState());
+  const { onSelect, onClose, src, state } = props;
   const getWindow = useGetWindow();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -75,8 +80,47 @@ export function Reticle(props: {
     []
   );
 
+  // On first mount, try to get mouse position before mouse moves.
+  useEffect(() => {
+    void (async () => {
+      const pos = await TLShot.api.getMousePosition();
+      const ownWindow = await waitUntil("hasOwnWindow", () =>
+        TLShot.store.query
+          .exec("window", {
+            childWindowId: {
+              eq: getWindow.childWindowNanoid,
+            },
+          })
+          .at(0)
+      );
+
+      if (
+        !pos.windowPoint ||
+        !ownWindow?.childWindowId ||
+        pos.closestWindowId !== ownWindow.browserWindowId
+      ) {
+        console.log("Mouse not over own window", ownWindow, pos);
+        return;
+      }
+
+      if (state.isInWindow(ownWindow.childWindowId)) {
+        console.log("already has position", state.mouse.value);
+      }
+
+      console.log("set position from main process", ownWindow, pos);
+      state.mouse.set(pos.windowPoint);
+      state.windowId.set(ownWindow.childWindowId);
+    })();
+  }, [state, getWindow]);
+
   // Grab focus when the mouse enters the window
-  const isInWindow = useValue(state.isInWindow);
+  const isInWindow = useValue(
+    useComputed(
+      "isInWindow",
+      () => state.isInWindow(getWindow.childWindowNanoid),
+      [getWindow]
+    )
+  );
   useLayoutEffect(() => {
     if (isInWindow) {
       void TLShot.api.focusTopWindowNearMouse();
@@ -92,6 +136,7 @@ export function Reticle(props: {
     }
 
     function handleMouseMove(e: MouseEvent) {
+      state.windowId.set(getWindow.childWindowNanoid);
       state.mouse.set({
         x: e.clientX,
         y: e.clientY,
@@ -158,7 +203,7 @@ function ReticleMouse(props: {
   loupePixelSize: number;
   loupeSize: number;
   loupeOffset: number;
-  loupeSrc: string;
+  loupeSrc: ImageBitmap;
 }) {
   const { state, loupeSize, loupePixelSize, loupeOffset, loupeSrc } = props;
 
@@ -226,9 +271,11 @@ function ReticleMouse(props: {
           return;
         }
 
+        const isInWindow = state.isInWindow(getWindow.childWindowNanoid);
+
         // Update the clipping mask of the background
         const selection = state.rect.value;
-        if (selection) {
+        if (selection && isInWindow) {
           const container = {
             top_left: "0% 0%",
             bottom_left: "0% 100%",
@@ -251,6 +298,12 @@ function ReticleMouse(props: {
           bg.style.clipPath = `polygon(${polygon.join(", ")})`;
         } else {
           bg.style.clipPath = "none";
+        }
+
+        // Hide other features if the mouse is missing
+        const visibleWhenInWindow = [v, h, loupe];
+        for (const el of visibleWhenInWindow) {
+          el.style.visibility = isInWindow ? "visible" : "hidden";
         }
 
         // Updating the crosshair is easy.
@@ -304,10 +357,10 @@ function ReticleMouse(props: {
       <div style={styles.v} ref={vRef} />
       <div style={styles.loupe} ref={loupeRef}>
         <Loupe
+          state={state}
           src={loupeSrc}
           loupeWidth={loupePixelSize}
           loupeHeight={loupePixelSize}
-          loupeCenter={state.mouse}
           viewportWidth={loupeSize}
           viewportHeight={loupeSize}
           legendText={state.legendText}
@@ -318,10 +371,10 @@ function ReticleMouse(props: {
 }
 
 function Loupe(props: {
-  src: string;
+  state: ReticleState;
+  src: ImageBitmap;
 
   // Pixels of the source image
-  loupeCenter: Signal<{ x: number; y: number }>;
   loupeWidth: number;
   loupeHeight: number;
 
@@ -331,42 +384,143 @@ function Loupe(props: {
 
   legendText: Signal<string>;
 }) {
-  const {
-    src,
-    loupeCenter,
-    loupeWidth,
-    loupeHeight,
-    viewportWidth,
-    viewportHeight,
-  } = props;
+  const { state, src, loupeWidth, loupeHeight, viewportWidth, viewportHeight } =
+    props;
 
-  const [img, setImg] = useState<HTMLImageElement | null>(null);
-  const color = useColorAtPoint(img, loupeCenter, "#000000");
-  const { transform, scalingFactor } = useImageTransform({
-    viewportWidth,
-    viewportHeight,
-    loupeWidth,
-    loupeHeight,
-    point: loupeCenter,
-  });
+  const loupeCenter = state.mouse;
+
+  const getWindow = useGetWindow();
+
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+
+  const textureCamera = useComputed(
+    "loupeCamera",
+    () => {
+      // prescaleFactor:
+      // the incoming coordinate is in Web points, but our texture is in raw display pixels.
+      // prescale factor is the scaling factor between the two.
+      //
+      // We could just use window.devicePixelRatio, but computing the scaling
+      // allows our source image to be downsampled in the future without breaking.
+      const prescaleX = src.width / getWindow().innerWidth;
+      const precaleY = src.height / getWindow().innerHeight;
+      const prescaleFactor = Math.max(prescaleX, precaleY);
+
+      const dw = viewportWidth / (loupeWidth * prescaleFactor); // TODO: why multiply by prescale factor?
+      const dh = viewportHeight / (loupeHeight * prescaleFactor);
+      const screenPixelZoomFactor = Math.max(dw, dh);
+      const loupeZoomFactor = screenPixelZoomFactor / prescaleFactor;
+
+      const cameraCenter = Vec2d.From(loupeCenter.value)
+        .addScalar(0.5)
+        .mul(prescaleFactor);
+
+      const cameraCornerOffset = Vec2d.From({
+        x: loupeWidth * loupeZoomFactor,
+        y: loupeHeight * loupeZoomFactor,
+      }).div(2);
+
+      const camera = Box2d.FromPoints([
+        cameraCenter.clone().sub(cameraCornerOffset),
+        cameraCenter.clone().add(cameraCornerOffset),
+      ]);
+
+      return {
+        camera,
+        // TODO: wtf?
+        zoomFactor: screenPixelZoomFactor,
+      };
+    },
+    [
+      src,
+      loupeCenter,
+      getWindow,
+      loupeWidth,
+      loupeHeight,
+      viewportWidth,
+      viewportHeight,
+    ]
+  );
+
+  useLayoutEffect(
+    () =>
+      react("canvasLoupe", () => {
+        if (!state.isInWindow(getWindow.childWindowNanoid)) {
+          return;
+        }
+        const camera = textureCamera.value.camera;
+
+        const context = canvas?.getContext("2d", {
+          // Google claims this improves performance or something.
+          // https://developer.chrome.com/blog/desynchronized/
+          desynchronized: true,
+        });
+
+        if (!context) {
+          console.warn("No context for loupe", canvas);
+          return;
+        }
+
+        context.imageSmoothingEnabled = false;
+        context.clearRect(0, 0, viewportWidth, viewportHeight);
+        context.drawImage(
+          src,
+          camera.x,
+          camera.y,
+          camera.w,
+          camera.h,
+          0,
+          0,
+          viewportWidth,
+          viewportHeight
+        );
+      }),
+
+    [
+      src,
+      canvas,
+      getWindow,
+      loupeCenter,
+      loupeWidth,
+      loupeHeight,
+      viewportWidth,
+      viewportHeight,
+      state,
+      textureCamera.value,
+    ]
+  );
+
+  const textureCameraCenter = useComputed(
+    "textureCameraCenter",
+    () => textureCamera.value.camera.center,
+    [textureCamera]
+  );
+  const color = useColorAtPoint(src, textureCameraCenter, "#000000");
+
+  const scalingFactor = useValue(
+    useComputed("scaleFactor", () => textureCamera.value.zoomFactor, [
+      textureCamera,
+    ])
+  );
 
   const styles = useStyles(() => {
     return {
       viewport: {
         width: viewportWidth,
         height: viewportHeight,
-        overflow: "clip",
+        overflow: "",
         position: "relative",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        imageRendering: "pixelated",
       },
-      img: {
+      canvas: {
         position: "absolute",
         top: 0,
         left: 0,
-        transformOrigin: "top left",
-        willChange: "transform",
+        right: 0,
+        bottom: 0,
         imageRendering: "pixelated",
         zIndex: 0,
       },
@@ -380,27 +534,14 @@ function Loupe(props: {
     };
   }, [scalingFactor, viewportHeight, viewportWidth]);
 
-  useLayoutEffect(
-    () =>
-      react("applyImageTransform", () => {
-        if (!img) {
-          return;
-        }
-        img.style.transform = transform.value;
-      }),
-    [img, transform]
-  );
-
-  const getWindow = useGetWindow();
-
   return (
     <div style={styles.viewport}>
-      <img
-        style={styles.img}
-        src={src}
-        ref={setImg}
-        width={getWindow().innerWidth}
-        height={getWindow().innerHeight}
+      <canvas
+        style={styles.canvas}
+        // src={src}
+        ref={setCanvas}
+        width={viewportWidth}
+        height={viewportHeight}
       />
       <div style={styles.center} />
       <CopyInput current={color} onCopy={() => undefined /* TODO */} />
@@ -503,8 +644,8 @@ function CopyInput(props: {
   );
 }
 
-export function useDisplayImageSrc(display: DisplayRecord) {
-  return useMemo(() => {
+export function useDisplayImageBitmap(display: DisplayRecord) {
+  const imageSrc = useMemo(() => {
     const url = createScreenshotRequestURL({
       displayId: display.displayId,
       id: createScreenshotID(),
@@ -512,49 +653,62 @@ export function useDisplayImageSrc(display: DisplayRecord) {
     });
     return String(url);
   }, [display.displayId]);
-}
 
-function useImageTransform(args: {
-  viewportWidth: number;
-  viewportHeight: number;
-  loupeWidth: number;
-  loupeHeight: number;
-  point: Signal<{ x: number; y: number }>;
-}) {
-  const { viewportWidth, viewportHeight, loupeWidth, loupeHeight, point } =
-    args;
-
-  const scalingFactor = useMemo(() => {
-    const dw = viewportWidth / loupeWidth;
-    const dh = viewportHeight / loupeHeight;
-    return Math.max(dw, dh);
-  }, [loupeHeight, loupeWidth, viewportHeight, viewportWidth]);
-
-  const transform = useComputed(
-    "useImageTransform",
-    () => {
-      // TODO: fudge pushes pixel off the bottom of the screen at the bottom edge
-      const fudge = loupeWidth % 2 === 0 ? 0 : 0.5;
-      const value = point.value;
-      const z = scalingFactor;
-      const camera = {
-        x: value.x + fudge - viewportWidth / 2 / z,
-        y: value.y + fudge - viewportHeight / 2 / z,
-        z,
-      };
-      return `scale(${camera.z}) translate(${-camera.x}px, ${-camera.y}px) `;
-    },
-    [point, scalingFactor, viewportHeight, viewportWidth]
+  // Large images lead to stuttering on the main thread from image decoding.
+  // We use Worker to decode image in parallel.
+  const [imageBitmap, setImageBitmap] = useState<ImageBitmap | undefined>(
+    undefined
   );
+  useEffect(() => {
+    let cancelled = false;
+    const worker = new Worker(
+      new URL(
+        "./imageDecoder.worker.ts",
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        import.meta.url
+      )
+    );
 
-  return {
-    scalingFactor,
-    transform,
-  };
+    const asyncFn = async () => {
+      const imageData = await debugPromise(
+        "fetch image",
+        fetch(imageSrc).then((r) => r.arrayBuffer())
+      );
+      if (cancelled) {
+        return;
+      }
+
+      const promise = debugPromise(
+        "worker.onmessage",
+        new Promise<MessageEvent>((resolve, reject) => {
+          worker.onerror = reject;
+          worker.onmessageerror = reject;
+          worker.onmessage = resolve;
+        })
+      );
+      worker.postMessage(imageData, [imageData]);
+      const event = await promise;
+      if (cancelled) {
+        return;
+      }
+
+      const bitmap = event.data as ImageBitmap;
+      setImageBitmap(bitmap);
+    };
+    void asyncFn();
+
+    return () => {
+      cancelled = true;
+      worker.terminate();
+    };
+  }, [imageSrc]);
+
+  return imageBitmap;
 }
 
 function useColorAtPoint(
-  img: HTMLImageElement | null,
+  img: ImageBitmap,
   point: Signal<{ x: number; y: number }>,
   defaultColor: string
 ) {
@@ -569,30 +723,21 @@ function useColorAtPoint(
     return ctx;
   });
 
-  let imageError = false;
-
   const eyeDropperColor = useComputed(
     "useColorAtPoint",
     () => {
-      if (img && !imageError) {
-        const xScale = img.naturalWidth / img.width;
-        const yScale = img.naturalHeight / img.height;
-        try {
-          eyeDropperCtx.drawImage(
-            img,
-            point.value.x * xScale,
-            point.value.y * yScale,
-            1,
-            1,
-            0,
-            0,
-            1,
-            1
-          );
-        } catch (error) {
-          imageError = true;
-          throw error;
-        }
+      if (img && img.width > 0) {
+        eyeDropperCtx.drawImage(
+          img,
+          point.value.x,
+          point.value.y,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1
+        );
         const [r, g, b] = eyeDropperCtx.getImageData(0, 0, 1, 1).data;
         return (
           "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")

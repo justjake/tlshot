@@ -51,12 +51,13 @@ class ChildWindowRegistry {
     this.handles.delete(id);
   }
 
-  getWindow(id: ChildWindowNanoid): Window {
+  getWindow(id: ChildWindowNanoid): Window & typeof globalThis {
     const childWindow = this.handles.get(id)?.window?.deref();
     if (!childWindow) {
       throw new Error(`Child window not found: ${id}`);
     }
-    return childWindow;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return childWindow as any;
   }
 
   getRootWindow(): Window {
@@ -72,7 +73,7 @@ const ChildWindowNanoidContext = React.createContext<ChildWindowNanoid>(
 ChildWindowNanoidContext.displayName = "ChildWindowNanoid";
 
 interface GetWindowFunction {
-  (): Window;
+  (): Window & typeof globalThis;
   childWindowNanoid: ChildWindowNanoid;
 }
 

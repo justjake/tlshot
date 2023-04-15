@@ -11,6 +11,7 @@ import {
 } from "electron";
 import fs from "fs-extra";
 import path from "path";
+import { Box2d, Vec2d } from "@tldraw/primitives";
 
 import {
   ChildWindowNanoid,
@@ -99,23 +100,49 @@ export class TLShotApi {
     console.log("Renderer:", ...msg);
   }
 
-  focusTopWindowNearMouse() {
-    const mouse = screen.getCursorScreenPoint();
-    const topBrowserWindow = BrowserWindow.getAllWindows().find((bw) => {
+  getMousePosition() {
+    const screenPoint = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(screenPoint);
+    const windows = BrowserWindow.getAllWindows();
+    const getScore = (bw: BrowserWindow) => {
+      let score = 0;
       const bounds = bw.getBounds();
-      return (
-        mouse.x >= bounds.x &&
-        mouse.x <= bounds.x + bounds.width &&
-        mouse.y >= bounds.y &&
-        mouse.y <= bounds.y + bounds.height &&
-        bw.isAlwaysOnTop()
-      );
-    });
-    if (!topBrowserWindow) {
-      console.log("No window found under mouse", mouse);
+      const box = Box2d.From({
+        x: bounds.x,
+        y: bounds.y,
+        h: bounds.height,
+        w: bounds.width,
+      });
+      if (box.containsPoint(screenPoint)) score += 500;
+      if (screen.getDisplayMatching(box).id === display.id) score += 200;
+      if (bw.isAlwaysOnTop()) score += 100;
+      const distance = Vec2d.Dist(screenPoint, box.center);
+      score += 99 / (distance + 1);
+      return score;
+    };
+    const topWindow = windows.sort((a, b) => getScore(b) - getScore(a)).at(0);
+    const windowPoint =
+      topWindow && Vec2d.From(screenPoint).sub(topWindow.getBounds());
+    return {
+      screenPoint,
+      windowPoint: windowPoint?.toJson(),
+      closestWindowId: topWindow?.id,
+      closestDisplayId: display.id,
+    };
+  }
+
+  focusTopWindowNearMouse() {
+    const pos = this.getMousePosition();
+    const topBrowserWindow =
+      typeof pos.closestWindowId === "number" &&
+      BrowserWindow.fromId(pos.closestWindowId);
+    if (topBrowserWindow) {
+      topBrowserWindow?.focus();
+      topBrowserWindow?.focusOnWebView();
+      console.log("closest", pos);
+    } else {
+      console.log("No window found under mouse", pos);
     }
-    topBrowserWindow?.focus();
-    topBrowserWindow?.focusOnWebView();
   }
 
   // https://www.electronjs.org/docs/latest/api/desktop-capturer

@@ -221,7 +221,10 @@ export function createShapeFromBlob(app: App, blob: Blob) {
 
 const TIMEOUT = Symbol("Timeout reached");
 
-async function debugPromise<T>(name: string, promise: Promise<T>): Promise<T> {
+export async function debugPromise<T>(
+  name: string,
+  promise: Promise<T>
+): Promise<T> {
   // return promise;
   const ds = Date.now();
   const timeout = new Promise((resolve) => setTimeout(resolve, 5000)).then(

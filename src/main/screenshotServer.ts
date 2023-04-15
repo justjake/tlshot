@@ -8,6 +8,15 @@ import { TLShotApi } from "./TLShotApi";
 import { getTempFileName } from "./contentSecurityPolicy";
 import * as fs from "fs-extra";
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: SCREENSHOT_PROTOCOL,
+    privileges: {
+      supportFetchAPI: true,
+    },
+  },
+]);
+
 export function enableScreenshotProtocol() {
   protocol.interceptFileProtocol(SCREENSHOT_PROTOCOL, async (req, callback) => {
     const url = new URL(req.url);

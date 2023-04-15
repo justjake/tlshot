@@ -15,7 +15,7 @@ export function applyContentSecurityPolicy() {
    */
   const UNSAFE_EVAL = `'unsafe-eval'`;
   const CONTENT_SECURITY_POLICY = [
-    `default-src 'self' 'unsafe-inline' ${UNSAFE_EVAL} data:`,
+    `default-src 'self' 'unsafe-inline' ${UNSAFE_EVAL} data: ${SCREENSHOT_PROTOCOL}:`,
     // We need to explicitly allow blob: for Tldraw assets to work.
     `img-src 'self' data: blob: ${SCREENSHOT_PROTOCOL}:`,
   ].join("; ");

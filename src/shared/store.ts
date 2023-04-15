@@ -1,10 +1,11 @@
 import { RecordsDiff, Store, StoreSchema } from "@tldraw/tlstore";
-import { DisplayRecord } from "./records/DisplayRecord";
+import { DisplayRecord, DisplayRecordId } from "./records/DisplayRecord";
 import { WindowRecord } from "./records/WindowRecord";
 import { EditorRecord } from "./records/EditorRecord";
 import { CaptureActivityRecord } from "./records/CaptureActivityRecord";
 import { computed } from "signia";
 import { PreferencesRecord } from "./records/PreferencesRecord";
+import { ChildWindowNanoid } from "@/main/WindowDisplayService";
 
 export type TLShotRecord =
   | DisplayRecord
@@ -64,6 +65,22 @@ export class TLShotStoreQueries {
     "hasActivities",
     () => this.allActivities.value.length > 0
   );
+
+  getWindowDisplay(
+    childWindowId: ChildWindowNanoid
+  ): DisplayRecord | undefined {
+    const windowRecord = this.store.query
+      .exec("window", {
+        childWindowId: {
+          eq: childWindowId,
+        },
+      })
+      .at(0);
+    if (!windowRecord) return undefined;
+
+    const displayId = DisplayRecordId.fromDisplayId(windowRecord.displayId);
+    return this.store.get(displayId);
+  }
 }
 
 export function* iterateChanges(changes: RecordsDiff<TLShotRecord>) {
