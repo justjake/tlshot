@@ -16,12 +16,17 @@ declare const EDITOR_WEBPACK_ENTRY: string;
 declare const EDITOR_PRELOAD_WEBPACK_ENTRY: string;
 
 export class RootWindowService {
+  private quitting = false;
+
   private rootWindow = atom(
     "rootWindow",
     undefined as BrowserWindow | "pending" | undefined
   );
 
   constructor() {
+    app.on("before-quit", () => {
+      this.quitting = true;
+    });
     react("createRootWindowWhenNeeded", () => {
       if (this.needsRootWindow() && this.rootWindow.value === undefined) {
         void Promise.resolve().then(() => this.upsertRootWindow());
@@ -34,7 +39,13 @@ export class RootWindowService {
   }
 
   needsRootWindow() {
-    return MainProcessQueries.hasActivities.value;
+    if (this.quitting) {
+      return false;
+    }
+    return (
+      Preferences.createRootWindowAtStartup ||
+      MainProcessQueries.hasActivities.value
+    );
   }
 
   handleRootWindowClose() {
@@ -115,6 +126,8 @@ export class RootWindowService {
     const rootWindow = new BrowserWindow({
       webPreferences: {
         preload: EDITOR_PRELOAD_WEBPACK_ENTRY,
+        sandbox: false,
+        contextIsolation: true,
       },
       show: false,
       backgroundColor,

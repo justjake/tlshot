@@ -8,6 +8,10 @@ import { RecordAttachmentMap } from "@/shared/EphemeralMap";
 import { DisplayId } from "@/main/WindowDisplayService";
 import { DisplayRecord, DisplayRecordId } from "@/shared/records/DisplayRecord";
 import { Rectangle, Size } from "electron";
+import {
+  createScreenshotID,
+  createScreenshotRequestURL,
+} from "@/shared/screenshotProtocol";
 
 // function loadImageFromDataURL(dataUrl: string): Promise<Image> {
 //   return new Promise((resolve, reject) => {
@@ -23,18 +27,18 @@ interface BlobRect {
   rect: Size & Partial<Rectangle>;
 }
 
-export function cropImageToBlob(
+export async function cropImageToBlob(
   imageOrVideo: Exclude<CanvasImageSource, SVGImageElement>,
   rect: DOMRect | undefined
 ): Promise<BlobRect> {
-  const canvas = document.createElement("canvas");
+  if (!rect) {
+    rect = new DOMRect(0, 0, imageOrVideo.width, imageOrVideo.height);
+  }
+
+  const canvas = new OffscreenCanvas(rect.width, rect.height);
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     throw new Error("Could not get canvas context");
-  }
-
-  if (!rect) {
-    rect = new DOMRect(0, 0, imageOrVideo.width, imageOrVideo.height);
   }
 
   canvas.width = rect.width;
@@ -51,22 +55,16 @@ export function cropImageToBlob(
     rect.height
   );
 
-  const finalRect = rect;
-  return debugPromise(
-    new Promise<BlobRect>((resolve, reject) =>
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("Could not get blob from canvas"));
-        } else {
-          resolve({
-            blob,
-            rect: finalRect,
-          });
-        }
-        canvas.remove();
-      }, "image/png")
-    )
+  const blob = await debugPromise(
+    "canvas.convertToBlob",
+    canvas.convertToBlob({
+      type: "image/png",
+    })
   );
+  return {
+    blob,
+    rect,
+  };
 }
 
 interface UserAgentData {
@@ -90,10 +88,8 @@ export async function captureDisplay(
         rect.width * display.scaleFactor,
         rect.height * display.scaleFactor
       );
-    const { blob, rect: rescaledRect } = await captureDisplayViaFile(
-      display.displayId,
-      scaledRect
-    );
+    const { blob, rect: rescaledRect } =
+      await captureDisplayViaScreenshotProtocol(display.displayId, scaledRect);
     return {
       blob,
       rect: rect
@@ -115,21 +111,51 @@ export async function captureDisplay(
 /**
  * Only implemented for macOS
  */
-export async function captureDisplayViaFile(
+export async function captureDisplayViaScreenshotProtocol(
   displayId: DisplayId,
   rect: DOMRect | undefined
 ) {
-  const tempPath = await TLShot.api.captureDisplayToFile(displayId);
+  const url = createScreenshotRequestURL({
+    displayId: displayId,
+    rect: rect,
+    id: createScreenshotID(),
+  });
+  const img = await debugPromise(
+    "img.onload",
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.src = String(url);
+      img.onabort = reject;
+      img.onerror = reject;
+      img.onload = () => {
+        resolve(img);
+      };
+    })
+  );
+  return cropImageToBlob(img, rect);
+  /*
+  const imgPath = await TLShot.api.nativeCaptureDisplayToFile({
+    displays: [{
+      _name: 'dummy',
+      _spdisplays_displayID: "0"
+    }],
+    _spdisplays_displayID: "0"
+  })
+  const bufferBlob = await TLShot.api.readImage(imgPath)
+  const bufferURL = URL.createObjectURL(bufferBlob);
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
-    img.src = tempPath;
+    img.src = bufferURL
     img.onabort = reject;
     img.onerror = reject;
     img.onload = () => {
       resolve(img);
     };
   });
-  return cropImageToBlob(img, rect);
+  const result = await cropImageToBlob(img, rect);
+  URL.revokeObjectURL(bufferURL)
+  return result
+  */
 }
 
 export async function captureUserMediaSource(
@@ -157,6 +183,7 @@ export async function captureUserMediaSource(
   video.style.cssText = "position:absolute;top:-10000px;left:-10000px;";
   document.body.appendChild(video);
   await debugPromise(
+    "video.onloadedmetadata",
     new Promise((resolve, reject) => {
       video.onloadedmetadata = resolve;
       video.onerror = reject;
@@ -194,23 +221,27 @@ export function createShapeFromBlob(app: App, blob: Blob) {
 
 const TIMEOUT = Symbol("Timeout reached");
 
-async function debugPromise<T>(promise: Promise<T>): Promise<T> {
-  return promise;
-  // const timeout = new Promise((resolve) => setTimeout(resolve, 500)).then(
-  //   () => TIMEOUT
-  // );
+async function debugPromise<T>(name: string, promise: Promise<T>): Promise<T> {
+  // return promise;
+  const ds = Date.now();
+  const timeout = new Promise((resolve) => setTimeout(resolve, 5000)).then(
+    () => TIMEOUT
+  );
 
-  // try {
-  //   const result = await Promise.race([promise, timeout]);
-  //   if (result === TIMEOUT) {
-  //     throw new Error("Promise timed out");
-  //   }
-  //   console.log("Promise resolved", result);
-  //   return result as any;
-  // } catch (e) {
-  //   console.log("Promise error", e);
-  //   throw e;
-  // }
+  try {
+    const result = await Promise.race([promise, timeout]);
+    const after = Date.now() - ds;
+    if (result === TIMEOUT) {
+      throw new Error(`Promise timed out: ${name} after ${after}`);
+    }
+    console.log(`Promise resolved after ${after}: ${name}`, result);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return result as any;
+  } catch (e) {
+    const after = Date.now() - ds;
+    console.log(`Promise error after ${after}: ${name}`, e);
+    throw e;
+  }
 }
 
 const NEW_EDITOR_CAPTURES = new RecordAttachmentMap<EditorRecord, Blob>(

@@ -26,6 +26,7 @@ import { TLShotRecord } from "@/shared/store";
 import { RootWindowService } from "./RootWindowService";
 import { objectEntries } from "@/shared/typeUtils";
 import { captureDisplayToFile, getSPDisplays } from "./darwinDisplayCapture";
+import { enableScreenshotProtocol } from "./screenshotServer";
 
 export type TLShotApiResponse = {
   [K in keyof TLShotApi]: TLShotApi[K] extends (...args: any) => infer R
@@ -231,14 +232,6 @@ export class TLShotApi {
     return this.rootWindowService.closeDevTools();
   }
 
-  async captureDisplayToFile(_: unknown, displayId: DisplayId) {
-    const absolutePath = await captureDisplayToFile({
-      displays: await this.windowDisplayService.getSPDisplays(),
-      _spdisplays_displayID: String(displayId),
-    });
-    return `temp://${absolutePath}`;
-  }
-
   updateChildWindow(
     _event: Electron.IpcMainInvokeEvent,
     id: ChildWindowNanoid,
@@ -276,6 +269,7 @@ export class TLShotApi {
 
 export async function startServices() {
   applyContentSecurityPolicy();
+  enableScreenshotProtocol();
   await installDevtoolsExtensions();
   TLShotApi.getInstance();
 }

@@ -23,6 +23,12 @@ class TlshotApiClientImpl implements TLShotApiClient {
     } as any as TLShotApiClient[T];
   }
 
+  // nativeCaptureDisplayToFile = captureDisplayToFile;
+  // readImage = async (fileName: string) => {
+  //   const buf = await readFile(fileName)
+  //   return new Blob([buf], { type: 'image/png' })
+  // }
+
   getSources = this.createMethod("getSources");
   getCurrentDisplay = this.createMethod("getCurrentDisplay");
   getDisplaySource = this.createMethod("getDisplaySource");
@@ -39,7 +45,6 @@ class TlshotApiClientImpl implements TLShotApiClient {
   captureFullscreen = this.createMethod("captureFullscreen");
   saveDialog = this.createMethod("saveDialog");
   writeFile = this.createMethod("writeFile");
-  captureDisplayToFile = this.createMethod("captureDisplayToFile");
 
   // TODO: color copying is still busted...
   writeClipboardPlaintext = this.createMethod("writeClipboardPlaintext");

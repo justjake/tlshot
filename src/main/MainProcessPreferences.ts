@@ -16,6 +16,7 @@ export interface Preferences {
   showDevToolsOnStartup: boolean;
   saveLocation: string;
   propsForNextShape: TLInstancePropsForNextShape | undefined;
+  createRootWindowAtStartup: boolean;
 }
 
 export class ReactivePreferences implements Required<Preferences> {
@@ -85,6 +86,14 @@ export class ReactivePreferences implements Required<Preferences> {
   public set propsForNextShape(value: TLInstancePropsForNextShape | undefined) {
     this.set("propsForNextShape", value);
   }
+
+  public get createRootWindowAtStartup() {
+    return this.get("createRootWindowAtStartup", true);
+  }
+
+  public set createRootWindowAtStartup(value: boolean) {
+    this.set("createRootWindowAtStartup", value);
+  }
 }
 
 export const Preferences = new ReactivePreferences();
@@ -96,6 +105,7 @@ react("updatePreferencesRecord", () => {
     showDevToolsOnStartup: Preferences.showDevToolsOnStartup,
     saveLocation: Preferences.saveLocation,
     propsForNextShape: Preferences.propsForNextShape,
+    createRootWindowAtStartup: Preferences.createRootWindowAtStartup,
   });
 
   void Promise.resolve().then(() => MainProcessStore.put([preferencesRecord]));

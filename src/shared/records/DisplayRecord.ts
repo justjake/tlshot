@@ -11,6 +11,7 @@ export interface DisplayRecord
     Omit<Display, "id"> {
   // Own IDs
   displayId: DisplayId;
+  spDisplayId?: string;
 }
 
 export type DisplayRecordId = ID<DisplayRecord>;

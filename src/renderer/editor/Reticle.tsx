@@ -7,13 +7,16 @@ import React, {
 } from "react";
 import { useStyles } from "./useStyles";
 import { useGetWindow } from "./ChildWindow";
-import { captureDisplay } from "./captureHelpers";
 import { TLShot } from "../TLShotRendererApp";
 import { Computed, Signal, atom, computed, react } from "signia";
 import { useComputed, useValue } from "signia-react";
 import { Box2d, Vec2d } from "@tldraw/primitives";
 import { Vec2dModel } from "@tldraw/editor";
 import { DisplayRecord } from "@/shared/records/DisplayRecord";
+import {
+  createScreenshotID,
+  createScreenshotRequestURL,
+} from "@/shared/screenshotProtocol";
 
 class ReticleState {
   readonly origin = atom<{ x: number; y: number } | undefined>(
@@ -501,33 +504,14 @@ function CopyInput(props: {
 }
 
 export function useDisplayImageSrc(display: DisplayRecord) {
-  const [src, setSrc] = useState<string | undefined>(undefined);
-  useEffect(() => {
-    let unmounted = false;
-    let blobUrl: string | undefined;
-
-    const effect = async () => {
-      console.log("useDisplayImageSrc");
-      const blob = await captureDisplay(display, undefined);
-      if (unmounted) {
-        return;
-      }
-
-      blobUrl = URL.createObjectURL(blob.blob);
-      setSrc(blobUrl);
-    };
-
-    void effect();
-
-    return () => {
-      unmounted = true;
-      if (blobUrl) {
-        setSrc(undefined);
-        URL.revokeObjectURL(blobUrl);
-      }
-    };
-  }, [display]);
-  return src;
+  return useMemo(() => {
+    const url = createScreenshotRequestURL({
+      displayId: display.displayId,
+      id: createScreenshotID(),
+      rect: undefined,
+    });
+    return String(url);
+  }, [display.displayId]);
 }
 
 function useImageTransform(args: {
@@ -575,9 +559,7 @@ function useColorAtPoint(
   defaultColor: string
 ) {
   const [eyeDropperCtx] = useState(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1;
-    canvas.height = 1;
+    const canvas = new OffscreenCanvas(1, 1);
     const ctx = canvas.getContext("2d", {
       willReadFrequently: true,
     });
@@ -587,23 +569,30 @@ function useColorAtPoint(
     return ctx;
   });
 
+  let imageError = false;
+
   const eyeDropperColor = useComputed(
     "useColorAtPoint",
     () => {
-      if (img) {
+      if (img && !imageError) {
         const xScale = img.naturalWidth / img.width;
         const yScale = img.naturalHeight / img.height;
-        eyeDropperCtx.drawImage(
-          img,
-          point.value.x * xScale,
-          point.value.y * yScale,
-          1,
-          1,
-          0,
-          0,
-          1,
-          1
-        );
+        try {
+          eyeDropperCtx.drawImage(
+            img,
+            point.value.x * xScale,
+            point.value.y * yScale,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1
+          );
+        } catch (error) {
+          imageError = true;
+          throw error;
+        }
         const [r, g, b] = eyeDropperCtx.getImageData(0, 0, 1, 1).data;
         return (
           "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")

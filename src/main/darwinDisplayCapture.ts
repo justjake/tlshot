@@ -41,9 +41,10 @@ export async function getSPDisplays(): Promise<SPDisplay[]> {
 }
 
 export async function captureDisplayToFile(args: {
+  filePath: string;
   displays: SPDisplay[];
   _spdisplays_displayID: string;
-}): Promise<string> {
+}): Promise<void> {
   const index = args.displays.findIndex(
     (display) => display._spdisplays_displayID === args._spdisplays_displayID
   );
@@ -52,25 +53,14 @@ export async function captureDisplayToFile(args: {
       `No display with _spdisplays_displayID ${args._spdisplays_displayID} found`
     );
   }
-  const tempFileName = getTempFileName(
-    `${new Date().toISOString()}-${nanoid()}.png`
-  );
   await execa("screencapture", [
     "-D",
     String(index + 1),
     "-x",
     "-t",
     "png",
-    tempFileName,
+    args.filePath,
   ]);
-
-  app.on("before-quit", () => {
-    if (fs.existsSync(tempFileName)) {
-      fs.removeSync(tempFileName);
-    }
-  });
-
-  return tempFileName;
 }
 
 /*
