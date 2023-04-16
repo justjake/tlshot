@@ -20,7 +20,9 @@ function createEntryPoint(windowName: string) {
 }
 
 const config: ForgeConfig = {
-  packagerConfig: {},
+  packagerConfig: {
+    icon: "./src/main/icon",
+  },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({}),
