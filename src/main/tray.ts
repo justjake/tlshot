@@ -28,8 +28,6 @@ export function createTray() {
   // https://bjango.com/articles/designingmenubarextras/#menu-bar-extra-size
   const tray = new Tray(path.resolve(__dirname, TRAY_ICON));
 
-  app.setActivationPolicy("accessory");
-
   const actionInfo = fromEntries(
     objectEntries(ACTIONS).map(
       ([key, action]) =>
