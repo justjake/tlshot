@@ -11,12 +11,11 @@ if (require("electron-squirrel-startup")) {
 
 // Show the dock icon when we have windows.
 react("controlDockIcon", () => {
-  if (
-    MainProcessQueries.hasVisibleWindows.value ||
-    MainProcessQueries.hasEditors.value
-  ) {
+  if (MainProcessQueries.hasEditors.value) {
+    app.setActivationPolicy("regular");
     void app.dock.show();
   } else {
+    app.setActivationPolicy("accessory");
     app.dock.hide();
   }
 });

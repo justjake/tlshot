@@ -71,6 +71,7 @@ function ReticleWindow(props: {
       key={display.id}
       onClose={props.onClose}
       display={display}
+      showInactive={true}
     >
       <Reticle
         state={props.state}

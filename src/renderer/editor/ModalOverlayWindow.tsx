@@ -6,6 +6,7 @@ export function ModalOverlayWindow(props: {
   children: React.ReactNode;
   onClose: () => void;
   display?: DisplayRecord;
+  showInactive?: boolean;
 }) {
   const getParent = useGetWindow();
 
@@ -20,6 +21,7 @@ export function ModalOverlayWindow(props: {
       alwaysOnTop="screen-saver"
       onUnload={props.onClose}
       center={props.display ? "none" : "screen"}
+      showInactive={props.showInactive}
       features={{
         // Styling.
         transparent: true,
@@ -32,6 +34,8 @@ export function ModalOverlayWindow(props: {
         roundedCorners: false,
         hiddenInMissionControl: true,
         resizable: false,
+        focusable: false,
+        skipTaskbar: true,
 
         // Sizing.
         left,

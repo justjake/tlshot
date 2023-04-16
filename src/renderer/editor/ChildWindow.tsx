@@ -98,6 +98,7 @@ export interface ChildWindowProps {
   children: React.ReactNode;
   center: "parent" | "screen" | "none";
   hidden?: boolean;
+  showInactive?: boolean;
   alwaysOnTop?: boolean | "screen-saver";
 }
 
@@ -109,10 +110,10 @@ export function ChildWindow(props: ChildWindowProps) {
   const applyProps = useCallback(
     () =>
       TLShot.api.updateChildWindow(id, {
-        show: !hidden,
+        show: hidden ? false : props.showInactive ? "showInactive" : true,
         alwaysOnTop,
       }),
-    [id, hidden, alwaysOnTop]
+    [id, hidden, props.showInactive, alwaysOnTop]
   );
 
   const handleOpen = (childWindow: Window) => {
@@ -141,12 +142,12 @@ export function ChildWindow(props: ChildWindowProps) {
   const features: ChildWindowFeatures = useMemo(
     () =>
       ({
-        show: !hidden,
+        show: hidden || props.showInactive ? false : true,
         alwaysOnTop: Boolean(alwaysOnTop),
         ...props.features,
         childWindowId: id,
       } as ChildWindowFeatures),
-    [hidden, alwaysOnTop, props.features, id]
+    [hidden, props.showInactive, props.features, alwaysOnTop, id]
   );
 
   useEffect(() => {

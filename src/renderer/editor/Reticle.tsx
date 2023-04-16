@@ -123,7 +123,7 @@ export function Reticle(props: {
   );
   useLayoutEffect(() => {
     if (isInWindow) {
-      void TLShot.api.focusTopWindowNearMouse();
+      // void TLShot.api.focusTopWindowNearMouse();
     }
   }, [isInWindow]);
 
@@ -253,7 +253,6 @@ function ReticleMouse(props: {
         left: 0,
         bottom: 0,
         right: 0,
-        cursor: "none",
       },
     }),
     [isDragging, loupeSize]

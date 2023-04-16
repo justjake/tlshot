@@ -263,7 +263,7 @@ export class TLShotApi {
     _event: Electron.IpcMainInvokeEvent,
     id: ChildWindowNanoid,
     options: {
-      show?: boolean;
+      show?: boolean | "showInactive";
       alwaysOnTop?: boolean | "screen-saver";
       edited?: boolean;
     }
@@ -273,7 +273,11 @@ export class TLShotApi {
     for (const [key, value] of objectEntries(options)) {
       if (key === "show") {
         if (value) {
-          browserWindow.show();
+          if (value === "showInactive") {
+            browserWindow.showInactive();
+          } else {
+            browserWindow.show();
+          }
         } else {
           browserWindow.hide();
         }
