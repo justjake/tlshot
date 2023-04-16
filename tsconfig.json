@@ -2,7 +2,7 @@
   "compilerOptions": {
     "strictNullChecks": true,
     "strict": true,
-    "jsx": "react-jsxdev",
+    "jsx": "react-jsx",
     "target": "ES2021",
     "allowJs": true,
     "module": "commonjs",

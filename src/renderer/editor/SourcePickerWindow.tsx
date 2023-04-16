@@ -38,7 +38,7 @@ export function AppSourcePickerWindow(props: { onClose: () => void }) {
     props.onClose();
     requestAnimationFrame(async () => {
       const blob = await captureUserMediaSource(source.id, undefined);
-      void createShapeFromBlob(app, blob);
+      void createShapeFromBlob(app, blob.blob);
     });
   };
 

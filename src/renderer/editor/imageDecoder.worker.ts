@@ -12,5 +12,7 @@ self.onmessage = async (ev) => {
     // resizeQuality: "pixelated",
   });
   console.log("created", imageBitmap);
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   self.postMessage(imageBitmap, [imageBitmap]);
 };
