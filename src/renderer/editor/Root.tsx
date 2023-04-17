@@ -1,7 +1,7 @@
 import { track, useValue } from "signia-react";
 import { TLShot } from "../TLShotRendererApp";
 import { EditorRecord, EditorRecordId } from "@/shared/records/EditorRecord";
-import { Editor, getEditorApp } from "./Editor";
+import { Editor, getEditorApp, usePreloadAssets } from "./Editor";
 import { CAPTURE_ACTIVITY_ID } from "@/shared/records/CaptureActivityRecord";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as captureHelpers from "./captureHelpers";
@@ -61,6 +61,8 @@ export function Root() {
 }
 
 function EditorViews() {
+  usePreloadAssets();
+
   const editorIds = Array.from(useValue(TLShot.store.query.ids("editor")));
   return (
     <>

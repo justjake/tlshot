@@ -118,6 +118,14 @@ export function ChildWindow(props: ChildWindowProps) {
 
   const handleOpen = (childWindow: Window) => {
     Windows.register(id, childWindow);
+
+    if (props.copyStyles || props.copyStyles === undefined) {
+      // upstream library copies styles, but doesn't copy fonts
+      for (const font of document.fonts) {
+        childWindow.document.fonts.add(font);
+      }
+    }
+
     void applyProps();
     props.onOpen?.(childWindow, id);
     setOpen(true);
