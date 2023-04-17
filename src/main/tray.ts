@@ -5,6 +5,7 @@ import path from "path";
 import { fromEntries, objectEntries } from "@/shared/typeUtils";
 import { atom, react } from "signia";
 import { Preferences } from "./MainProcessPreferences";
+import { MainProcessQueries } from "./MainProcessStore";
 
 const ACTIONS = {
   captureArea: {
@@ -34,7 +35,7 @@ export function createTray() {
         [
           key,
           {
-            isCapturing: globalShortcut.register(
+            globalShortcutRegistered: globalShortcut.register(
               action.accelerator,
               action.click
             ),
@@ -42,6 +43,22 @@ export function createTray() {
         ] as const
     )
   );
+
+  // react("whenCapturingEscapeCancels", () => {
+  //   const handleEscapeWhenCapturing = () => {
+  //     console.log("handleEscapeWhenCapturing");
+  //     TLShotApi.getInstance().cancelCapture();
+  //   };
+
+  //   if (MainProcessQueries.hasCaptureActivity) {
+  //     globalShortcut.register("Escape", handleEscapeWhenCapturing);
+  //   } else {
+  //     globalShortcut.unregister("Escape");
+  //   }
+
+  //   // TODO: handle copy?
+  // });
+
   app.on("before-quit", () => {
     globalShortcut.unregisterAll();
   });
@@ -54,7 +71,7 @@ export function createTray() {
     const trayMenu = Menu.buildFromTemplate([
       ...objectEntries(ACTIONS).map(([key, action]) => ({
         ...action,
-        sublabel: actionInfo[key].isCapturing
+        sublabel: actionInfo[key].globalShortcutRegistered
           ? undefined
           : "In use by other app",
       })),

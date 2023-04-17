@@ -123,7 +123,7 @@ export function Reticle(props: {
   );
   useLayoutEffect(() => {
     if (isInWindow) {
-      // void TLShot.api.focusTopWindowNearMouse();
+      void TLShot.api.focusTopWindowNearMouse();
     }
   }, [isInWindow]);
 

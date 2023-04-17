@@ -34,7 +34,8 @@ export function ModalOverlayWindow(props: {
         roundedCorners: false,
         hiddenInMissionControl: true,
         resizable: false,
-        focusable: false,
+        movable: false,
+        // focusable: false,
         skipTaskbar: true,
 
         // Sizing.

@@ -251,6 +251,10 @@ export class TLShotApi {
     this.storeService.upsertCaptureActivity("fullScreen");
   }
 
+  cancelCapture() {
+    this.storeService.removeCaptureActivity();
+  }
+
   openDevTools(_: unknown, options = { once: false }) {
     return this.rootWindowService.openDevTools(options);
   }

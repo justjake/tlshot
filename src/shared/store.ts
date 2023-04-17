@@ -2,7 +2,10 @@ import { RecordsDiff, Store, StoreSchema } from "@tldraw/tlstore";
 import { DisplayRecord, DisplayRecordId } from "./records/DisplayRecord";
 import { WindowRecord } from "./records/WindowRecord";
 import { EditorRecord } from "./records/EditorRecord";
-import { CaptureActivityRecord } from "./records/CaptureActivityRecord";
+import {
+  CAPTURE_ACTIVITY_ID,
+  CaptureActivityRecord,
+} from "./records/CaptureActivityRecord";
 import { computed } from "signia";
 import { PreferencesRecord } from "./records/PreferencesRecord";
 import { ChildWindowNanoid } from "@/main/WindowDisplayService";
@@ -50,6 +53,10 @@ export class TLShotStoreQueries {
       eq: true,
     },
   }));
+
+  hasCaptureActivity = computed("hasCaptureActivity", () =>
+    Boolean(this.store.get(CAPTURE_ACTIVITY_ID))
+  );
 
   hasVisibleWindows = computed(
     "hasVisibleWindows",

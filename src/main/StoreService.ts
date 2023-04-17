@@ -53,6 +53,10 @@ export class StoreService extends Service<
     ]);
   }
 
+  removeCaptureActivity() {
+    MainProcessStore.remove([CAPTURE_ACTIVITY_ID]);
+  }
+
   createEditorWindow() {
     MainProcessStore.put([
       EditorRecord.create({
