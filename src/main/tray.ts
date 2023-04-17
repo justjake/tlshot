@@ -5,7 +5,6 @@ import path from "path";
 import { fromEntries, objectEntries } from "@/shared/typeUtils";
 import { atom, react } from "signia";
 import { Preferences } from "./MainProcessPreferences";
-import { MainProcessQueries } from "./MainProcessStore";
 
 const ACTIONS = {
   captureArea: {

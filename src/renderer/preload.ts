@@ -47,6 +47,7 @@ class TlshotApiClientImpl implements TLShotApiClient {
   writeFile = this.createMethod("writeFile");
   getMousePosition = this.createMethod("getMousePosition");
   cancelCapture = this.createMethod("cancelCapture");
+  focusWindow = this.createMethod("focusWindow");
 
   // TODO: color copying is still busted...
   writeClipboardPlaintext = this.createMethod("writeClipboardPlaintext");

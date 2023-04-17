@@ -60,6 +60,7 @@ export function Editor(props: { editor: EditorRecord }) {
 
   return (
     <TldrawEditor
+      autoFocus={true}
       instanceId={editorStore.props.instanceId}
       store={editorStore}
       onMount={(app) => {

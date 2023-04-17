@@ -1,9 +1,4 @@
-import { app } from "electron";
 import { execa } from "execa";
-import { nanoid } from "nanoid";
-import path from "path";
-import fs from "fs-extra";
-import { getTempFileName } from "./contentSecurityPolicy";
 
 /**
  * We read displays using `system_profiler SPDisplaysDataType -json` which outputs the following format.

@@ -15,7 +15,6 @@ import { Box2d, Vec2d } from "@tldraw/primitives";
 
 import {
   ChildWindowNanoid,
-  DisplayId,
   WindowDisplayService,
 } from "./WindowDisplayService";
 import { StoreService } from "./StoreService";
@@ -26,7 +25,6 @@ import { RecordsDiff } from "@tldraw/tlstore";
 import { TLShotRecord } from "@/shared/store";
 import { RootWindowService } from "./RootWindowService";
 import { objectEntries } from "@/shared/typeUtils";
-import { captureDisplayToFile, getSPDisplays } from "./darwinDisplayCapture";
 import { enableScreenshotProtocol } from "./screenshotServer";
 
 export type TLShotApiResponse = {
@@ -143,6 +141,12 @@ export class TLShotApi {
     } else {
       console.log("No window found under mouse", pos);
     }
+  }
+
+  focusWindow(_event: Electron.IpcMainInvokeEvent, id: ChildWindowNanoid) {
+    const browserWindow = this.windowDisplayService.mustGetBrowserWindow(id);
+    browserWindow.focus();
+    browserWindow.focusOnWebView();
   }
 
   // https://www.electronjs.org/docs/latest/api/desktop-capturer
