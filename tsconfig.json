@@ -14,7 +14,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "node-screencapturekit": ["./node_modules/node-screencapturekit/src/*"]
     }
   },
   "include": ["src/**/*"]

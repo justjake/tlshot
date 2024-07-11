@@ -126,6 +126,8 @@ export class RootWindowService {
     const rootWindow = new BrowserWindow({
       webPreferences: {
         preload: EDITOR_PRELOAD_WEBPACK_ENTRY,
+        nodeIntegration: true,
+        contextIsolation: true,
       },
       show: false,
       backgroundColor,

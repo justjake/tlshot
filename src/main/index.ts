@@ -3,6 +3,7 @@ import { TLShotApi, startServices } from "./TLShotApi";
 import { createTray } from "./tray";
 import { MainProcessQueries } from "./MainProcessStore";
 import { react } from "signia";
+import * as SC from "node-screencapturekit";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
@@ -30,6 +31,7 @@ app.on("window-all-closed", () => {
 app.on("ready", async () => {
   await startServices();
   createTray();
+  // SC.testMainActor();
 });
 
 app.on("activate", () => {

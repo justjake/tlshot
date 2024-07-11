@@ -8,6 +8,7 @@ import type {
   TLShotApiRequest,
   TLShotApiResponse,
 } from "@/main/TLShotApi";
+import * as SC from "node-screencapturekit";
 
 const DEBUG = true;
 
@@ -70,9 +71,15 @@ class TlshotApiClientImpl implements TLShotApiClient {
     ipcRenderer.on(channelName, listener);
     return () => ipcRenderer.removeListener(channelName, listener);
   };
+
+  SC = SC;
 }
 
-contextBridge.exposeInMainWorld("TlshotAPI", new TlshotApiClientImpl());
+const api = new TlshotApiClientImpl();
+contextBridge.exposeInMainWorld("TlshotAPI", api);
+console.log("Exposed TLShotAPI");
+
+void api.SC.testMainActor();
 
 declare global {
   interface Window {

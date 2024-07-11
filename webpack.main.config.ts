@@ -1,6 +1,6 @@
 import type { Configuration } from "webpack";
 
-import { rules, resolve } from "./webpack.rules";
+import { rules, getResolveOptions } from "./webpack.rules";
 
 rules.push({
   test: /\.png$/,
@@ -21,5 +21,7 @@ export const mainConfig: Configuration = {
   output: {
     assetModuleFilename: "[file][query][fragment]",
   },
-  resolve,
+  resolve: getResolveOptions(),
 };
+
+mainConfig.resolve?.extensions?.push(".node");

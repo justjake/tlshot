@@ -1,12 +1,15 @@
 import path from "path";
 import type { ModuleOptions, ResolveOptions } from "webpack";
 
-export const resolve: ResolveOptions = {
-  alias: {
-    "@": path.resolve(__dirname, "./src"),
-  },
-  extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"],
-};
+export function getResolveOptions() {
+  const resolve: ResolveOptions = {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+    extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"],
+  };
+  return resolve;
+}
 
 export const rules: Required<ModuleOptions>["rules"] = [
   // Add support for native node modules
@@ -17,7 +20,7 @@ export const rules: Required<ModuleOptions>["rules"] = [
     use: "node-loader",
   },
   {
-    test: /[/\\]node_modules[/\\].+\.(m?js|node)$/,
+    test: /[/\\](node_modules|node-screencapturekit)[/\\].+\.(m?js|node)$/,
     parser: { amd: false },
     use: {
       loader: "@vercel/webpack-asset-relocator-loader",

@@ -1,6 +1,6 @@
 import type { Configuration } from "webpack";
 
-import { rules, resolve } from "./webpack.rules";
+import { rules, getResolveOptions } from "./webpack.rules";
 import { plugins } from "./webpack.plugins";
 
 rules.push({
@@ -14,7 +14,7 @@ export const rendererConfig: Configuration = {
   },
   plugins,
   resolve: {
-    ...resolve,
+    ...getResolveOptions(),
     fallback: {
       path: require.resolve("path-browserify"),
     },
