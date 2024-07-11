@@ -27,6 +27,17 @@ enum TlshotError: LocalizedError {
     case invalidJson(Data)
     case notImplemented(String)
     case captureFailed(String)
+    
+    var errorDescription: String? {
+        "\(self)"
+    }
+    
+    var recoverySuggestion: String? {
+        switch self {
+        case .captureFailed: "Grant permission in System Settings"
+        default: nil
+        }
+    }
 }
 
 struct TldrawDocument: FileDocument {
@@ -78,9 +89,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var captureMediaType: CaptureMediaType = .image
     @Published var captureWindow: CaptureWindow? = nil
     @Published var hasPermission: Bool = false
+    @Published var imageWindows: [NSWindow] = []
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        setActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
         print("\(self).hasPermission: \(hasPermission)")
         
@@ -95,6 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if let screen = NSScreen.main {
             rect = screen.frame
         }
+        NSApp.activate()
         let captureWindow = self.captureWindow ?? CaptureWindow(appDelegate: self, view: { CaptureView(window: $0) }, contentRect: rect)
         self.captureWindow = captureWindow
         captureWindow.setFrame(rect, display: true)
@@ -103,28 +116,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func onCaptureClose() {
-        print(self, "onCaptureClose")
-        if let captureWindow = captureWindow {
+        if let captureWindow = self.captureWindow {
+            print(self, "onCaptureClose", captureWindow)
             self.captureWindow = nil
             captureWindow.close()
         }
         captureAction = nil
     }
     
-    func onCaptureRect(area: CGRect) throws {
+    @MainActor func onCaptureRect(area: CGRect) throws {
+        onCaptureClose()
         if let image = CGWindowListCreateImage(area, .optionAll, 0, [.shouldBeOpaque, .bestResolution]) {
-            editImage(image)
+            print("got image: \(image)")
+            hasPermission = true
+            editImage(image, frame: area)
         } else {
             throw TlshotError.captureFailed("System didn't return an image")
         }
     }
     
-    func editImage(_ image: CGImage) {
-        
+    @MainActor func editImage(_ image: CGImage, frame: CGRect) {
+        let window = ImageWindow(appDelegate: self, rect: frame, image: image)
+        window.setFrame(frame, display: true)
+        window.makeKeyAndOrderFront(self)
+        imageWindows.append(window)
+        setActivationPolicy()
+    }
+    
+    func setActivationPolicy() {
+        let policy: NSApplication.ActivationPolicy = if imageWindows.count > 0 {
+            .regular
+        } else {
+            .accessory
+        }
+        NSApp.setActivationPolicy(policy)
     }
     
     static func defaultSaveFolder() -> URL {
         FileManager.default.homeDirectoryForCurrentUser.appending(components: "Pictures", "Screenshots")
+    }
+    
+    func removeImageWindow(_ window: NSWindow) {
+        self.imageWindows.removeAll(where: { $0 == window })
+        setActivationPolicy()
     }
 }
 
@@ -170,6 +204,11 @@ extension CGRect {
             y: min(p1.y, p2.y),
             width: abs(p1.x - p2.x),
             height: abs(p1.y - p2.y))
+    }
+    
+    func toNS(screen: NSScreen) -> CGRect {
+        let flippedY = screen.frame.size.height - self.origin.y
+        return CGRect(x: origin.x, y: flippedY, width: width, height: height)
     }
 }
 
@@ -217,6 +256,9 @@ struct CaptureView: View {
                 Text("Capture View!")
                 Text("more views?")
                 Text("focused: \(focused)")
+                if !appDelegate.hasPermission && appDelegate.warnIfDenied {
+                    PermissionWarningView()
+                }
                 Spacer()
             }
             
@@ -272,7 +314,11 @@ struct CaptureView: View {
         print("onCaptureComplete: \(rect)")
         if appDelegate.captureAction == .area {
             do {
-                try appDelegate.onCaptureRect(area: rect)
+                guard let screen = window.screen else {
+                    throw TlshotError.captureFailed("No screen")
+                }
+                let flipped = rect.toNS(screen: screen)
+                try appDelegate.onCaptureRect(area: flipped)
             } catch {
                 print("onDragComplete: error:", error)
                 self.error = error
@@ -330,7 +376,45 @@ struct LocalizedAlertError: LocalizedError {
     }
     
     init?(error: Error?) {
-        guard let localizedError = error as? LocalizedError else { return nil }
+        guard let localizedError = error as? LocalizedError else {
+            if error != nil {
+                print("Error not localized: \(String(describing: error))")
+            }
+            return nil
+        }
         underlyingError = localizedError
+    }
+}
+
+class ImageWindow: NSWindow {
+    var appDelegate: AppDelegate? = nil
+    
+    init(appDelegate: AppDelegate, rect: CGRect, image: CGImage) {
+        super.init(
+            contentRect: rect,
+            styleMask: [.closable, .resizable, .titled],
+            backing: .buffered,
+            defer: false
+        )
+        
+        title = "Image Preview"
+        isReleasedWhenClosed = false
+        
+        let imageView = NSImageView(image: NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height)))
+        contentView = imageView
+    }
+    
+    override var canBecomeKey: Bool {
+        true
+    }
+    
+    override var canBecomeMain: Bool {
+        true
+    }
+    
+    override func close() {
+        appDelegate?.removeImageWindow(self)
+        appDelegate = nil
+        super.close()
     }
 }

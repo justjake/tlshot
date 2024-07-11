@@ -38,6 +38,8 @@ class CaptureWindow: NSPanel {
                    backing: backing,
                    defer: flag)
         
+        self.isReleasedWhenClosed = false
+
         /// Allow the panel to be on top of other windows
         isFloatingPanel = true
         level = NSWindow.Level(rawValue: NSWindow.Level.RawValue(CGShieldingWindowLevel()))
