@@ -17,6 +17,12 @@
 		C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C22C40303000E60BE4 /* CaptureWindow.swift */; };
 		C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C42C40847000E60BE4 /* PermissionWarningView.swift */; };
 		C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C62C40965700E60BE4 /* OverlayPanel.swift */; };
+		C17645C92C40C56100E60BE4 /* LoupeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C82C40C56100E60BE4 /* LoupeView.swift */; };
+		C17645CB2C415C6A00E60BE4 /* CGRect+Coordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645CA2C415C6A00E60BE4 /* CGRect+Coordinates.swift */; };
+		C17645CD2C418B4D00E60BE4 /* ScreenshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645CC2C418B4D00E60BE4 /* ScreenshotService.swift */; };
+		C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */; };
+		C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D02C41B36400E60BE4 /* TldrawDocument.swift */; };
+		C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +57,12 @@
 		C17645C22C40303000E60BE4 /* CaptureWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureWindow.swift; sourceTree = "<group>"; };
 		C17645C42C40847000E60BE4 /* PermissionWarningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionWarningView.swift; sourceTree = "<group>"; };
 		C17645C62C40965700E60BE4 /* OverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPanel.swift; sourceTree = "<group>"; };
+		C17645C82C40C56100E60BE4 /* LoupeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoupeView.swift; sourceTree = "<group>"; };
+		C17645CA2C415C6A00E60BE4 /* CGRect+Coordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGRect+Coordinates.swift"; sourceTree = "<group>"; };
+		C17645CC2C418B4D00E60BE4 /* ScreenshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotService.swift; sourceTree = "<group>"; };
+		C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
+		C17645D02C41B36400E60BE4 /* TldrawDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawDocument.swift; sourceTree = "<group>"; };
+		C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSelectionOverlayManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,7 +114,13 @@
 			isa = PBXGroup;
 			children = (
 				C17645972C3F8DB400E60BE4 /* TlshotApp.swift */,
+				C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */,
+				C17645D02C41B36400E60BE4 /* TldrawDocument.swift */,
 				C17645C62C40965700E60BE4 /* OverlayPanel.swift */,
+				C17645C82C40C56100E60BE4 /* LoupeView.swift */,
+				C17645CA2C415C6A00E60BE4 /* CGRect+Coordinates.swift */,
+				C17645CC2C418B4D00E60BE4 /* ScreenshotService.swift */,
+				C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */,
 				C17645C42C40847000E60BE4 /* PermissionWarningView.swift */,
 				C17645C22C40303000E60BE4 /* CaptureWindow.swift */,
 				C17645992C3F8DB400E60BE4 /* ContentView.swift */,
@@ -268,9 +286,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C17645C92C40C56100E60BE4 /* LoupeView.swift in Sources */,
+				C17645CD2C418B4D00E60BE4 /* ScreenshotService.swift in Sources */,
 				C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */,
+				C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */,
+				C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */,
 				C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */,
 				C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */,
+				C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */,
+				C17645CB2C415C6A00E60BE4 /* CGRect+Coordinates.swift in Sources */,
 				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,
 			);

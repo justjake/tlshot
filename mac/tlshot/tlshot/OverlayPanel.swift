@@ -51,6 +51,9 @@ class OverlayPanel<Content: View>: NSPanel {
             view: { _ in view() }
         )
     }
+    
+    /// Don't include in own screenshots
+    override var includeInScreenshot: Bool { false }
 
     init(
         contentRect: NSRect,
@@ -114,11 +117,11 @@ class OverlayPanel<Content: View>: NSPanel {
         contentView = hostingView
     }
     
-//    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
-//        // No constraint.
-//        // Doesn't seem to work?
-//        return frameRect
-//    }
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        // No constraint.
+        // Doesn't seem to work?
+        return frameRect
+    }
 }
 
 
@@ -151,5 +154,47 @@ class MouseMonitor {
     
     deinit {
         stop()
+    }
+}
+
+class BoxOverlay: ObservableObject {
+    @Published var edges: [Edge] = []
+    
+    struct BoxView: View {
+        @ObservedObject var props: BoxOverlay
+        
+        var body: some View {
+            Rectangle()
+                .fill(.clear)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .border(width: 1, edges: props.edges, color: .white)
+        }
+    }
+    
+    lazy var panel: some NSPanel = OverlayPanel(.zero, level: .shieldWindow) {
+        BoxView(props: self)
+    }
+}
+
+extension View {
+    func border(width: CGFloat, edges: [Edge], color: Color) -> some View {
+        overlay(EdgeBorder(width: width, edges: edges).foregroundColor(color))
+    }
+}
+
+
+struct EdgeBorder: Shape {
+    var width: CGFloat
+    var edges: [Edge]
+    
+    func path(in rect: CGRect) -> Path {
+        edges.map { edge -> Path in
+            switch edge {
+            case .top: return Path(.init(x: rect.minX, y: rect.minY, width: rect.width, height: width))
+            case .bottom: return Path(.init(x: rect.minX, y: rect.maxY - width, width: rect.width, height: width))
+            case .leading: return Path(.init(x: rect.minX, y: rect.minY, width: width, height: rect.height))
+            case .trailing: return Path(.init(x: rect.maxX - width, y: rect.minY, width: width, height: rect.height))
+            }
+        }.reduce(into: Path()) { $0.addPath($1) }
     }
 }

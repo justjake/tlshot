@@ -40,46 +40,6 @@ enum TlshotError: LocalizedError {
     }
 }
 
-struct TldrawDocument: FileDocument {
-    typealias RawJson = Dictionary<String, Any>
-    static var readableContentTypes: [UTType] = [.png, .jpeg, .json]
-    
-    var backgroundImage: NSImage? = nil
-    var json: RawJson = [:]
-    
-    init() {
-        // OK!
-    }
-    
-    init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents else {
-            throw TlshotError.missingFileData
-        }
-        switch (configuration.contentType) {
-        case .image:
-            backgroundImage = NSImage(data: data)
-        case .json:
-            guard let decoded = try JSONSerialization.jsonObject(with: data) as? RawJson else {
-                throw TlshotError.invalidJson(data)
-            }
-            json = decoded
-        default:
-            throw TlshotError.unknownFileType(configuration.contentType)
-        }
-    }
-    
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        switch configuration.contentType {
-        case .image:
-            throw TlshotError.notImplemented("Saving to image")
-        case .json:
-            let data = try JSONSerialization.data(withJSONObject: json)
-            return FileWrapper(regularFileWithContents: data)
-        default:
-            throw TlshotError.unknownFileType(configuration.contentType)
-        }
-    }
-}
 
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     static var shared = AppDelegate()
@@ -96,6 +56,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var capturePhase: CapturePhase = .ended
     @Published var dragStart: NSPoint? = nil
     
+    static func openSystemSettings() {
+        // https://github.com/feedback-assistant/reports/issues/184
+        // https://gist.github.com/iccir/c1da6e537718b99b0c14ef76765aec45
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+        NSWorkspace.shared.open(url)
+    }
+    
     lazy var mouseListener = MouseMonitor { @MainActor [self] event in
         mouseLocation = NSEvent.mouseLocation
         
@@ -105,13 +72,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
         
         if event.type == .leftMouseUp && dragStart != nil {
-            try! onDragEnd()
+            do {
+                try onDragEnd()
+            } catch {
+                showErrorAlert(error: error)
+            }
             return
         }
         
         if let rect = dragRect {
             print("update captureRect", rect)
-            CaptureRectManager.shared.show(rect)
+            AreaSelectionOverlayManager.shared.show(rect)
         }
     }
     
@@ -124,6 +95,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         // TODO: not this
         startCapture(.area)
+    }
+    
+    func showErrorAlert(error: Error) {
+        let systemPrefsTag = 64
+        // https://stackoverflow.com/questions/18417432/how-to-show-alert-pop-up-in-in-cocoa-on-macos
+        print("\(self).showErrorAlert: \(error)")
+        let alert = NSAlert(error: error)
+        if case .captureFailed(let msg) = error as? TlshotError {
+            let button = alert.addButton(withTitle: "Open System Settings")
+            button.tag = systemPrefsTag
+            
+            alert.addButton(withTitle: "OK")
+        }
+        let response = alert.runModal()
+        if response.rawValue == systemPrefsTag {
+            AppDelegate.openSystemSettings()
+        }
     }
     
     @MainActor func onDragStart() {
@@ -146,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
         print("onDragEnd", rect)
         
-        CaptureRectManager.shared.hide()
+        AreaSelectionOverlayManager.shared.hide()
         
         try onCaptureRect(area: rect)
     }
@@ -179,7 +167,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     @MainActor func onCaptureRect(area: CGRect) throws {
         onCaptureClose()
-        if let image = CGWindowListCreateImage(area, .optionAll, 0, [.shouldBeOpaque, .bestResolution]) {
+        if let image = CGWindowService.shared.screenshot(area.isNS.asCG) {
             print("got image: \(image)")
             hasPermission = true
             editImage(image, frame: area)
@@ -252,21 +240,6 @@ struct TlshotApp: App {
         }
     }
     
-}
-
-extension CGRect {
-    init(_ p1: CGPoint, _ p2: CGPoint) {
-        self.init(
-            x: min(p1.x, p2.x),
-            y: min(p1.y, p2.y),
-            width: abs(p1.x - p2.x),
-            height: abs(p1.y - p2.y))
-    }
-    
-    func toNS(screen: NSScreen) -> CGRect {
-        let flippedY = screen.frame.size.height - self.origin.y
-        return CGRect(x: origin.x, y: flippedY, width: width, height: height)
-    }
 }
 
 enum CapturePhase: CustomDebugStringConvertible {
@@ -448,96 +421,5 @@ class ImageWindow: NSWindow {
     }
 }
 
-extension NSScreen {
-    var displayID: CGDirectDisplayID? {
-        deviceDescription[NSDeviceDescriptionKey(rawValue: "NSScreenNumber")] as? CGDirectDisplayID
-    }
-}
-
-class CaptureRectManager {
-    static var shared = CaptureRectManager()
-    
-    class BoxProps: ObservableObject {
-        @Published var edges: [Edge] = []
-    }
-    
-    struct BoxView: View {
-        @ObservedObject var props: BoxProps
-        
-        var body: some View {
-            Rectangle()
-                .fill(.clear)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .border(width: 1, edges: props.edges, color: .white)
-        }
-    }
-    
-    var windows: [CGDirectDisplayID:(NSPanel, BoxProps)] = [:]
-    
-    func show(_ rect: NSRect, below: NSWindow? = nil) {
-        hide()
-        
-        for screen in NSScreen.screens {
-            guard let id = screen.displayID else {
-                continue
-            }
-            
-            let intersection = screen.frame.intersection(rect)
-            if intersection.isEmpty {
-                continue
-            }
-            
-            let edges = Edge.allCases.filter {
-                switch $0 {
-                case .top: rect.maxY == intersection.maxY
-                case .bottom: rect.minY == intersection.minY
-                case .leading: rect.minX == intersection.minX
-                case .trailing: rect.maxX == intersection.maxX
-                }
-            }
-            
-            let pair = windows[id] ?? box()
-            let (panel, props) = pair
-            props.edges = edges
-            panel.setFrame(intersection, display: true)
-            panel.orderFront(self)
-            windows[id] = pair
-        }
-    }
-    
-    func hide() {
-        windows.values.forEach { $0.0.setIsVisible(false) }
-    }
-    
-    func box() -> (some NSPanel, BoxProps) {
-        let props = BoxProps()
-        let panel = OverlayPanel(.zero) {
-            BoxView(props: props)
-        }
-        return (panel, props)
-    }
-
-}
-
-extension View {
-    func border(width: CGFloat, edges: [Edge], color: Color) -> some View {
-        overlay(EdgeBorder(width: width, edges: edges).foregroundColor(color))
-    }
-}
 
 
-struct EdgeBorder: Shape {
-    var width: CGFloat
-    var edges: [Edge]
-    
-    func path(in rect: CGRect) -> Path {
-        edges.map { edge -> Path in
-            switch edge {
-            case .top: return Path(.init(x: rect.minX, y: rect.minY, width: rect.width, height: width))
-            case .bottom: return Path(.init(x: rect.minX, y: rect.maxY - width, width: rect.width, height: width))
-            case .leading: return Path(.init(x: rect.minX, y: rect.minY, width: width, height: rect.height))
-            case .trailing: return Path(.init(x: rect.maxX - width, y: rect.minY, width: width, height: rect.height))
-            }
-        }.reduce(into: Path()) { $0.addPath($1) }
-    }
-}

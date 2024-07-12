@@ -21,11 +21,8 @@ struct PermissionWarningView: View {
         }
     }
     
-    // https://github.com/feedback-assistant/reports/issues/184
-    // https://gist.github.com/iccir/c1da6e537718b99b0c14ef76765aec45
     func openSystemSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-        NSWorkspace.shared.open(url)
+        AppDelegate.openSystemSettings()
     }
 }
 
