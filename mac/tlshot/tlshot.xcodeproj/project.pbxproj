@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C17645982C3F8DB400E60BE4 /* tlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* tlshotApp.swift */; };
+		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
 		C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645992C3F8DB400E60BE4 /* ContentView.swift */; };
 		C176459C2C3F8DB800E60BE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C176459B2C3F8DB800E60BE4 /* Assets.xcassets */; };
 		C176459F2C3F8DB800E60BE4 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C176459E2C3F8DB800E60BE4 /* Preview Assets.xcassets */; };
@@ -38,7 +38,7 @@
 
 /* Begin PBXFileReference section */
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C17645972C3F8DB400E60BE4 /* tlshotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tlshotApp.swift; sourceTree = "<group>"; };
+		C17645972C3F8DB400E60BE4 /* TlshotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TlshotApp.swift; sourceTree = "<group>"; };
 		C17645992C3F8DB400E60BE4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		C176459B2C3F8DB800E60BE4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C176459E2C3F8DB800E60BE4 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -101,7 +101,7 @@
 		C17645962C3F8DB400E60BE4 /* tlshot */ = {
 			isa = PBXGroup;
 			children = (
-				C17645972C3F8DB400E60BE4 /* tlshotApp.swift */,
+				C17645972C3F8DB400E60BE4 /* TlshotApp.swift */,
 				C17645C62C40965700E60BE4 /* OverlayPanel.swift */,
 				C17645C42C40847000E60BE4 /* PermissionWarningView.swift */,
 				C17645C22C40303000E60BE4 /* CaptureWindow.swift */,
@@ -270,7 +270,7 @@
 			files = (
 				C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */,
 				C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */,
-				C17645982C3F8DB400E60BE4 /* tlshotApp.swift in Sources */,
+				C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */,
 				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,
 			);

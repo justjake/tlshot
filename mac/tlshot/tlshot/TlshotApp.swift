@@ -156,14 +156,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         captureAction = action
         captureMediaType = mediaType
         var rect: NSRect = .infinite
-        if let screen = NSScreen.main {
+        if let screen = NSScreen.main ?? NSScreen.screens.first {
             rect = screen.frame
         }
-        NSApp.activate()
         let captureWindow = self.captureWindow ?? CaptureWindow(contentRect: rect)
         self.captureWindow = captureWindow
         captureWindow.setFrame(rect, display: true)
         captureWindow.makeKeyAndOrderFront(self)
+        NSApp.activate()
         print(self, "startCapture frame: \(captureWindow.frame), \(captureWindow.becomeFirstResponder())")
     }
     
@@ -220,7 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 }
 
 @main
-struct tlshotApp: App {
+struct TlshotApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
     var body: some Scene {
@@ -385,32 +385,6 @@ struct CaptureView: View {
     }
 }
 
-
-//struct CustomizeWindowView: NSViewRepresentable {
-//    
-//    class EffectView: NSView {
-//        override func viewDidMoveToWindow() {
-//            super.viewDidMoveToWindow()
-//            print("CustomizeWindowView.viewDidMoveToWindow: window", String(describing: window))
-//            window?.titleVisibility = .hidden
-//            window?.backgroundColor = .clear
-//            window?.titlebarAppearsTransparent = true
-//        }
-//    }
-//    
-//    func makeNSView(context: Context) -> EffectView {
-////        var view = NSVisualEffectView()
-////        view.state = .active // Remain transparent even if unfocused
-////        return view
-//        let view = EffectView()
-//        return view
-//    }
-//    
-//    func updateNSView(_ nsView: EffectView, context: Context) {
-//        // Nothing
-//    }
-//}
-//
 extension View {
     func errorAlert(error: Binding<Error?>, buttonTitle: String = "OK") -> some View {
         let localizedAlertError = LocalizedAlertError(error: error.wrappedValue)
@@ -534,9 +508,6 @@ class CaptureRectManager {
     func hide() {
         windows.values.forEach { $0.0.setIsVisible(false) }
     }
-    
-    
-    
     
     func box() -> (some NSPanel, BoxProps) {
         let props = BoxProps()
