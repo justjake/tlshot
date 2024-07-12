@@ -16,7 +16,7 @@
 		C17645B62C3F8DB800E60BE4 /* tlshotUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645B52C3F8DB800E60BE4 /* tlshotUITestsLaunchTests.swift */; };
 		C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C22C40303000E60BE4 /* CaptureWindow.swift */; };
 		C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C42C40847000E60BE4 /* PermissionWarningView.swift */; };
-		C17645C72C40965700E60BE4 /* TargetHighlightWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C62C40965700E60BE4 /* TargetHighlightWindow.swift */; };
+		C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645C62C40965700E60BE4 /* OverlayPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,7 +50,7 @@
 		C17645B52C3F8DB800E60BE4 /* tlshotUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tlshotUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		C17645C22C40303000E60BE4 /* CaptureWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureWindow.swift; sourceTree = "<group>"; };
 		C17645C42C40847000E60BE4 /* PermissionWarningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionWarningView.swift; sourceTree = "<group>"; };
-		C17645C62C40965700E60BE4 /* TargetHighlightWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetHighlightWindow.swift; sourceTree = "<group>"; };
+		C17645C62C40965700E60BE4 /* OverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,7 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				C17645972C3F8DB400E60BE4 /* tlshotApp.swift */,
-				C17645C62C40965700E60BE4 /* TargetHighlightWindow.swift */,
+				C17645C62C40965700E60BE4 /* OverlayPanel.swift */,
 				C17645C42C40847000E60BE4 /* PermissionWarningView.swift */,
 				C17645C22C40303000E60BE4 /* CaptureWindow.swift */,
 				C17645992C3F8DB400E60BE4 /* ContentView.swift */,
@@ -271,7 +271,7 @@
 				C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */,
 				C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */,
 				C17645982C3F8DB400E60BE4 /* tlshotApp.swift in Sources */,
-				C17645C72C40965700E60BE4 /* TargetHighlightWindow.swift in Sources */,
+				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -82,6 +82,8 @@ struct TldrawDocument: FileDocument {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    static var shared = AppDelegate()
+    
     @AppStorage("saveFolder") var saveFolder: URL = AppDelegate.defaultSaveFolder()
     @AppStorage("warnWhenScreenRecordingPermissionDenied") var warnIfDenied: Bool = true
     
@@ -90,8 +92,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var captureWindow: CaptureWindow? = nil
     @Published var hasPermission: Bool = false
     @Published var imageWindows: [NSWindow] = []
+    @Published var mouseLocation: NSPoint = NSEvent.mouseLocation
+    @Published var capturePhase: CapturePhase = .ended
+    @Published var dragStart: NSPoint? = nil
+    
+    lazy var mouseListener = MouseMonitor { @MainActor [self] event in
+        mouseLocation = NSEvent.mouseLocation
+        
+        if event.type == .leftMouseDragged && dragStart == nil {
+            onDragStart()
+            return
+        }
+        
+        if event.type == .leftMouseUp && dragStart != nil {
+            try! onDragEnd()
+            return
+        }
+        
+        if let rect = dragRect {
+            print("update captureRect", rect)
+            CaptureRectManager.shared.show(rect)
+        }
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        AppDelegate.shared = self
+        
         setActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
         print("\(self).hasPermission: \(hasPermission)")
@@ -100,7 +126,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         startCapture(.area)
     }
     
+    @MainActor func onDragStart() {
+        dragStart = NSEvent.mouseLocation
+        print("onDragStart", dragStart)
+    }
+    
+    var dragRect: NSRect? {
+        if let p1 = dragStart {
+            return NSRect(p1, mouseLocation)
+        }
+        return nil
+    }
+    
+    @MainActor func onDragEnd() throws {
+        defer { dragStart = nil }
+        guard let rect = dragRect else {
+            print("onDragEnd: no rect?")
+            return
+        }
+        print("onDragEnd", rect)
+        
+        CaptureRectManager.shared.hide()
+        
+        try onCaptureRect(area: rect)
+    }
+    
     func startCapture(_ action: CaptureAction, mediaType: CaptureMediaType = .image) {
+        mouseListener.start()
         captureAction = action
         captureMediaType = mediaType
         var rect: NSRect = .infinite
@@ -108,7 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             rect = screen.frame
         }
         NSApp.activate()
-        let captureWindow = self.captureWindow ?? CaptureWindow(appDelegate: self, view: { CaptureView(window: $0) }, contentRect: rect)
+        let captureWindow = self.captureWindow ?? CaptureWindow(contentRect: rect)
         self.captureWindow = captureWindow
         captureWindow.setFrame(rect, display: true)
         captureWindow.makeKeyAndOrderFront(self)
@@ -122,6 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             captureWindow.close()
         }
         captureAction = nil
+        mouseListener.stop()
     }
     
     @MainActor func onCaptureRect(area: CGRect) throws {
@@ -136,11 +189,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {
-        let window = ImageWindow(appDelegate: self, rect: frame, image: image)
-        window.setFrame(frame, display: true)
-        window.makeKeyAndOrderFront(self)
+        let window = ImageWindow(rect: frame, image: image)
         imageWindows.append(window)
         setActivationPolicy()
+        window.setFrame(frame, display: true)
+        window.makeKeyAndOrderFront(self)
     }
     
     func setActivationPolicy() {
@@ -150,6 +203,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             .accessory
         }
         NSApp.setActivationPolicy(policy)
+        if policy == .regular {
+            NSApp.activate()
+        }
+
     }
     
     static func defaultSaveFolder() -> URL {
@@ -303,6 +360,11 @@ struct CaptureView: View {
     var dragGesture: some Gesture {
         DragGesture()
             .onChanged {
+                switch mouse {
+                case .drag: break
+                default: break
+//                default: appDelegate.onDragStart()
+                }
                 mouse = .drag(start: $0.startLocation, current: $0.location)
             }.onEnded {
                 mouse = .complete(start: $0.startLocation, current: $0.location)
@@ -314,11 +376,7 @@ struct CaptureView: View {
         print("onCaptureComplete: \(rect)")
         if appDelegate.captureAction == .area {
             do {
-                guard let screen = window.screen else {
-                    throw TlshotError.captureFailed("No screen")
-                }
-                let flipped = rect.toNS(screen: screen)
-                try appDelegate.onCaptureRect(area: flipped)
+//                try appDelegate.onDragEnd()
             } catch {
                 print("onDragComplete: error:", error)
                 self.error = error
@@ -387,9 +445,7 @@ struct LocalizedAlertError: LocalizedError {
 }
 
 class ImageWindow: NSWindow {
-    var appDelegate: AppDelegate? = nil
-    
-    init(appDelegate: AppDelegate, rect: CGRect, image: CGImage) {
+    init(rect: CGRect, image: CGImage) {
         super.init(
             contentRect: rect,
             styleMask: [.closable, .resizable, .titled],
@@ -413,8 +469,104 @@ class ImageWindow: NSWindow {
     }
     
     override func close() {
-        appDelegate?.removeImageWindow(self)
-        appDelegate = nil
+        appDelegate.removeImageWindow(self)
         super.close()
+    }
+}
+
+extension NSScreen {
+    var displayID: CGDirectDisplayID? {
+        deviceDescription[NSDeviceDescriptionKey(rawValue: "NSScreenNumber")] as? CGDirectDisplayID
+    }
+}
+
+class CaptureRectManager {
+    static var shared = CaptureRectManager()
+    
+    class BoxProps: ObservableObject {
+        @Published var edges: [Edge] = []
+    }
+    
+    struct BoxView: View {
+        @ObservedObject var props: BoxProps
+        
+        var body: some View {
+            Rectangle()
+                .fill(.clear)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .border(width: 1, edges: props.edges, color: .white)
+        }
+    }
+    
+    var windows: [CGDirectDisplayID:(NSPanel, BoxProps)] = [:]
+    
+    func show(_ rect: NSRect, below: NSWindow? = nil) {
+        hide()
+        
+        for screen in NSScreen.screens {
+            guard let id = screen.displayID else {
+                continue
+            }
+            
+            let intersection = screen.frame.intersection(rect)
+            if intersection.isEmpty {
+                continue
+            }
+            
+            let edges = Edge.allCases.filter {
+                switch $0 {
+                case .top: rect.maxY == intersection.maxY
+                case .bottom: rect.minY == intersection.minY
+                case .leading: rect.minX == intersection.minX
+                case .trailing: rect.maxX == intersection.maxX
+                }
+            }
+            
+            let pair = windows[id] ?? box()
+            let (panel, props) = pair
+            props.edges = edges
+            panel.setFrame(intersection, display: true)
+            panel.orderFront(self)
+            windows[id] = pair
+        }
+    }
+    
+    func hide() {
+        windows.values.forEach { $0.0.setIsVisible(false) }
+    }
+    
+    
+    
+    
+    func box() -> (some NSPanel, BoxProps) {
+        let props = BoxProps()
+        let panel = OverlayPanel(.zero) {
+            BoxView(props: props)
+        }
+        return (panel, props)
+    }
+
+}
+
+extension View {
+    func border(width: CGFloat, edges: [Edge], color: Color) -> some View {
+        overlay(EdgeBorder(width: width, edges: edges).foregroundColor(color))
+    }
+}
+
+
+struct EdgeBorder: Shape {
+    var width: CGFloat
+    var edges: [Edge]
+    
+    func path(in rect: CGRect) -> Path {
+        edges.map { edge -> Path in
+            switch edge {
+            case .top: return Path(.init(x: rect.minX, y: rect.minY, width: rect.width, height: width))
+            case .bottom: return Path(.init(x: rect.minX, y: rect.maxY - width, width: rect.width, height: width))
+            case .leading: return Path(.init(x: rect.minX, y: rect.minY, width: width, height: rect.height))
+            case .trailing: return Path(.init(x: rect.maxX - width, y: rect.minY, width: width, height: rect.height))
+            }
+        }.reduce(into: Path()) { $0.addPath($1) }
     }
 }
