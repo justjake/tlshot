@@ -27,6 +27,17 @@ class WindowPicker {
     var targets: [ScreenshotService.WindowInfo] = []
     var target: ScreenshotService.WindowInfo?
     
+    func addTarget(for point: NSPoint) {
+        target = ScreenshotService.shared.windowAt(point: point.isNS) ?? target
+        if let newTarget = target, !targets.contains { $0.id == newTarget.id } {
+            targets.append(newTarget)
+        }
+    }
+    
+    func removeTarget(windowNumber: Int) {
+        targets.removeAll { $0.id == windowNumber }
+    }
+    
     @discardableResult
     func setTarget(for point: NSPoint) -> ScreenshotService.WindowInfo? {
         target = ScreenshotService.shared.windowAt(point: point.isNS)
@@ -52,6 +63,6 @@ class WindowPicker {
         
         box.panel.setIsVisible(true)
         box.panel.setFrame(target.frame.asNS, display: true)
-        box.panel.order(.above, relativeTo: target.windowID)
+        box.panel.order(.above, relativeTo: target.id)
     }
 }

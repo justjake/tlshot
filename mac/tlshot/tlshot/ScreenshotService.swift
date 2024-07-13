@@ -121,13 +121,20 @@ extension Optional {
 
 // Synchronous alternative to ScreenCaptureKit that allows fetching a rect across >1 display
 class ScreenshotService {
+    
+    // --------------------------------------
+    let debug = false
+    // --------------------------------------
+    
+    
     public private(set) static var shared: ScreenshotService = .init()
     private static let cgWindowLevels: [CGWindowLevelKey] = [
         .backstopMenu,
     ]
     
-    struct WindowInfo: CustomStringConvertible {
-        let windowID: Int
+    struct WindowInfo: CustomStringConvertible, Identifiable {
+        let id: Int
+        
         /// Not quite sure what this means
         let layer: Int
         let windowName: String?
@@ -162,7 +169,7 @@ class ScreenshotService {
         
         var description: String {
             let parts: [String] = [
-                "\(windowID) \(frame.asCG)",
+                "\(id) \(frame.asCG)",
                 "windowName: \(windowName.debug ?? "?")",
                 "\(bundleIdentifier ?? appName ?? String(appPID))",
                 "\(levelKey.debug ?? String(layer)) (behind \(maxLevelKey.debug ?? "?"))",
@@ -197,11 +204,6 @@ class ScreenshotService {
         return true
     }
 
-    /// https://developer.apple.com/documentation/coregraphics/1455137-cgwindowlistcopywindowinfo
-    func allWindows() -> [WindowInfo] {
-        parseWindowInfo(CGWindowListCopyWindowInfo(.optionAll, 0))
-    }
-
     func getWindow(windowNumber: Int) -> WindowInfo? {
         parseWindowInfo(
             CGWindowListCopyWindowInfo(.optionIncludingWindow, CGWindowID(windowNumber))
@@ -209,18 +211,31 @@ class ScreenshotService {
     }
 
     func windows(
-        includeOffscreen: Bool = false,
-        includeAppScreenshotInvisible: Bool = false
+        includeAppScreenshotInvisible: Bool = false,
+        // Including offscreen windows means CGWindowListCopyWindowInfo
+        // returns windows in an undefined order. Trying to use that order for
+        // screenshots leads to black rectangles over the image, like after
+        // attaching a new display.
+        includeOffscreenAndScrambleOrder: Bool = false
     ) -> [WindowInfo] {
-        allWindows().filter { window in
-            if !window.isOnScreen, !includeOffscreen {
-                return false
+        /// https://developer.apple.com/documentation/coregraphics/1455137-cgwindowlistcopywindowinfo
+        let windowInfo = parseWindowInfo(CGWindowListCopyWindowInfo(
+            includeOffscreenAndScrambleOrder
+            // List all windows, including both onscreen and offscreen windows
+            // https://developer.apple.com/documentation/coregraphics/cgwindowlistoption/1455377-optionall
+            ? .optionAll
+            // List all windows that are currently onscreen. Windows are returned in order from front to back.
+            // https://developer.apple.com/documentation/coregraphics/cgwindowlistoption/1454105-optiononscreenonly
+            : .optionOnScreenOnly, kCGNullWindowID))
+        
+        if includeAppScreenshotInvisible {
+            return windowInfo
+        }
+        
+        return windowInfo.filter { window in
+            if window.appPID == ProcessInfo.processInfo.processIdentifier {
+                return isScreenshotAble(windowNumber: window.id)
             }
-
-            if !includeAppScreenshotInvisible, window.appPID == ProcessInfo.processInfo.processIdentifier {
-                return isScreenshotAble(windowNumber: window.windowID)
-            }
-
             return true
         }
     }
@@ -245,7 +260,7 @@ class ScreenshotService {
         if let withShadow = CGWindowListCreateImage(
             .null,
             .optionIncludingWindow,
-            CGWindowID(window.windowID),
+            CGWindowID(window.id),
             windowImageOptions
         ) {
             return withShadow
@@ -276,29 +291,35 @@ class ScreenshotService {
         screenshot(NSScreen.total)
     }
 
-    func screenshot(_ rect: CGRect?, windows: [WindowInfo]) -> CGImage? {
-        return cgWindowListFromArrayScreenBounds(rect ?? .null, windows: windows.map { $0.windowID })
-    }
-
-    private func cgWindowListFromArrayScreenBounds(_ rect: CGRect, windows: [Int]) -> CGImage? {
+    private func screenshot(_ rect: CGRect?, windows: [WindowInfo]) -> CGImage? {
         /// This seems like it would work, but doesn't.
         // let nsNumbers = windows.map { NSNumber(value: CGWindowID($0)) }
 
         // Need to use boxed CGWindowID array. This doesn't look safe.
         // https://stackoverflow.com/questions/28947049/how-to-convert-swift-array-into-cfarray
-        let uint32s = windows.map { UInt32($0) }
+        let uint32s = windows.map { UInt32($0.id) }
         let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: uint32s.count)
-        for (index, window) in windows.enumerated() {
-            pointer[index] = UnsafeRawPointer(bitPattern: UInt(window))
+        for (index, uint32) in uint32s.enumerated() {
+            pointer[index] = UnsafeRawPointer(bitPattern: UInt(uint32))
         }
-        let array: CFArray = CFArrayCreate(kCFAllocatorDefault, pointer, windows.count, nil)
+        let array: CFArray = CFArrayCreate(kCFAllocatorDefault, pointer, uint32s.count, nil)
 
-        return CGImage(
-            windowListFromArrayScreenBounds: rect,
+        let result = CGImage(
+            windowListFromArrayScreenBounds: rect ?? .zero,
             windowArray: array,
             imageOption: windowImageOptions
         )
-//        return CGImage(windowListFromArrayScreenBounds: rect, windowArray: asCG, imageOption: [.all .bestResolution, .shouldBeOpaque])
+        
+        if debug {
+            print("ScreenshotService.screenshot(windowArray) rect: \(rect.debug ?? ".null"), windows: \(windows.count)")
+            for (index, uint32) in uint32s.enumerated() {
+                print("  [\(index)] uint32=\(uint32), info: \(windows[index])")
+            }
+            print("image:")
+            print("  \(result.debug ?? "nil")")
+        }
+        
+        return result
     }
 
     private func parseWindowInfo(_ cfarray: CFArray?) -> [WindowInfo] {
@@ -313,7 +334,7 @@ class ScreenshotService {
         }
         return dicts.map { dict in
             WindowInfo(
-                windowID: Int(Int32(truncating: dict[kCGWindowNumber] as! CFNumber)),
+                id: Int(Int32(truncating: dict[kCGWindowNumber] as! CFNumber)),
                 layer: Int(Int32(truncating: dict[kCGWindowLayer] as! CFNumber)),
                 windowName: (dict[kCGWindowName] as? String),
                 appPID: Int(truncating: dict[kCGWindowOwnerPID] as! CFNumber),

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C12AEF892C4328B200B29527 /* ImageWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF882C4328B200B29527 /* ImageWindow.swift */; };
+		C12AEF8B2C4328D500B29527 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF8A2C4328D500B29527 /* AppDelegate.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -45,6 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		C12AEF882C4328B200B29527 /* ImageWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageWindow.swift; sourceTree = "<group>"; };
+		C12AEF8A2C4328D500B29527 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -118,6 +122,8 @@
 			isa = PBXGroup;
 			children = (
 				C17645972C3F8DB400E60BE4 /* TlshotApp.swift */,
+				C12AEF8A2C4328D500B29527 /* AppDelegate.swift */,
+				C12AEF882C4328B200B29527 /* ImageWindow.swift */,
 				C1753ADC2C42447000BC7F6C /* Keycode.swift */,
 				C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */,
 				C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */,
@@ -293,7 +299,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */,
+				C12AEF892C4328B200B29527 /* ImageWindow.swift in Sources */,
 				C17645C92C40C56100E60BE4 /* LoupeView.swift in Sources */,
+				C12AEF8B2C4328D500B29527 /* AppDelegate.swift in Sources */,
 				C17645CD2C418B4D00E60BE4 /* ScreenshotService.swift in Sources */,
 				C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */,
 				C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */,
