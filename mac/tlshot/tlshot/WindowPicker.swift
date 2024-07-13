@@ -27,6 +27,7 @@ class WindowPicker {
     var targets: [ScreenshotService.WindowInfo] = []
     var target: ScreenshotService.WindowInfo?
     
+    @discardableResult
     func setTarget(for point: NSPoint) -> ScreenshotService.WindowInfo? {
         target = ScreenshotService.shared.windowAt(point: point.isNS)
         render()
