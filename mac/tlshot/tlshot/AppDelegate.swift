@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var dragStart: NSPoint? = nil
     @Published var mouseScreen: NSScreen? = nil
     @Published var modifierFlags: NSEvent.ModifierFlags = .zero
+    @Published var desiredCursor: NSCursor?
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -34,22 +35,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     lazy var mouseListener = EventMonitor(.leftMouse) { @MainActor [self] event in
         updateMouseLocation()
+        defer { render() }
         
-        
+        // Window
         if captureAction == .window {
-            WindowPicker.shared.setTarget(for: mouseLocation)
+            let hovered = WindowPicker.shared.setHovered(point: mouseLocation)
             
-            if event.type == .leftMouseUp {
-                guard let target = WindowPicker.shared.clearTarget() else {
+            if event.type == .leftMouseUp, let hovered = hovered {
+                if modifierFlags.contains(.shift) {
+                    WindowPicker.shared.toggleTarget(hovered)
                     return
                 }
                 
-                onClickWindow(target)
+                onClickWindow(hovered)
                 return
             }
+            
+            return
         }
         
         
+        // Area
         if event.type == .leftMouseDragged && dragStart == nil {
             onDragStart()
             return
@@ -67,16 +73,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     lazy var keyboardListener = EventMonitor([.keyDown, .flagsChanged]) { @MainActor [self] event in
         print("\(self).keyboardListener:", event)
+        defer { render() }
         
         // flagsChanged
         if event.type == .flagsChanged {
+            let removedShift = modifierFlags.contains(.shift) && !event.modifierFlags.contains(.shift)
             modifierFlags = event.modifierFlags
-            render()
+            
+            // Window Shift+Click complete
+            if removedShift && captureAction == .window {
+                let targets = WindowPicker.shared.removeAllTargets()
+                print("  released shift key: \(targets)")
+                if targets.count > 0 {
+                    handleErrors {
+                        try onCaptureWindows(targets, includeDesktop: windowIncludeDesktop)
+                    }
+                }
+            }
+
             return event
         }
         
         // keyDown
         if event.keyCode == Keycode.escape {
+            let prevTargets = WindowPicker.shared.removeAllTargets()
+            if prevTargets.count > 0 {
+                print("  esc: removed targets instead of closing: \(prevTargets.count)")
+                return event
+            }
+            
             onCaptureClose()
             return nil
         }
@@ -87,7 +112,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             case .window: .area
             case nil: nil
             }
-            render()
             return nil
         }
         
@@ -173,11 +197,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func render() {
+        updateCursor()
+        defer { updateCursor() }
+        
         defer { renderActivationPolicy() }
-        defer { renderCursor() }
         
         if captureAction != .window {
-            WindowPicker.shared.clearTarget()
+            WindowPicker.shared.reset()
         }
         
         if captureAction == nil {
@@ -193,20 +219,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         keyboardListener.start()
     }
     
-    private func renderCursor() {
-        Task { @MainActor in
-            let cursor = switch captureAction {
-            case .area: NSCursor.crosshair
-            case .window: if modifierFlags.contains(.shift) {
-                NSCursor.dragCopy
-            } else {
-                NSCursor.pointingHand
-            }
-            case nil: NSCursor.arrow
-            }
-            
-            cursor.set()
+    private func updateCursor() {
+        let nextCursor = switch captureAction {
+        case .area: NSCursor.crosshair
+        case .window: if modifierFlags.contains(.shift) {
+            NSCursor.dragCopy
+        } else {
+            NSCursor.pointingHand
         }
+        case nil: NSCursor.arrow
+        }
+        
+        if nextCursor != desiredCursor {
+            print("\(self).updateCursor: \(desiredCursor?.debugName ?? "?") -> \(nextCursor.debugName)")
+        }
+        desiredCursor = nextCursor
     }
     
     @MainActor func onChooseSaveFolder() {
@@ -286,14 +313,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         } else {
             .accessory
         }
-        NSApp.setActivationPolicy(policy)
-        if policy == .regular {
-            NSApp.activate()
+        
+        if NSApp.activationPolicy() != policy {
+            NSApp.setActivationPolicy(policy)
+            if policy == .regular {
+                NSApp.activate()
+            }
         }
-    }
-    
-    static func defaultSaveFolder() -> URL {
-        FileManager.default.homeDirectoryForCurrentUser.appending(components: "Pictures", "Screenshots")
     }
     
     func removeImageWindow(_ window: NSWindow) {

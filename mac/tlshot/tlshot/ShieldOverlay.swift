@@ -50,12 +50,16 @@ class ShieldOverlayManager {
         for (i, screen) in NSScreen.screens.enumerated() {
             let overlay = overlays[i, orInsert: ShieldOverlay(screen)]
             overlay.screen = screen
-            overlay.panel.setFrame(screen.frame, display: true)
-            overlay.panel.setIsVisible(true)
-            // https://stackoverflow.com/questions/46023769/how-to-show-a-window-without-stealing-focus-on-macos
-            // https://stackoverflow.com/questions/15077471/show-window-without-activating-keep-application-below-it-active#comment112101726_15079362
-            overlay.panel.makeKeyAndOrderFront(nil)
-            overlay.panel.orderFrontRegardless()
+            if overlay.panel.frame != screen.frame {
+                overlay.panel.setFrame(screen.frame, display: true)
+            }
+            if !overlay.panel.isVisible {
+                overlay.panel.setIsVisible(true)
+                // https://stackoverflow.com/questions/46023769/how-to-show-a-window-without-stealing-focus-on-macos
+                // https://stackoverflow.com/questions/15077471/show-window-without-activating-keep-application-below-it-active#comment112101726_15079362
+                overlay.panel.makeKeyAndOrderFront(nil)
+                overlay.panel.orderFrontRegardless()
+            }
         }
     }
 }
@@ -166,6 +170,14 @@ class ShieldOverlay: ObservableObject {
                 edges: Edge.allCases,
                 color: isMouseScreen ? .accentColor : .secondary
             )
+            .cursor(app.desiredCursor)
+            .onContinuousHover {
+                if case .active = $0 {
+                    if !props.panel.isKeyWindow {
+                        props.panel.makeKeyAndOrderFront(nil)
+                    }
+                }
+            }
         }
         
         private var divider: some View {
