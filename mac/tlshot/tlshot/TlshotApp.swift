@@ -63,8 +63,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         NSWorkspace.shared.open(url)
     }
     
-    lazy var mouseListener = MouseMonitor { @MainActor [self] event in
+    lazy var mouseListener = EventMonitor(.leftMouse) { @MainActor [self] event in
         mouseLocation = NSEvent.mouseLocation
+        
+        if captureAction == .window {
+            WindowPicker.shared.setTarget(for: mouseLocation)
+            
+            if event.type == .leftMouseUp {
+                guard let target = WindowPicker.shared.clearTarget() else {
+                    return
+                }
+                
+                onClickWindow(target)
+                return
+            }
+        }
+        
         
         if event.type == .leftMouseDragged && dragStart == nil {
             onDragStart()
@@ -72,11 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
         
         if event.type == .leftMouseUp && dragStart != nil {
-            do {
-                try onDragEnd()
-            } catch {
-                showErrorAlert(error: error)
-            }
+            onDragEnd()
             return
         }
         
@@ -84,6 +94,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             print("update captureRect", rect)
             AreaSelectionOverlayManager.shared.show(rect)
         }
+    }
+    
+    lazy var keyboardListener = EventMonitor(.keyDown) { @MainActor [self] event in
+        print("\(self).keyboardListener:", event)
+        if event.characters == " " {
+            captureAction = switch captureAction {
+            case .area: .window
+            case .window: .desktop
+            case .desktop: .area
+            case nil: nil
+            }
+            return nil
+        }
+        
+        return event
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -126,7 +151,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         return nil
     }
     
-    @MainActor func onDragEnd() throws {
+    @MainActor func onClickWindow(_ window: ScreenshotService.WindowInfo) {
+        do {
+            try onCaptureWindow(window)
+        } catch {
+            showErrorAlert(error: error)
+        }
+    }
+    
+    @MainActor func onDragEnd() {
         defer { dragStart = nil }
         guard let rect = dragRect else {
             print("onDragEnd: no rect?")
@@ -136,11 +169,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         AreaSelectionOverlayManager.shared.hide()
         
-        try onCaptureRect(area: rect)
+        do {
+            try onCaptureRect(area: rect)
+        } catch {
+            showErrorAlert(error: error)
+        }
     }
     
     func startCapture(_ action: CaptureAction, mediaType: CaptureMediaType = .image) {
         mouseListener.start()
+        keyboardListener.start()
         captureAction = action
         captureMediaType = mediaType
         var rect: NSRect = .infinite
@@ -163,14 +201,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
         captureAction = nil
         mouseListener.stop()
+        keyboardListener.stop()
     }
     
     @MainActor func onCaptureRect(area: CGRect) throws {
         onCaptureClose()
-        if let image = CGWindowService.shared.screenshot(area.isNS.asCG) {
+        if let image = ScreenshotService.shared.screenshot(area.isNS) {
             print("got image: \(image)")
-            hasPermission = true
             editImage(image, frame: area)
+        } else {
+            throw TlshotError.captureFailed("System didn't return an image")
+        }
+    }
+    
+    @MainActor func onCaptureWindow(_ window: ScreenshotService.WindowInfo) throws {
+        onCaptureClose()
+        print("\(self).onCaptureWindow:", window)
+        if let image = ScreenshotService.shared.screenshot(window) {
+            print("onCaptureWindow: got image \(image)")
+            editImage(image, frame: window.frame.asNS)
         } else {
             throw TlshotError.captureFailed("System didn't return an image")
         }
@@ -274,6 +323,7 @@ struct CaptureView: View {
     @EnvironmentObject var appDelegate: AppDelegate
     @FocusState private var focused: Bool
     @State private var mouse: CapturePhase = .ended
+    @State private var showWarningView = true
     @State private var error: Error? = nil
     
     var body: some View {
@@ -286,8 +336,11 @@ struct CaptureView: View {
                 Text("Capture View!")
                 Text("more views?")
                 Text("focused: \(focused)")
-                if !appDelegate.hasPermission && appDelegate.warnIfDenied {
-                    PermissionWarningView()
+                if !appDelegate.hasPermission && appDelegate.warnIfDenied && showWarningView {
+                    PermissionWarningView() {
+                        print("Close warning view")
+                        showWarningView = false
+                    }
                 }
                 Spacer()
             }
@@ -332,14 +385,14 @@ struct CaptureView: View {
     
     var dragGesture: some Gesture {
         DragGesture()
-            .onChanged {
+            .onChanged { @MainActor in
                 switch mouse {
                 case .drag: break
                 default: break
 //                default: appDelegate.onDragStart()
                 }
                 mouse = .drag(start: $0.startLocation, current: $0.location)
-            }.onEnded {
+            }.onEnded { @MainActor in
                 mouse = .complete(start: $0.startLocation, current: $0.location)
                 onDragComplete(CGRect($0.startLocation, $0.location))
             }

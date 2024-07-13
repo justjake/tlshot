@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct PermissionWarningView: View {
+    let onClose: () -> Void
+    
     var body: some View {
         VStack {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -18,6 +20,9 @@ struct PermissionWarningView: View {
             Button("Open Screen Capture Settings") {
                 openSystemSettings()
             }
+            Button("Close") {
+                onClose()
+            }
         }
     }
     
@@ -26,6 +31,32 @@ struct PermissionWarningView: View {
     }
 }
 
+class PermissionWarningOverlay {
+    static let size = CGSize(width: 400, height: 800)
+    static var center: CGPoint {
+        NSScreen.main?.frame.center ?? .zero
+    }
+    
+    lazy var panel: some NSPanel = {
+        let panel = OverlayPanel(
+            contentRect: .init(center: Self.center, size: Self.size)
+        ) {
+            PermissionWarningView(onClose: self.handleCloseClick).frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        
+        panel.backgroundColor = .none
+        panel.animationBehavior = .alertPanel
+        panel.styleMask = [.hudWindow]
+        
+        return panel
+    }()
+    
+    func handleCloseClick() {
+        panel.close()
+    }
+    
+}
+
 #Preview {
-    PermissionWarningView()
+    PermissionWarningView() {}
 }

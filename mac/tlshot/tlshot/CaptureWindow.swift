@@ -24,7 +24,7 @@ extension NSEvent {
 class CaptureWindow: OverlayPanel<CaptureView> {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
-    var localMouseMonitor: MouseMonitor? = nil
+    var localMouseMonitor: EventMonitor? = nil
     
     init(
          contentRect: NSRect,
@@ -60,7 +60,7 @@ class CaptureWindow: OverlayPanel<CaptureView> {
     }
     
     func startMouseMonitors() {
-        let monitor = self.localMouseMonitor ?? MouseMonitor(handleMouseMove)
+        let monitor = self.localMouseMonitor ?? EventMonitor(.mouseMoved, monitorEvent: handleMouseMove)
         monitor.start()
         self.localMouseMonitor = monitor
     }

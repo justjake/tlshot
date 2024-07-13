@@ -124,24 +124,37 @@ class OverlayPanel<Content: View>: NSPanel {
     }
 }
 
+extension NSEvent.EventTypeMask {
+    static var leftMouse: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDown, .leftMouseUp, .leftMouseDragged]
+}
 
-class MouseMonitor {
-    static let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDown, .leftMouseUp, .leftMouseDragged]
+class EventMonitor {
+    let mask: NSEvent.EventTypeMask
+    var onEvent: (NSEvent) -> NSEvent?
     
-    var onEvent: (NSEvent) -> Void
+    convenience init (
+        _ mask: NSEvent.EventTypeMask,
+        monitorEvent: @escaping (NSEvent) -> Void
+    ) {
+        self.init(mask) {
+            monitorEvent($0)
+            return $0
+        }
+    }
     
-    init(_ handler: @escaping (NSEvent) -> Void) {
-        onEvent = handler
+    init(
+        _ mask: NSEvent.EventTypeMask,
+        cancelOrModifyEvent: @escaping (NSEvent) -> NSEvent?
+    ) {
+        self.mask = mask
+        self.onEvent = cancelOrModifyEvent
     }
     
     private var systemMonitor: Any? = nil
     
     func start() {
         let handler = self.onEvent
-        let localMonitor = systemMonitor ?? NSEvent.addLocalMonitorForEvents(matching: Self.mask) {
-            handler($0)
-            return $0
-        }
+        let localMonitor = systemMonitor ?? NSEvent.addLocalMonitorForEvents(matching: mask, handler: onEvent)
         systemMonitor = localMonitor
     }
     
@@ -158,7 +171,7 @@ class MouseMonitor {
 }
 
 class BoxOverlay: ObservableObject {
-    @Published var edges: [Edge] = []
+    @Published var edges: [Edge] = Edge.allCases
     
     struct BoxView: View {
         @ObservedObject var props: BoxOverlay
