@@ -61,7 +61,13 @@ class OverlayPanel<Content: View>: NSPanel {
         visible: Bool = true,
         view: (NSPanel) -> Content
     ) {
-        super.init(contentRect: contentRect, styleMask: .borderless, backing: .buffered, defer: false)
+        super.init(
+            contentRect: contentRect,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        
         
         isFloatingPanel = true
         self.level = level
@@ -93,7 +99,8 @@ class OverlayPanel<Content: View>: NSPanel {
         titlebarAppearsTransparent = true
         
         /// Hide when unfocused
-        hidesOnDeactivate = true
+        ///   re-evaluating per https://stackoverflow.com/questions/15077471/show-window-without-activating-keep-application-below-it-active#comment112101726_15079362
+//        hidesOnDeactivate = true
         
         /// Hide all traffic light buttons
         standardWindowButton(.closeButton)?.isHidden = true
@@ -119,7 +126,6 @@ class OverlayPanel<Content: View>: NSPanel {
     
     override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
         // No constraint.
-        // Doesn't seem to work?
         return frameRect
     }
 }

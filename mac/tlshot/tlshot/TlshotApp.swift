@@ -13,7 +13,6 @@ import ScreenCaptureKit
 enum CaptureAction {
     case area
     case window
-    case desktop
 }
 
 enum CaptureMediaType {
@@ -49,12 +48,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     @Published var captureAction: CaptureAction? = nil
     @Published var captureMediaType: CaptureMediaType = .image
-    @Published var captureWindow: CaptureWindow? = nil
     @Published var hasPermission: Bool = false
     @Published var imageWindows: [NSWindow] = []
     @Published var mouseLocation: NSPoint = NSEvent.mouseLocation
     @Published var capturePhase: CapturePhase = .ended
     @Published var dragStart: NSPoint? = nil
+    @Published var mouseScreen: NSScreen? = nil
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -65,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     lazy var mouseListener = EventMonitor(.leftMouse) { @MainActor [self] event in
         mouseLocation = NSEvent.mouseLocation
+        mouseScreen = NSScreen.screens.first { $0.frame.contains(mouseLocation) }
         
         if captureAction == .window {
             WindowPicker.shared.setTarget(for: mouseLocation)
@@ -101,8 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if event.characters == " " {
             captureAction = switch captureAction {
             case .area: .window
-            case .window: .desktop
-            case .desktop: .area
+            case .window: .area
             case nil: nil
             }
             return nil
@@ -114,7 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
         
-        setActivationPolicy()
+        renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
         print("\(self).hasPermission: \(hasPermission)")
         
@@ -177,31 +176,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func startCapture(_ action: CaptureAction, mediaType: CaptureMediaType = .image) {
-        mouseListener.start()
-        keyboardListener.start()
+        // Set state
         captureAction = action
         captureMediaType = mediaType
-        var rect: NSRect = .infinite
-        if let screen = NSScreen.main ?? NSScreen.screens.first {
-            rect = screen.frame
-        }
-        let captureWindow = self.captureWindow ?? CaptureWindow(contentRect: rect)
-        self.captureWindow = captureWindow
-        captureWindow.setFrame(rect, display: true)
-        captureWindow.makeKeyAndOrderFront(self)
-        NSApp.activate()
-        print(self, "startCapture frame: \(captureWindow.frame), \(captureWindow.becomeFirstResponder())")
+        render()
     }
     
     func onCaptureClose() {
-        if let captureWindow = self.captureWindow {
-            print(self, "onCaptureClose", captureWindow)
-            self.captureWindow = nil
-            captureWindow.close()
-        }
         captureAction = nil
-        mouseListener.stop()
-        keyboardListener.stop()
+        render()
+    }
+    
+    func render() {
+        defer { renderActivationPolicy() }
+        defer { renderCursor() }
+        
+        if captureAction == nil {
+            ShieldOverlayManager.shared.stop()
+            WindowPicker.shared.clearTarget()
+            mouseListener.stop()
+            keyboardListener.stop()
+            return
+        }
+        
+        ShieldOverlayManager.shared.start()
+        mouseListener.start()
+        keyboardListener.start()
+    }
+    
+    private func renderCursor() {
+        Task { @MainActor in
+            let cursor = switch captureAction {
+            case .area: NSCursor.crosshair
+            case .window: NSCursor.pointingHand
+            case nil: NSCursor.arrow
+            }
+            
+            cursor.set()
+        }
     }
     
     @MainActor func onCaptureRect(area: CGRect) throws {
@@ -228,12 +240,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {
         let window = ImageWindow(rect: frame, image: image)
         imageWindows.append(window)
-        setActivationPolicy()
+        render()
+        
         window.setFrame(frame, display: true)
-        window.makeKeyAndOrderFront(self)
+        window.makeKeyAndOrderFront(nil)
     }
     
-    func setActivationPolicy() {
+    func renderActivationPolicy() {
         let policy: NSApplication.ActivationPolicy = if imageWindows.count > 0 {
             .regular
         } else {
@@ -243,7 +256,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if policy == .regular {
             NSApp.activate()
         }
-
     }
     
     static func defaultSaveFolder() -> URL {
@@ -252,7 +264,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func removeImageWindow(_ window: NSWindow) {
         self.imageWindows.removeAll(where: { $0 == window })
-        setActivationPolicy()
+        renderActivationPolicy()
     }
 }
 
