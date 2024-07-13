@@ -19,24 +19,6 @@ extension NSWindow: ScreenshotVisible {
     var includeInScreenshot: Bool { true }
 }
 
-/*
- // required keys:
- let kCGWindowNumber: CFString
- let kCGWindowStoreType: CFString
- let kCGWindowLayer: CFString
- let kCGWindowBounds: CFString
- let kCGWindowSharingState: CFString
- let kCGWindowAlpha: CFString
- let kCGWindowOwnerPID: CFString
- let kCGWindowMemoryUsage: CFString
-
- // optional keys:
- let kCGWindowWorkspace: CFString // deprecated
- let kCGWindowOwnerName: CFString
- let kCGWindowName: CFString
- let kCGWindowIsOnscreen: CFString
- let kCGWindowBackingLocationVideoMemory: CFString
- */
 
 extension CGWindowLevelKey: CaseIterable, CustomStringConvertible {
     public var description: String {
@@ -332,6 +314,25 @@ class ScreenshotService {
             print("!as [NSDictionary]")
             return []
         }
+        
+        /*
+         // required keys:
+         let kCGWindowNumber: CFString
+         let kCGWindowStoreType: CFString
+         let kCGWindowLayer: CFString
+         let kCGWindowBounds: CFString
+         let kCGWindowSharingState: CFString
+         let kCGWindowAlpha: CFString
+         let kCGWindowOwnerPID: CFString
+         let kCGWindowMemoryUsage: CFString
+         
+         // optional keys:
+         let kCGWindowWorkspace: CFString // deprecated
+         let kCGWindowOwnerName: CFString
+         let kCGWindowName: CFString
+         let kCGWindowIsOnscreen: CFString
+         let kCGWindowBackingLocationVideoMemory: CFString
+         */
         return dicts.map { dict in
             WindowInfo(
                 id: Int(Int32(truncating: dict[kCGWindowNumber] as! CFNumber)),
