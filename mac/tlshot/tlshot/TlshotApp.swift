@@ -39,13 +39,18 @@ enum TlshotError: LocalizedError {
     }
 }
 
+extension NSEvent.ModifierFlags {
+    static var zero: NSEvent.ModifierFlags { Self(rawValue: 0) }
+}
+
 
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     static var shared = AppDelegate()
-    
-    @AppStorage("saveFolder") var saveFolder: URL = AppDelegate.defaultSaveFolder()
-    @AppStorage("warnWhenScreenRecordingPermissionDenied") var warnIfDenied: Bool = true
-    
+    @AppStorage(SettingsKey.hidePermissionWarning) var hidePermissionWarning: Bool = false
+    @AppStorage(SettingsKey.saveFolder) var saveFolder: URL = AppDelegate.defaultSaveFolder()
+    @AppStorage(SettingsKey.windowIncludeShadow) var windowIncludeShadow: Bool = true
+    @AppStorage(SettingsKey.windowIncludeDesktop) var windowIncludeDesktop: Bool = false
+
     @Published var captureAction: CaptureAction? = nil
     @Published var captureMediaType: CaptureMediaType = .image
     @Published var hasPermission: Bool = false
@@ -54,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var capturePhase: CapturePhase = .ended
     @Published var dragStart: NSPoint? = nil
     @Published var mouseScreen: NSScreen? = nil
-    @Published var shiftKey = false
+    @Published var modifierFlags: NSEvent.ModifierFlags = .zero
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -101,7 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         // flagsChanged
         if event.type == .flagsChanged {
-            shiftKey = event.modifierFlags.contains(.shift)
+            modifierFlags = event.modifierFlags
             render()
             return event
         }
@@ -141,10 +146,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // https://stackoverflow.com/questions/18417432/how-to-show-alert-pop-up-in-in-cocoa-on-macos
         print("\(self).showErrorAlert: \(error)")
         let alert = NSAlert(error: error)
-        if case .captureFailed(let msg) = error as? TlshotError {
+        if case .captureFailed = error as? TlshotError {
             let button = alert.addButton(withTitle: "Open System Settings")
             button.tag = systemPrefsTag
-            
             alert.addButton(withTitle: "OK")
         }
         let response = alert.runModal()
@@ -167,7 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     @MainActor func onClickWindow(_ window: ScreenshotService.WindowInfo) {
         do {
-            try onCaptureWindow(window)
+            try onCaptureWindows([window], includeDesktop: windowIncludeDesktop)
         } catch {
             showErrorAlert(error: error)
         }
@@ -198,7 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func onCaptureClose() {
-        shiftKey = false
+        modifierFlags = .zero
         captureAction = nil
         render()
     }
@@ -228,11 +232,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         Task { @MainActor in
             let cursor = switch captureAction {
             case .area: NSCursor.crosshair
-            case .window:
-                switch shiftKey {
-                case true: NSCursor.dragCopy
-                case false : NSCursor.pointingHand
-                }
+            case .window: if modifierFlags.contains(.shift) {
+                NSCursor.dragCopy
+            } else {
+                NSCursor.pointingHand
+            }
             case nil: NSCursor.arrow
             }
             
@@ -250,14 +254,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
     
-    @MainActor func onCaptureWindow(_ window: ScreenshotService.WindowInfo) throws {
+    @MainActor func onCaptureWindows(_ windows: [ScreenshotService.WindowInfo], includeDesktop: Bool) throws {
         onCaptureClose()
-        print("\(self).onCaptureWindow:", window)
-        if let image = ScreenshotService.shared.screenshot(window) {
+        print("\(self).onCaptureWindows:", windows)
+        var included = windows
+        let bounds = included.map { $0.frame }.union().asCG
+        if includeDesktop {
+            let desktopWindows = ScreenshotService.shared.desktopWindows()
+            let intersectingWindows =  desktopWindows.filter { $0.frame.asCG.intersects(bounds) }
+            print("  includeDesktop: bounds: \(bounds)")
+            print("  includeDesktop: desktopWindows: \(desktopWindows)")
+            print("  includeDesktop: intersectingWindows: \(intersectingWindows)")
+            included.append(contentsOf: intersectingWindows)
+        }
+        if let image = ScreenshotService.shared.screenshot(included) {
             print("onCaptureWindow: got image \(image)")
-            editImage(image, frame: window.frame.asNS)
+            editImage(image, frame: bounds.isCG.asNS)
         } else {
             throw TlshotError.captureFailed("System didn't return an image")
+        }
+    }
+    
+    @MainActor func onCaptureFullscreen() throws {
+        onCaptureClose()
+        print("\(self).onCaptureFullscreen")
+        if let image = ScreenshotService.shared.screenshotAll() {
+            print("onCaptureFullscreen: got image \(image)")
+            editImage(image, frame: NSScreen.main?.visibleFrame ?? .zero)
+        } else {
+            throw TlshotError.captureFailed("System didn't return an image")
+        }
+    }
+    
+    func handleErrors(block: () throws -> Void) -> Void {
+        do {
+            return try block()
+        } catch {
+            showErrorAlert(error: error)
         }
     }
     
@@ -292,10 +325,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 }
 
+extension URL {
+    var describeHomedirRelative: String {
+        let relative = self.relativePath
+        let homedir = FileManager.default.homeDirectoryForCurrentUser.relativePath
+        return relative.replacing(homedir, with: "~")
+    }
+}
+
+struct SettingsKey {
+    static let windowIncludeDesktop = "windowIncludeDesktop"
+    static let windowIncludeMenuBarWithDesktop = "windowIncludeMenuBarWithDesktop"
+    static let windowIncludeShadow = "windowIncludeShadow"
+    static let hidePermissionWarning = "hidePermissionWarning"
+    static let saveFolder = "saveFolder"
+    
+    private init() {}
+}
+
 @main
 struct TlshotApp: App {
-    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
+    @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    @AppStorage(SettingsKey.saveFolder) private var saveFolder: URL = AppDelegate.defaultSaveFolder()
+    @AppStorage(SettingsKey.windowIncludeShadow) private var windowIncludeShadow: Bool = true
+    @AppStorage(SettingsKey.windowIncludeDesktop) private var windowIncludeDesktop: Bool = false
+    @AppStorage(SettingsKey.windowIncludeMenuBarWithDesktop) private var windowIncludeMenuBarWithDesktop = false
+
     var body: some Scene {
         DocumentGroup(newDocument: TldrawDocument()) { group in
             ContentView(document: group.$document)
@@ -305,20 +361,39 @@ struct TlshotApp: App {
             Button("Capture Area") {
                 appDelegate.startCapture(.area)
             }
-            Button("Capture Fullscreen") {
-                // TODO
+            Button("Capture Window") {
+                appDelegate.startCapture(.window)
             }
-            Button("Record video") {
-                appDelegate.startCapture(.area, mediaType: .video)
+            Button("Capture Fullscreen") {
+                appDelegate.handleErrors {
+                    try appDelegate.onCaptureFullscreen()
+                }
+            }
+//            Button("Record video") {
+//                appDelegate.startCapture(.area, mediaType: .video)
+//            }
+            
+            Divider()
+            
+            Text("Save to \(saveFolder.describeHomedirRelative)")
+            Button("Choose folder...") {
+                fatalError("Not implemented")
             }
             
             Divider()
             
-            Text("Save to ~/Pictures/Screenshots")
+            Text("When capturing windows...")
+            Toggle("Include shadow", isOn: Binding(
+                get: { windowIncludeShadow || windowIncludeDesktop },
+                set: { windowIncludeShadow = $0 }
+            ))
+                .disabled(windowIncludeDesktop)
+            Toggle("Include desktop", isOn: $windowIncludeDesktop)
+            Toggle("Include menu bar with desktop", isOn: $windowIncludeMenuBarWithDesktop)
+                .disabled(!windowIncludeDesktop)
             
-            Button("Choose folder...") {
-                // TODO
-            }
+            Divider()
+
             Button("Quit") {
                 NSApplication.shared.terminate(self)
             }.keyboardShortcut("Q", modifiers: .command)
@@ -372,7 +447,7 @@ struct CaptureView: View {
                 Text("Capture View!")
                 Text("more views?")
                 Text("focused: \(focused)")
-                if !appDelegate.hasPermission && appDelegate.warnIfDenied && showWarningView {
+                if !appDelegate.hasPermission && !appDelegate.hidePermissionWarning && showWarningView {
                     PermissionWarningView() {
                         print("Close warning view")
                         showWarningView = false

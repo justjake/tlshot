@@ -76,6 +76,18 @@ enum CoordRect {
     }
 }
 
+extension Collection where Element == CGRect {
+    func union() -> CGRect {
+        reduce(CGRect.zero) { $0.union($1) }
+    }
+}
+
+extension Collection where Element == CoordRect {
+    func union() -> CoordRect {
+        self.map { $0.asCG }.union().isCG
+    }
+}
+
 extension CGRect {
     var isNS: CoordRect { .ns(self) }
     var isCG: CoordRect { .cg(self) }

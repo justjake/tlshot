@@ -94,9 +94,28 @@ extension CGWindowLevelKey: CaseIterable, CustomStringConvertible {
             assistiveTechHighWindow,
         ].sorted { $0.level < $1.level }
     }
-
+    
     var level: CGWindowLevel {
         CGWindowLevelForKey(self)
+    }
+}
+
+extension NSScreen {
+    static var total: CoordRect {
+        var rect = CGRect.zero
+        for screen in NSScreen.screens {
+            rect = rect.union(screen.frame)
+        }
+        return rect.isNS
+    }
+}
+
+extension Optional {
+    var debug: String? {
+        switch self {
+        case .some(let v): String(reflecting: v)
+        case .none: nil
+        }
     }
 }
 
@@ -106,8 +125,8 @@ class ScreenshotService {
     private static let cgWindowLevels: [CGWindowLevelKey] = [
         .backstopMenu,
     ]
-
-    struct WindowInfo {
+    
+    struct WindowInfo: CustomStringConvertible {
         let windowID: Int
         /// Not quite sure what this means
         let layer: Int
@@ -127,6 +146,30 @@ class ScreenshotService {
 
         var levelKey: CGWindowLevelKey? {
             CGWindowLevelKey.allCases.first { layer == $0.level }
+        }
+        
+        var maxLevelKey: CGWindowLevelKey? {
+            CGWindowLevelKey.allCases.first { layer <= $0.level }
+        }
+        
+        var isDesktopWindow: Bool {
+            layer <= CGWindowLevelKey.desktopWindow.level
+        }
+        
+        var isMainMenuWindow: Bool {
+            layer == CGWindowLevelKey.mainMenuWindow.level
+        }
+        
+        var description: String {
+            let parts: [String] = [
+                "\(windowID) \(frame.asCG)",
+                "windowName: \(windowName.debug ?? "?")",
+                "\(bundleIdentifier ?? appName ?? String(appPID))",
+                "\(levelKey.debug ?? String(layer)) (behind \(maxLevelKey.debug ?? "?"))",
+                "isOnScreen: \(isOnScreen)",
+                "isDesktopWindow: \(isDesktopWindow)"
+            ]
+            return "WindowInfo(\(parts.joined(separator: ", ")))"
         }
     }
 
@@ -181,6 +224,21 @@ class ScreenshotService {
             return true
         }
     }
+    
+    func desktopWindows() -> [WindowInfo] {
+        return windows().filter { $0.isDesktopWindow }
+    }
+    
+    func screenshot(_ windows: [WindowInfo]) -> CGImage? {
+        print("ScreenshotService.screenshot(windows): \(windows)")
+        
+        if let withShadowViaArray = screenshot(.null, windows: windows) {
+            return withShadowViaArray
+        }
+        
+        let union = windows.map { $0.frame.asCG }.reduce(CGRect.zero) { $0.union($1) }
+        return screenshot(union.isCG)
+    }
 
     func screenshot(_ window: WindowInfo) -> CGImage? {
         print("ScreenshotService.screenshot(window): \(window)")
@@ -188,12 +246,12 @@ class ScreenshotService {
             .null,
             .optionIncludingWindow,
             CGWindowID(window.windowID),
-            .bestResolution
+            windowImageOptions
         ) {
             return withShadow
         }
 
-        if let withShadowViaArray = screenshot(window.frame.asCG, windows: [window]) {
+        if let withShadowViaArray = screenshot(.null, windows: [window]) {
             return withShadowViaArray
         }
 
@@ -211,11 +269,15 @@ class ScreenshotService {
         // Try to screenshot region excluding own windows
         return screenshot(rect.asCG, windows: windows())
             // Fall back to fully flattened image
-            ?? CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, .bestResolution)
+            ?? CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, baseImageOptions)
+    }
+    
+    func screenshotAll() -> CGImage? {
+        screenshot(NSScreen.total)
     }
 
-    func screenshot(_ rect: CGRect, windows: [WindowInfo]) -> CGImage? {
-        return cgWindowListFromArrayScreenBounds(rect, windows: windows.map { $0.windowID })
+    func screenshot(_ rect: CGRect?, windows: [WindowInfo]) -> CGImage? {
+        return cgWindowListFromArrayScreenBounds(rect ?? .null, windows: windows.map { $0.windowID })
     }
 
     private func cgWindowListFromArrayScreenBounds(_ rect: CGRect, windows: [Int]) -> CGImage? {
@@ -234,7 +296,7 @@ class ScreenshotService {
         return CGImage(
             windowListFromArrayScreenBounds: rect,
             windowArray: array,
-            imageOption: .bestResolution
+            imageOption: windowImageOptions
         )
 //        return CGImage(windowListFromArrayScreenBounds: rect, windowArray: asCG, imageOption: [.all .bestResolution, .shouldBeOpaque])
     }
@@ -260,5 +322,17 @@ class ScreenshotService {
                 isOnScreen: dict[kCGWindowIsOnscreen] as? Bool ?? false
             )
         }
+    }
+    
+    private var baseImageOptions: CGWindowImageOption {
+        return .bestResolution
+    }
+    
+    private var windowImageOptions: CGWindowImageOption {
+        var base = baseImageOptions
+        if !AppDelegate.shared.windowIncludeShadow {
+            base.insert(.boundsIgnoreFraming)
+        }
+        return base
     }
 }

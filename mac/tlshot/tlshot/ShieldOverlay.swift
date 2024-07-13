@@ -115,10 +115,17 @@ class ShieldOverlay: ObservableObject {
                         }
                         divider
                         action {
-                                Text("Shift click")
-                                    .foregroundStyle(app.shiftKey ? .primary :
+                                Text("Shift")
+                                .foregroundStyle(app.modifierFlags.contains(.shift) ? .primary :
                                             .secondary)
                             Text("Capture Multiple")
+                        }
+                        divider
+                        action {
+                            Text("Control")
+                                .foregroundStyle(app.modifierFlags.contains(.control) ? .primary :
+                                        .secondary)
+                            Text("Include desktop")
                         }
                         divider
                         action {
