@@ -89,39 +89,39 @@ class ShieldOverlay: ObservableObject {
             VStack {
                 Spacer()
                 
-                HStack {
+                HStack(spacing: 16) {
                     switch app.captureAction {
                     case .area:
-                        Text("Capture Area").font(.body.bold())
-                        Divider().frame(maxHeight: 24)
-                        HStack {
-                            Text("Click+Drag:")
+                        mode("Capture Area")
+                        divider
+                        action {
+                            Text("Drag")
                                 .foregroundStyle(.secondary)
-                            Text("Capture")
+                            Text("Capture area")
                         }
-                        Divider().frame(maxHeight: 24)
-                        HStack {
-                            Text("Space:")
+                        divider
+                        action {
+                            Text("Space")
                                 .foregroundStyle(.secondary)
                             Text("Capture Window")
                         }
                     case .window:
-                        Text("Capture Window").font(.body.bold())
-                        Divider().frame(maxHeight: 24)
-                        HStack {
-                            Text("Click:")
+                        mode("Capture Window")
+                        divider
+                        action {
+                            Text("Click")
                                 .foregroundStyle(.secondary)
-                            Text("Capture")
+                            Text("Capture window")
                         }
-                        Divider().frame(maxHeight: 24)
-                        HStack {
-                            Text("Shift+Click")
-                                .foregroundStyle(app.shiftKey ? .primary :
-                                    .secondary)
+                        divider
+                        action {
+                                Text("Shift click")
+                                    .foregroundStyle(app.shiftKey ? .primary :
+                                            .secondary)
                             Text("Capture Multiple")
                         }
-                        Divider().frame(maxHeight: 24)
-                        HStack {
+                        divider
+                        action {
                             Text("Space")
                                 .foregroundStyle(.secondary)
                             Text("Capture Area")
@@ -129,18 +129,29 @@ class ShieldOverlay: ObservableObject {
                     case .none:
                         Text("Canceled")
                     }
-                    Divider().frame(maxHeight: 24)
-                    HStack {
-                        Text("Escape:")
+                    divider
+                    action {
+                        Text("Esc")
                             .foregroundStyle(.secondary)
                         Text("Cancel")
                     }
                 }
                 .padding()
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .shadow(radius: 10)
-                .opacity(isMouseScreen ? 1 : 0)
-                
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(.gray.opacity(0.2))
+                        .padding(1)
+                )
+                .background(
+                    VisualEffectView()
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: 15, style: .continuous))
+                )
+                .shadow(radius: 6)
+                .opacity(isMouseScreen ? 0.8 : 0)
+                .padding(.all, 20)
+                .help(Text("Help window (not included in captures)"))
+
             }
             .expand()
             .border(
@@ -149,7 +160,51 @@ class ShieldOverlay: ObservableObject {
                 color: isMouseScreen ? .accentColor : .secondary
             )
         }
+        
+        private var divider: some View {
+            Divider().frame(maxHeight: 24)
+        }
+        
+        private func action(
+            @ViewBuilder builder: () -> some View
+        ) -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                builder()
+            }
+        }
+        
+        private func mode(_ title: String) -> some View {
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("tlshot")
+                    .font(.custom("Baskerville", size: 16, relativeTo: .headline))
+                    .foregroundStyle(.secondary)
+            }
+            
+            
+//            let appName = Text("Actions:")
+//                .foregroundStyle(.secondary)
+//            
+//            return Text("Capture Area").font(.body.bold())
+//                .overlay(
+//                    appName.offset(x: 0, y: 15),
+//                    alignment: .leading
+//                )
+            
+//            VStack(alignment: .leading, spacing: 0) {
+//                Text("tlshot")
+//                    .foregroundStyle(.secondary)
+//                    .offset(x: 0, y: 0)
+//
+//                Text("Capture Area").font(.body.bold()).offset(x: 0, y: -2)
+//                    .overlay(
+//                        appName.offset(x: 0, y: -15),
+//                        alignment: .leading
+//                    ).offset(x: 0, y: 4)
+//            }.frame(height: 0)
+            
+        }
     }
+    
 }
 
 extension View {
@@ -173,6 +228,12 @@ extension View {
      
 }
 
+struct VisualEffectView: NSViewRepresentable {
+    func makeNSView(context: Self.Context) -> NSView { NSVisualEffectView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+}
+
 #Preview("Window") {
     let screen = NSScreen.main!
     let bg = ScreenshotService.shared.screenshot(screen.frame.isNS)
@@ -185,5 +246,4 @@ extension View {
         .background {
             Image(decorative: bg!, scale: 2, orientation: .up)
         }
-    
 }
