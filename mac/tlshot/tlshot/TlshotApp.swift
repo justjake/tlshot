@@ -54,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var capturePhase: CapturePhase = .ended
     @Published var dragStart: NSPoint? = nil
     @Published var mouseScreen: NSScreen? = nil
+    @Published var shiftKey = false
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -91,19 +92,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
         
         if let rect = dragRect {
-            print("update captureRect", rect)
             AreaSelectionOverlayManager.shared.show(rect)
         }
     }
     
-    lazy var keyboardListener = EventMonitor(.keyDown) { @MainActor [self] event in
+    lazy var keyboardListener = EventMonitor([.keyDown, .flagsChanged]) { @MainActor [self] event in
         print("\(self).keyboardListener:", event)
+        
+        // flagsChanged
+        if event.type == .flagsChanged {
+            shiftKey = event.modifierFlags.contains(.shift)
+            render()
+            return event
+        }
+        
+        // keyDown
+        if event.keyCode == Keycode.escape {
+            onCaptureClose()
+            return nil
+        }
+        
         if event.characters == " " {
             captureAction = switch captureAction {
             case .area: .window
             case .window: .area
             case nil: nil
             }
+            render()
             return nil
         }
         
@@ -183,6 +198,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func onCaptureClose() {
+        shiftKey = false
         captureAction = nil
         render()
     }
@@ -191,11 +207,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         defer { renderActivationPolicy() }
         defer { renderCursor() }
         
-        if captureAction == nil {
-            ShieldOverlayManager.shared.stop()
+        if captureAction != .window {
             WindowPicker.shared.clearTarget()
+        }
+        
+        if captureAction == nil {
             mouseListener.stop()
             keyboardListener.stop()
+            ShieldOverlayManager.shared.stop()
+            AreaSelectionOverlayManager.shared.hide()
             return
         }
         
@@ -208,7 +228,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         Task { @MainActor in
             let cursor = switch captureAction {
             case .area: NSCursor.crosshair
-            case .window: NSCursor.pointingHand
+            case .window:
+                switch shiftKey {
+                case true: NSCursor.dragCopy
+                case false : NSCursor.pointingHand
+                }
             case nil: NSCursor.arrow
             }
             

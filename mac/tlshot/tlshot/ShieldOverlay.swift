@@ -27,14 +27,17 @@ class ShieldOverlayManager {
     
     var started = false
     var overlays: [ShieldOverlay] = []
+    lazy var screenMonitor = ScreenChangeMonitor() { self.render() }
     
     func start() {
         started = true
+        screenMonitor.start()
         render()
     }
     
     func stop() {
         started = false
+        screenMonitor.stop()
         render()
     }
     
@@ -86,25 +89,56 @@ class ShieldOverlay: ObservableObject {
             VStack {
                 Spacer()
                 
-                Text("Screen \(props.screen.localizedName)")
-                
                 HStack {
                     switch app.captureAction {
                     case .area:
-                        Text("Area mode").font(.body.bold())
-                        Text("Click and drag: capture rectangle")
-                        Text("Space: window mode")
+                        Text("Capture Area").font(.body.bold())
+                        Divider().frame(maxHeight: 24)
+                        HStack {
+                            Text("Click+Drag:")
+                                .foregroundStyle(.secondary)
+                            Text("Capture")
+                        }
+                        Divider().frame(maxHeight: 24)
+                        HStack {
+                            Text("Space:")
+                                .foregroundStyle(.secondary)
+                            Text("Capture Window")
+                        }
                     case .window:
-                        Text("Window mode").font(.body.bold())
-                        Text("Click: capture window")
-                        Text("Shift-Click: capture multiple windows")
-                        Text("Space: area mode")
+                        Text("Capture Window").font(.body.bold())
+                        Divider().frame(maxHeight: 24)
+                        HStack {
+                            Text("Click:")
+                                .foregroundStyle(.secondary)
+                            Text("Capture")
+                        }
+                        Divider().frame(maxHeight: 24)
+                        HStack {
+                            Text("Shift+Click")
+                                .foregroundStyle(app.shiftKey ? .primary :
+                                    .secondary)
+                            Text("Capture Multiple")
+                        }
+                        Divider().frame(maxHeight: 24)
+                        HStack {
+                            Text("Space")
+                                .foregroundStyle(.secondary)
+                            Text("Capture Area")
+                        }
                     case .none:
                         Text("Canceled")
                     }
-                    Text("Escape: cancel")
+                    Divider().frame(maxHeight: 24)
+                    HStack {
+                        Text("Escape:")
+                            .foregroundStyle(.secondary)
+                        Text("Cancel")
+                    }
                 }
                 .padding()
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .shadow(radius: 10)
                 .opacity(isMouseScreen ? 1 : 0)
                 
             }
@@ -122,4 +156,34 @@ extension View {
     func expand() -> some View {
         self.frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+#Preview("Area") {
+    let screen = NSScreen.main!
+    let bg = ScreenshotService.shared.screenshot(screen.frame.isNS)
+    let delegate = AppDelegate()
+    delegate.mouseScreen = screen
+    delegate.captureAction = .area
+    let props = ShieldOverlay(screen)
+    return ShieldOverlay.ShieldView(props: props)
+        .environmentObject(delegate)
+        .background {
+            Image(decorative: bg!, scale: 2, orientation: .up)
+        }
+     
+}
+
+#Preview("Window") {
+    let screen = NSScreen.main!
+    let bg = ScreenshotService.shared.screenshot(screen.frame.isNS)
+    let delegate = AppDelegate()
+    delegate.mouseScreen = screen
+    delegate.captureAction = .window
+    let props = ShieldOverlay(screen)
+    return ShieldOverlay.ShieldView(props: props)
+        .environmentObject(delegate)
+        .background {
+            Image(decorative: bg!, scale: 2, orientation: .up)
+        }
+    
 }

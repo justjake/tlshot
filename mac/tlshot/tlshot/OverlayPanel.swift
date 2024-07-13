@@ -134,6 +134,37 @@ extension NSEvent.EventTypeMask {
     static var leftMouse: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDown, .leftMouseUp, .leftMouseDragged]
 }
 
+class ScreenChangeMonitor {
+    var onEvent: () -> Void
+    private var observer: Any?
+    init(_ onEvent: @escaping ()->Void) {
+        self.onEvent = onEvent
+    }
+    
+    func start() {
+        self.observer = observer
+        ?? NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: NSApp,
+            queue: OperationQueue.main
+        ) {_ in
+            self.onEvent()
+        }
+    }
+    
+    func stop() {
+        if let observer = self.observer  {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+
+    }
+    
+    deinit {
+        stop()
+    }
+}
+
 class EventMonitor {
     let mask: NSEvent.EventTypeMask
     var onEvent: (NSEvent) -> NSEvent?
@@ -159,7 +190,6 @@ class EventMonitor {
     private var systemMonitor: Any? = nil
     
     func start() {
-        let handler = self.onEvent
         let localMonitor = systemMonitor ?? NSEvent.addLocalMonitorForEvents(matching: mask, handler: onEvent)
         systemMonitor = localMonitor
     }

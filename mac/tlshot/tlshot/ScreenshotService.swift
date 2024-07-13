@@ -5,9 +5,9 @@
 //  Created by Jake Teton-Landis on 7/12/24.
 //
 
-import Foundation
 import AppKit
 import CoreGraphics
+import Foundation
 
 @objc protocol ScreenshotVisible {
     @objc var includeInScreenshot: Bool { get }
@@ -29,7 +29,7 @@ extension NSWindow: ScreenshotVisible {
  let kCGWindowAlpha: CFString
  let kCGWindowOwnerPID: CFString
  let kCGWindowMemoryUsage: CFString
- 
+
  // optional keys:
  let kCGWindowWorkspace: CFString // deprecated
  let kCGWindowOwnerName: CFString
@@ -38,10 +38,75 @@ extension NSWindow: ScreenshotVisible {
  let kCGWindowBackingLocationVideoMemory: CFString
  */
 
+extension CGWindowLevelKey: CaseIterable, CustomStringConvertible {
+    public var description: String {
+        let name = switch self {
+        case .baseWindow: "baseWindow"
+        case .minimumWindow: "minimumWindow"
+        case .desktopWindow: "desktopWindow"
+        case .backstopMenu: "backstopMenu"
+        case .normalWindow: "normalWindow"
+        case .floatingWindow: "floatingWindow"
+        case .tornOffMenuWindow: "tornOffMenuWindow"
+        case .dockWindow: "dockWindow"
+        case .mainMenuWindow: "mainMenuWindow"
+        case .statusWindow: "statusWindow"
+        case .modalPanelWindow: "modalPanelWindow"
+        case .popUpMenuWindow: "popUpMenuWindow"
+        case .draggingWindow: "draggingWindow"
+        case .screenSaverWindow: "screenSaverWindow"
+        case .maximumWindow: "maximumWindow"
+        case .overlayWindow: "overlayWindow"
+        case .helpWindow: "helpWindow"
+        case .utilityWindow: "utilityWindow"
+        case .desktopIconWindow: "desktopIconWindow"
+        case .cursorWindow: "cursorWindow"
+        case .assistiveTechHighWindow: "assistiveTechHighWindow"
+        case .numberOfWindowLevelKeys: "numberOfWindowLevelKeys"
+        @unknown default: "unknown"
+        }
+        
+        return "CGWindowLevelKey.\(name)=\(level)"
+    }
+
+    public static var allCases: [CGWindowLevelKey] {
+        [
+            baseWindow,
+            minimumWindow,
+            desktopWindow,
+            backstopMenu,
+            normalWindow,
+            floatingWindow,
+            tornOffMenuWindow,
+            dockWindow,
+            mainMenuWindow,
+            statusWindow,
+            modalPanelWindow,
+            popUpMenuWindow,
+            draggingWindow,
+            screenSaverWindow,
+            maximumWindow,
+            overlayWindow,
+            helpWindow,
+            utilityWindow,
+            desktopIconWindow,
+            cursorWindow,
+            assistiveTechHighWindow,
+        ].sorted { $0.level < $1.level }
+    }
+
+    var level: CGWindowLevel {
+        CGWindowLevelForKey(self)
+    }
+}
+
 // Synchronous alternative to ScreenCaptureKit that allows fetching a rect across >1 display
 class ScreenshotService {
-    static public private(set) var shared: ScreenshotService = ScreenshotService()
-    
+    public private(set) static var shared: ScreenshotService = .init()
+    private static let cgWindowLevels: [CGWindowLevelKey] = [
+        .backstopMenu,
+    ]
+
     struct WindowInfo {
         let windowID: Int
         /// Not quite sure what this means
@@ -51,30 +116,20 @@ class ScreenshotService {
         let appName: String?
         let frame: CoordRect
         let isOnScreen: Bool
-        
+
         var app: NSRunningApplication? {
             NSRunningApplication(processIdentifier: pid_t(appPID))
         }
-        
+
         var bundleIdentifier: String? {
             app?.bundleIdentifier
         }
-        
-//        var layerName: String {
-//            let layer = CGWindowLevelKey(rawValue: Int32(layer))!
-//            print(String(reflecting: layer))
-//            print("\(layer)")
-//            return switch layer {
-//            case .assistiveTechHighWindow: "assistiveTechHighWindow"
-//            case .desktopWindow: "desktopWindow"
-//            case .desktopIconWindow: "desktopIconWindow"
-//            case .baseWindow: "baseWindow"
-//            case .
-//            default: "TODO"
-//            }
-//        }
+
+        var levelKey: CGWindowLevelKey? {
+            CGWindowLevelKey.allCases.first { layer == $0.level }
+        }
     }
-    
+
     func windowAt(point: CoordPoint) -> WindowInfo? {
         var candidate = 0
         repeat {
@@ -91,43 +146,42 @@ class ScreenshotService {
         } while candidate != 0
         return nil
     }
-    
+
     func isScreenshotAble(windowNumber: Int) -> Bool {
         if let ownWindow = NSApp.window(withWindowNumber: windowNumber) {
-            print("Matched own window: \(windowNumber)", ownWindow)
             return ownWindow.includeInScreenshot
         }
         return true
     }
-    
+
     /// https://developer.apple.com/documentation/coregraphics/1455137-cgwindowlistcopywindowinfo
     func allWindows() -> [WindowInfo] {
         parseWindowInfo(CGWindowListCopyWindowInfo(.optionAll, 0))
     }
-    
+
     func getWindow(windowNumber: Int) -> WindowInfo? {
         parseWindowInfo(
             CGWindowListCopyWindowInfo(.optionIncludingWindow, CGWindowID(windowNumber))
         ).first
     }
-    
+
     func windows(
         includeOffscreen: Bool = false,
         includeAppScreenshotInvisible: Bool = false
     ) -> [WindowInfo] {
         allWindows().filter { window in
-            if !window.isOnScreen && !includeOffscreen {
+            if !window.isOnScreen, !includeOffscreen {
                 return false
             }
-            
-            if !includeAppScreenshotInvisible && window.appPID == ProcessInfo.processInfo.processIdentifier {
+
+            if !includeAppScreenshotInvisible, window.appPID == ProcessInfo.processInfo.processIdentifier {
                 return isScreenshotAble(windowNumber: window.windowID)
             }
-            
+
             return true
         }
     }
-    
+
     func screenshot(_ window: WindowInfo) -> CGImage? {
         print("ScreenshotService.screenshot(window): \(window)")
         if let withShadow = CGWindowListCreateImage(
@@ -138,35 +192,36 @@ class ScreenshotService {
         ) {
             return withShadow
         }
-        
+
         if let withShadowViaArray = screenshot(window.frame.asCG, windows: [window]) {
             return withShadowViaArray
         }
-        
+
         // Finder desktop windows (the desktop background specifically)
         // cannot be captured and will return nil from CGWindowListCreatImage
         // We can detect that and opt into taking a flattened screenshot of the same
         // area, essentially capturing the entire display.
-        print("  null window screenshot of window of app \(window.bundleIdentifier ?? "?") \(window.app?.bundleURL.map { String(describing: $0) } ?? "?")")
-        
+        //
+        // We could check that window.levelKey === .desktopIconWindow, or we could always
+        // try this fallback for any type of window, which seems nicer.
         return screenshot(window.frame)
     }
-    
+
     func screenshot(_ rect: CoordRect) -> CGImage? {
         // Try to screenshot region excluding own windows
         return screenshot(rect.asCG, windows: windows())
             // Fall back to fully flattened image
             ?? CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, .bestResolution)
     }
-    
+
     func screenshot(_ rect: CGRect, windows: [WindowInfo]) -> CGImage? {
         return cgWindowListFromArrayScreenBounds(rect, windows: windows.map { $0.windowID })
     }
-    
+
     private func cgWindowListFromArrayScreenBounds(_ rect: CGRect, windows: [Int]) -> CGImage? {
         /// This seems like it would work, but doesn't.
         // let nsNumbers = windows.map { NSNumber(value: CGWindowID($0)) }
-        
+
         // Need to use boxed CGWindowID array. This doesn't look safe.
         // https://stackoverflow.com/questions/28947049/how-to-convert-swift-array-into-cfarray
         let uint32s = windows.map { UInt32($0) }
@@ -175,7 +230,7 @@ class ScreenshotService {
             pointer[index] = UnsafeRawPointer(bitPattern: UInt(window))
         }
         let array: CFArray = CFArrayCreate(kCFAllocatorDefault, pointer, windows.count, nil)
-        
+
         return CGImage(
             windowListFromArrayScreenBounds: rect,
             windowArray: array,
@@ -183,7 +238,7 @@ class ScreenshotService {
         )
 //        return CGImage(windowListFromArrayScreenBounds: rect, windowArray: asCG, imageOption: [.all .bestResolution, .shouldBeOpaque])
     }
-    
+
     private func parseWindowInfo(_ cfarray: CFArray?) -> [WindowInfo] {
         guard let raw = cfarray else {
             print("!let raw")

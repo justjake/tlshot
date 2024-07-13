@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
+		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
 		C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645992C3F8DB400E60BE4 /* ContentView.swift */; };
 		C176459C2C3F8DB800E60BE4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C176459B2C3F8DB800E60BE4 /* Assets.xcassets */; };
@@ -45,6 +46,7 @@
 
 /* Begin PBXFileReference section */
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
+		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C17645972C3F8DB400E60BE4 /* TlshotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TlshotApp.swift; sourceTree = "<group>"; };
 		C17645992C3F8DB400E60BE4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 			isa = PBXGroup;
 			children = (
 				C17645972C3F8DB400E60BE4 /* TlshotApp.swift */,
+				C1753ADC2C42447000BC7F6C /* Keycode.swift */,
 				C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */,
 				C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */,
 				C17645D02C41B36400E60BE4 /* TldrawDocument.swift */,
@@ -289,6 +292,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */,
 				C17645C92C40C56100E60BE4 /* LoupeView.swift in Sources */,
 				C17645CD2C418B4D00E60BE4 /* ScreenshotService.swift in Sources */,
 				C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */,
