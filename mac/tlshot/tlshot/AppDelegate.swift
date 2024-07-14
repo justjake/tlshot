@@ -11,6 +11,7 @@ import CoreGraphics
 
 struct TLCursor {
     static var camera = {
+//        let image = Image(systemName: "camera.fille")
         let image = NSImage(systemSymbolName: "camera.fill", accessibilityDescription: "Capture")!
         
         // https://developer.apple.com/documentation/appkit/nsimage/symbolconfiguration
@@ -144,7 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
-        print("\(self).hasPermission: \(hasPermission)")
+//        print("\(self).hasPermission: \(hasPermission)")
         
         // TODO: not this
         startCapture(.area)
@@ -271,7 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
         
         if nextCursor != desiredCursor {
-            print("\(self).updateCursor: \(desiredCursor?.debugName ?? "?") -> \(nextCursor.debugName)")
+//            print("\(self).updateCursor: \(desiredCursor?.debugName ?? "?") -> \(nextCursor.debugName)")
         }
         
         // This should be applied by CursorView
