@@ -10,21 +10,34 @@ import SwiftUI
 import CoreGraphics
 
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    typealias Window = ScreenshotService.WindowInfo
     static var shared = AppDelegate()
+    
+    // App state
     @AppStorage(SettingsKey.hidePermissionWarning) var hidePermissionWarning: Bool = false
     @AppStorage(SettingsKey.saveFolder) var saveFolder: URL?
     @AppStorage(SettingsKey.windowIncludeShadow) var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) var windowIncludeDesktop: Bool = false
 
-    @Published var captureAction: CaptureAction? = nil
-    @Published var captureMediaType: CaptureMediaType = .image
     @Published var hasPermission: Bool = false
     @Published var imageWindows: [NSWindow] = []
-    @Published var mouseLocation: NSPoint = NSEvent.mouseLocation
-    @Published var dragStart: NSPoint? = nil
-    @Published var mouseScreen: NSScreen? = nil
-    @Published var modifierFlags: NSEvent.ModifierFlags = .zero
     @Published var desiredCursor: NSCursor?
+    
+    // capture state
+    @Published var captureAction: CaptureAction? = nil
+    @Published var captureMediaType: CaptureMediaType = .image // TODO
+
+    @Published var mouseLocation: NSPoint = NSEvent.mouseLocation
+    @Published var mouseScreen: NSScreen? = nil
+
+    // capture.area state
+    @Published var dragStart: NSPoint? = nil
+
+    // capture.window state
+    @Published var hoveredWindow: Window?
+    @Published var pickedWindows: [Window] = []
+    @Published var modifierFlags: NSEvent.ModifierFlags = .zero
+
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -39,14 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         // Window
         if captureAction == .window {
-            let hovered = WindowPicker.shared.setHovered(point: mouseLocation)
-            
-            if event.type == .leftMouseUp, let hovered = hovered {
-                if modifierFlags.contains(.shift) {
-                    WindowPicker.shared.toggleTarget(hovered)
-                    return
-                }
-                
+            hoveredWindow = ScreenshotService.shared.windowAt(point: mouseLocation.isNS)
+            if event.type == .leftMouseUp, let hovered = hoveredWindow {
                 onClickWindow(hovered)
                 return
             }
@@ -82,23 +89,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             
             // Window Shift+Click complete
             if removedShift && captureAction == .window {
-                let targets = WindowPicker.shared.removeAllTargets()
+                let targets = self.pickedWindows
+                self.pickedWindows = []
                 print("  released shift key: \(targets)")
                 if targets.count > 0 {
                     handleErrors {
-                        try onCaptureWindows(targets, includeDesktop: windowIncludeDesktop)
+                        try onCaptureWindows(targets)
                     }
                 }
             }
-
             return event
         }
         
         // keyDown
         if event.keyCode == Keycode.escape {
-            let prevTargets = WindowPicker.shared.removeAllTargets()
+            let prevTargets = pickedWindows
             if prevTargets.count > 0 {
                 print("  esc: removed targets instead of closing: \(prevTargets.count)")
+                pickedWindows = []
                 return event
             }
             
@@ -158,8 +166,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func onClickWindow(_ window: ScreenshotService.WindowInfo) {
+        if modifierFlags.contains(.shift) {
+            // Shift-click: add window to set of windows
+            if let exists = pickedWindows.firstIndex(where: { $0.id == window.id }) {
+                pickedWindows.remove(at: exists)
+            } else {
+                pickedWindows.append(window)
+            }
+            return
+        }
+        
+        // Regular click: pick that win!
         do {
-            try onCaptureWindows([window], includeDesktop: windowIncludeDesktop)
+            try onCaptureWindows([window])
         } catch {
             showErrorAlert(error: error)
         }
@@ -172,9 +191,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             return
         }
         print("onDragEnd", rect)
-        
-        AreaSelectionOverlayManager.shared.hide()
-        
         do {
             try onCaptureRect(area: rect)
         } catch {
@@ -200,21 +216,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         updateCursor()
         defer { renderActivationPolicy() }
         
-        if captureAction != .window {
-            WindowPicker.shared.reset()
+        // Render area
+        if captureAction == .area, let dragRect = self.dragRect {
+            AreaSelectionOverlayManager.shared.show(dragRect)
+        } else {
+            AreaSelectionOverlayManager.shared.hide()
         }
         
-        if captureAction == nil {
+        // Render window picker
+        if captureAction == .window {
+            WindowPicker.shared.show(
+                hovered: hoveredWindow,
+                selected: pickedWindows
+            )
+        } else {
+            WindowPicker.shared.hide()
+        }
+        
+        // Render global captureAction stuff
+        if captureAction != nil {
+            keyboardListener.start()
+            mouseListener.start()
+            ShieldOverlayManager.shared.start()
+        } else {
+            ShieldOverlayManager.shared.stop()
             mouseListener.stop()
             keyboardListener.stop()
-            ShieldOverlayManager.shared.stop()
-            AreaSelectionOverlayManager.shared.hide()
-            return
         }
-        
-        ShieldOverlayManager.shared.start()
-        mouseListener.start()
-        keyboardListener.start()
     }
     
     private func updateCursor() {
@@ -262,12 +290,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
     
-    @MainActor func onCaptureWindows(_ windows: [ScreenshotService.WindowInfo], includeDesktop: Bool) throws {
+    @MainActor func onCaptureWindows(_ windows: [ScreenshotService.WindowInfo]) throws {
         onCaptureClose()
         print("\(self).onCaptureWindows:", windows)
         var included = windows
         let bounds = included.map { $0.frame }.union().asCG
-        if includeDesktop {
+        if windowIncludeDesktop {
             let desktopWindows = ScreenshotService.shared.desktopWindows()
             let intersectingWindows =  desktopWindows.filter { $0.frame.asCG.intersects(bounds) }
             print("  includeDesktop: bounds: \(bounds)")

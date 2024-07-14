@@ -180,6 +180,11 @@ class ShieldOverlay: ObservableObject {
                     if !props.panel.isKeyWindow {
                         props.panel.makeKeyAndOrderFront(nil)
                     }
+                    
+                    if app.captureAction == nil {
+                        print("XXX: mouse over ShieldOverlayView, but not capturing!")
+                        app.render()
+                    }
                 }
             }
         }
