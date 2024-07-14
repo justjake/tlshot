@@ -47,7 +47,11 @@ class ShieldOverlayManager {
             return
         }
         
-        for (i, screen) in NSScreen.screens.enumerated() {
+        // We want the main window to makeKeyAndOrderFront + orderFrontRegardless
+        // last, so it's the actual key window.
+        let screensWithMainLast = NSScreen.screens.sorted { l, r in l != NSScreen.main }
+        
+        for (i, screen) in screensWithMainLast.enumerated() {
             let overlay = overlays[i, orInsert: ShieldOverlay(screen)]
             overlay.screen = screen
             if overlay.panel.frame != screen.frame {

@@ -92,7 +92,7 @@ class WindowPicker: ObservableObject {
         }
         
         overlay.windowID = window.id
-        overlay.panel.level = NSWindow.Level(rawValue: window.layer)
+        overlay.panel.level = NSWindow.Level(rawValue: max(window.layer, 0))
         overlay.panel.setIsVisible(true)
         overlay.panel.setFrame(window.frame.asNS, display: true)
         overlay.panel.order(.above, relativeTo: window.id)
@@ -113,7 +113,7 @@ class WindowPicker: ObservableObject {
             
             var body: some View {
                 Rectangle()
-                    .stroke(lineWidth: 1)
+                    .stroke(lineWidth: 2)
                     .foregroundStyle(isHovered ? Color.accentColor : .primary)
                     .expand()
                     .cursor(app.desiredCursor)

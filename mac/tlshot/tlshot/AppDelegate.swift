@@ -198,8 +198,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func render() {
         updateCursor()
-        defer { updateCursor() }
-        
         defer { renderActivationPolicy() }
         
         if captureAction != .window {
@@ -233,6 +231,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if nextCursor != desiredCursor {
             print("\(self).updateCursor: \(desiredCursor?.debugName ?? "?") -> \(nextCursor.debugName)")
         }
+        
+        // This should be applied by CursorView
+        // in the ShieldWindow overlays over each display.
+        // It still flickers sometimes or doesn't stick
+        // when first enabled, idk why, leaving it alone
+        // for now.
         desiredCursor = nextCursor
     }
     
