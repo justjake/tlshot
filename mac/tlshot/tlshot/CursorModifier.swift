@@ -15,6 +15,7 @@ extension NSCursor {
         case NSCursor.pointingHand: "pointingHand"
         case NSCursor.dragCopy: "dragCopy"
         case NSCursor.crosshair: "crosshair"
+        case TLCursor.camera: "TLCursor.camera"
         default: String(reflecting: self)
         }
     }

@@ -22,7 +22,7 @@ class WindowPicker {
     
     func hide() {
         for i in 0..<overlays.count {
-            renderFor(window: nil, index: i, hovered: false)
+            renderFor(window: nil, index: i, hovered: false, selected: false)
         }
     }
     
@@ -37,11 +37,11 @@ class WindowPicker {
         
         for i in 0..<max(renderable.count, overlays.count) {
             let window = i < renderable.count ? renderable[i] : nil
-            renderFor(window: window, index: i, hovered: window?.id == hovered?.id)
+            renderFor(window: window, index: i, hovered: window?.id == hovered?.id, selected: i < targets.count)
         }
     }
     
-    private func renderFor(window: ScreenshotService.WindowInfo?, index: Int, hovered: Bool) {
+    private func renderFor(window: ScreenshotService.WindowInfo?, index: Int, hovered: Bool, selected: Bool) {
         let overlay = overlays[index, orInsert: WindowPickerOverlay()]
         
         guard let window = window else {
@@ -49,10 +49,12 @@ class WindowPicker {
                 overlay.panel.setIsVisible(false)
             }
             overlay.isHovered = false
+            overlay.isSelected = false
             return
         }
         
         overlay.isHovered = hovered
+        overlay.isSelected = selected
         overlay.panel.level = NSWindow.Level(rawValue: window.layer + 1)
         overlay.panel.setIsVisible(true)
         overlay.panel.setFrame(window.frame.asNS, display: true)
@@ -61,6 +63,7 @@ class WindowPicker {
     
     class WindowPickerOverlay: ObservableObject {
         @Published var isHovered: Bool = false
+        @Published var isSelected: Bool = false
         
         lazy var panel: some NSPanel = OverlayPanel(.zero) { OverlayView(props: self) }
         
@@ -72,9 +75,18 @@ class WindowPicker {
                 props.isHovered ? Color.accentColor : .primary
             }
             
+            var cursor: NSCursor? {
+                if app.modifierFlags.contains(.shift) && props.isHovered && props.isSelected {
+                    // Clicking here would de-select
+                    return NSCursor.dragLink // TODO
+                }
+                return app.desiredCursor
+            }
+            
             var body: some View {
                 Rectangle()
-                    .stroke(color, lineWidth: 2)
+                    .fill(color.opacity(0.1))
+                    .stroke(color, lineWidth: 3)
                     .expand()
                     .cursor(app.desiredCursor)
             }

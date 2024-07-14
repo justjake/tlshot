@@ -9,6 +9,20 @@ import AppKit
 import SwiftUI
 import CoreGraphics
 
+struct TLCursor {
+    static var camera = {
+        let image = NSImage(systemSymbolName: "camera.fill", accessibilityDescription: "Capture")!
+        
+        // https://developer.apple.com/documentation/appkit/nsimage/symbolconfiguration
+        let color = NSColor(Color.primary.opacity(1))
+        print("init color \(Color.primary) -> \(color)")
+        let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .bold)
+            .applying(.init(paletteColors: [color]))
+        
+        return NSCursor(image: image.withSymbolConfiguration(config)!, hotSpot: image.size.center)
+    }()
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     typealias WindowInfo = ScreenshotService.WindowInfo
     static var shared = AppDelegate()
@@ -250,7 +264,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         case .window: if modifierFlags.contains(.shift) {
             NSCursor.dragCopy
         } else {
-            NSCursor.pointingHand
+//            NSCursor.pointingHand
+            TLCursor.camera
         }
         case nil: NSCursor.arrow
         }

@@ -43,6 +43,12 @@ extension CGPoint {
     }
 }
 
+extension CGSize {
+    var center: CGPoint {
+        .init(x: width / 2, y: height / 2)
+    }
+}
+
 /// CoreGraphics / Quartz uses a coordinate space where the origin (0, 0) is at the top-left of the primary display. Increasing y goes down.
 /// Cocoa / NSScreen uses a coordinate space where the origin (0, 0) is the bottom-left of the primary display and increasing y goes up.
 /// https://stackoverflow.com/questions/19884363/in-objective-c-os-x-is-the-global-display-coordinate-space-used-by-quartz-d
