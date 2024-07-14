@@ -9,21 +9,6 @@ import AppKit
 import SwiftUI
 import CoreGraphics
 
-struct TLCursor {
-    static var camera = {
-//        let image = Image(systemName: "camera.fille")
-        let image = NSImage(systemSymbolName: "camera.fill", accessibilityDescription: "Capture")!
-        
-        // https://developer.apple.com/documentation/appkit/nsimage/symbolconfiguration
-        let color = NSColor(Color.primary.opacity(1))
-        print("init color \(Color.primary) -> \(color)")
-        let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .bold)
-            .applying(.init(paletteColors: [color]))
-        
-        return NSCursor(image: image.withSymbolConfiguration(config)!, hotSpot: image.size.center)
-    }()
-}
-
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     typealias WindowInfo = ScreenshotService.WindowInfo
     static var shared = AppDelegate()
@@ -34,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @AppStorage(SettingsKey.windowIncludeShadow) var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) var windowIncludeDesktop: Bool = false
 
+    @Published var customWindowCursor: NSCursor?
     @Published var hasPermission: Bool = false
     @Published var imageWindows: [NSWindow] = []
     @Published var desiredCursor: NSCursor?
@@ -142,6 +128,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
+        
+        // Build our mouse cursor
+        Task {
+            let cursorBuilder = CursorBuilder(Image(systemName: "camera.fill"), width: 20)
+            let cursor = try await cursorBuilder.buildAsync()
+            Task { @MainActor in self.customWindowCursor = cursor }
+        }
         
         renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
@@ -265,8 +258,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         case .window: if modifierFlags.contains(.shift) {
             NSCursor.dragCopy
         } else {
-//            NSCursor.pointingHand
-            TLCursor.camera
+            customWindowCursor ?? NSCursor.pointingHand
         }
         case nil: NSCursor.arrow
         }
