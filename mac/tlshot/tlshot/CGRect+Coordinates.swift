@@ -38,6 +38,9 @@ enum CoordPoint {
 extension CGPoint {
     var isNS: CoordPoint { .ns(self) }
     var isCG: CoordPoint { .cg(self) }
+    func rounded() -> CGPoint {
+        return .init(x: x.rounded(), y: y.rounded())
+    }
 }
 
 /// CoreGraphics / Quartz uses a coordinate space where the origin (0, 0) is at the top-left of the primary display. Increasing y goes down.
@@ -111,5 +114,3 @@ extension CGRect {
     }
 }
 
-extension CGRect {
-}

@@ -70,7 +70,7 @@ struct TlshotApp: App {
     @AppStorage(SettingsKey.windowIncludeShadow) private var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) private var windowIncludeDesktop: Bool = false
     @AppStorage(SettingsKey.windowIncludeMenuBarWithDesktop) private var windowIncludeMenuBarWithDesktop = false
-
+    
     var body: some Scene {
 //        DocumentGroup(newDocument: TldrawDocument()) { group in
 //            ContentView(document: group.$document)
@@ -115,8 +115,19 @@ struct TlshotApp: App {
             Toggle("Include menu bar with desktop", isOn: $windowIncludeMenuBarWithDesktop)
                 .disabled(!windowIncludeDesktop)
             
-            Divider()
+            
+            if !appDelegate.hasPermission {
+                Divider()
+                
+                Text("Need permissions")
+                Button("Grant permissions...") {
+                    CGRequestScreenCaptureAccess()
+                    AppDelegate.openSystemSettings()
+                }
+            }
 
+            Divider()
+            
             Button("Quit") {
                 NSApplication.shared.terminate(self)
             }.keyboardShortcut("Q", modifiers: .command)

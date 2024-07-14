@@ -10,7 +10,7 @@ import SwiftUI
 import CoreGraphics
 
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
-    typealias Window = ScreenshotService.WindowInfo
+    typealias WindowInfo = ScreenshotService.WindowInfo
     static var shared = AppDelegate()
     
     // App state
@@ -27,17 +27,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var captureAction: CaptureAction? = nil
     @Published var captureMediaType: CaptureMediaType = .image // TODO
 
-    @Published var mouseLocation: NSPoint = NSEvent.mouseLocation
+    @Published var mouseLocation: NSPoint = NSEvent.mouseLocation.rounded()
     @Published var mouseScreen: NSScreen? = nil
 
     // capture.area state
     @Published var dragStart: NSPoint? = nil
 
     // capture.window state
-    @Published var hoveredWindow: Window?
-    @Published var pickedWindows: [Window] = []
+    @Published var hoveredWindow: WindowInfo?
+    @Published var selectedWindows: [WindowInfo] = []
     @Published var modifierFlags: NSEvent.ModifierFlags = .zero
-
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -89,8 +88,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             
             // Window Shift+Click complete
             if removedShift && captureAction == .window {
-                let targets = self.pickedWindows
-                self.pickedWindows = []
+                let targets = self.selectedWindows
+                self.selectedWindows = []
                 print("  released shift key: \(targets)")
                 if targets.count > 0 {
                     handleErrors {
@@ -103,10 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         // keyDown
         if event.keyCode == Keycode.escape {
-            let prevTargets = pickedWindows
+            let prevTargets = selectedWindows
             if prevTargets.count > 0 {
                 print("  esc: removed targets instead of closing: \(prevTargets.count)")
-                pickedWindows = []
+                selectedWindows = []
                 return event
             }
             
@@ -154,7 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func onDragStart() {
-        dragStart = NSEvent.mouseLocation
+        dragStart = NSEvent.mouseLocation.rounded()
         print("onDragStart", dragStart)
     }
     
@@ -168,10 +167,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @MainActor func onClickWindow(_ window: ScreenshotService.WindowInfo) {
         if modifierFlags.contains(.shift) {
             // Shift-click: add window to set of windows
-            if let exists = pickedWindows.firstIndex(where: { $0.id == window.id }) {
-                pickedWindows.remove(at: exists)
+            if let exists = selectedWindows.firstIndex(where: { $0.id == window.id }) {
+                selectedWindows.remove(at: exists)
             } else {
-                pickedWindows.append(window)
+                selectedWindows.append(window)
             }
             return
         }
@@ -227,7 +226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if captureAction == .window {
             WindowPicker.shared.show(
                 hovered: hoveredWindow,
-                selected: pickedWindows
+                selected: selectedWindows
             )
         } else {
             WindowPicker.shared.hide()
@@ -331,12 +330,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {
-        let window = ImageWindow(rect: frame, image: image)
+        let usable = NSScreen.main?.visibleFrame ?? .infinite
+        let width = min(usable.width * 0.9, max(400, frame.width))
+        let height = min(usable.height * 0.9, max(400, frame.height))
+        let windowFrame = CGRect(center: frame.center, size: CGSize(width: width, height: height))
+        let window = ImageWindow(rect: windowFrame, image: image)
         imageWindows.append(window)
         render()
-        
-        window.setFrame(frame, display: true)
         window.makeKeyAndOrderFront(nil)
+        window.makeMain()
     }
     
     func renderActivationPolicy() {
@@ -360,7 +362,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     private func updateMouseLocation() {
-        mouseLocation = NSEvent.mouseLocation
+        mouseLocation = NSEvent.mouseLocation.rounded()
         mouseScreen = NSScreen.screens.first { $0.frame.contains(mouseLocation) }
         
         // Debugging

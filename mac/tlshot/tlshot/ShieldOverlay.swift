@@ -169,11 +169,11 @@ class ShieldOverlay: ObservableObject {
 
             }
             .expand()
-            .border(
-                width: 2,
-                edges: Edge.allCases,
-                color: isMouseScreen ? .accentColor : .secondary
-            )
+//            .border(
+//                width: 2,
+//                edges: Edge.allCases,
+//                color: isMouseScreen ? .accentColor : .secondary
+//            )
             .cursor(app.desiredCursor)
             .onContinuousHover {
                 if case .active = $0 {

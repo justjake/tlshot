@@ -30,8 +30,11 @@ struct CursorModifier: ViewModifier {
     let cursor: NSCursor?
     
     func body(content: Content) -> some View {
+        // Overlay?
+        // Background?
+        // It never works consistently... :(
         content
-            .background { CursorView(cursor: cursor) }
+            .overlay { CursorView(cursor: cursor) }
     }
 }
 

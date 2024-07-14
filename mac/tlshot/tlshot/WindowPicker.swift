@@ -15,7 +15,7 @@ class WindowPicker {
         case add
     }
     
-    typealias Window = ScreenshotService.WindowInfo
+    typealias WindowInfo = ScreenshotService.WindowInfo
     
     static public private(set) var shared = WindowPicker()
     var overlays: [WindowPickerOverlay] = []
@@ -27,8 +27,8 @@ class WindowPicker {
     }
     
     func show(
-        hovered: Window?,
-        selected targets: [Window]
+        hovered: WindowInfo?,
+        selected targets: [WindowInfo]
     ) {
         var renderable = targets
         if let hovered = hovered, !renderable.contains(where: { $0.id == hovered.id }) {
