@@ -55,13 +55,23 @@ class WindowPicker {
         
         overlay.isHovered = hovered
         overlay.isSelected = selected
-        overlay.panel.level = NSWindow.Level(rawValue: window.layer + 1)
+        overlay.window = window
         overlay.panel.setIsVisible(true)
         overlay.panel.setFrame(window.frame.asNS, display: true)
+        overlay.panel.level = if window.layer == CGWindowLevelKey.mainMenuWindow.cgLevel {
+            // The system doesn't allow ordering in front of mainMenuWindow withing the same level.
+            // We need to go to the next level.
+            // There doesn't appear to be any way to order behind the existing status windows.
+            CGWindowLevelKey.statusWindow.nsLevel
+        } else {
+            // Stack within the same level of the window, we'll order just above it.
+            NSWindow.Level(rawValue: window.layer)
+        }
         overlay.panel.order(.above, relativeTo: window.id)
     }
     
     class WindowPickerOverlay: ObservableObject {
+        @Published var window: ScreenshotService.WindowInfo?
         @Published var isHovered: Bool = false
         @Published var isSelected: Bool = false
         
@@ -71,22 +81,31 @@ class WindowPicker {
             @EnvironmentObject var app: AppDelegate
             @ObservedObject var props: WindowPickerOverlay
             
-            var color: Color {
-                props.isHovered ? Color.accentColor : .primary
+            var activeCoverColor: Color {
+                Color(NSColor.selectedContentBackgroundColor).opacity(0.6)
             }
             
-            var cursor: NSCursor? {
-                if app.modifierFlags.contains(.shift) && props.isHovered && props.isSelected {
-                    // Clicking here would de-select
-                    return NSCursor.dragLink // TODO
+            var backgroundCoverColor: Color {
+                activeCoverColor.opacity(0.4)
+            }
+            
+            var coverColor: Color {
+                props.isHovered ? activeCoverColor : backgroundCoverColor
+            }
+            
+            var cornerRadius: CGFloat {
+                if props.window?.layer ?? 0 == CGWindowLevelKey.normalWindow.cgLevel {
+                    // Normal windows are probably rounded, 9px seems to match
+                    // macOS big sur+ window border radius.
+                    return 9
                 }
-                return app.desiredCursor
+                
+                return 0
             }
             
             var body: some View {
-                Rectangle()
-                    .fill(color.opacity(0.1))
-                    .stroke(color, lineWidth: 3)
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(coverColor)
                     .expand()
                     .cursor(app.desiredCursor)
             }

@@ -48,7 +48,7 @@ extension CGWindowLevelKey: CaseIterable, CustomStringConvertible {
         @unknown default: "unknown"
         }
         
-        return "CGWindowLevelKey.\(name)=\(level)"
+        return "CGWindowLevelKey.\(name)=\(cgLevel)"
     }
 
     public static var allCases: [CGWindowLevelKey] {
@@ -74,11 +74,15 @@ extension CGWindowLevelKey: CaseIterable, CustomStringConvertible {
             desktopIconWindow,
             cursorWindow,
             assistiveTechHighWindow,
-        ].sorted { $0.level < $1.level }
+        ].sorted { $0.cgLevel < $1.cgLevel }
     }
     
-    var level: CGWindowLevel {
+    var cgLevel: CGWindowLevel {
         CGWindowLevelForKey(self)
+    }
+    
+    var nsLevel: NSWindow.Level {
+        NSWindow.Level(Int(cgLevel))
     }
 }
 
@@ -138,19 +142,19 @@ class ScreenshotService {
         }
 
         var levelKey: CGWindowLevelKey? {
-            CGWindowLevelKey.allCases.first { layer == $0.level }
+            CGWindowLevelKey.allCases.first { layer == $0.cgLevel }
         }
         
         var maxLevelKey: CGWindowLevelKey? {
-            CGWindowLevelKey.allCases.first { layer <= $0.level }
+            CGWindowLevelKey.allCases.first { layer <= $0.cgLevel }
         }
         
         var isDesktopWindow: Bool {
-            layer <= CGWindowLevelKey.desktopWindow.level
+            layer <= CGWindowLevelKey.desktopWindow.cgLevel
         }
         
         var isMainMenuWindow: Bool {
-            layer == CGWindowLevelKey.mainMenuWindow.level
+            layer == CGWindowLevelKey.mainMenuWindow.cgLevel
         }
         
         var description: String {
