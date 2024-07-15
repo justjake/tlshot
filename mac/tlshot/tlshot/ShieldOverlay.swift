@@ -221,12 +221,12 @@ class ShieldOverlay: ObservableObject {
                         app.render()
                     }
                     
-                    localMousePosition = point
+                    localMousePosition = point.rounded()
                 case .ended:
                     localMousePosition = nil
                 }
             }.gesture(DragGesture().onChanged {
-                localMousePosition = $0.location
+                localMousePosition = $0.location.rounded()
             })
         }
         
@@ -328,9 +328,9 @@ func +(lhs: CGPoint, rhs: CGVector) -> CGPoint {
 }
 
 struct Crosshairs: Shape {
-    let max: Double = 10_000.0
-    let line: Double = 1.0
-    let gap = 1.0
+    var max: Double = 10_000.0
+    var line: Double = 1.0
+    var gap = 1.0
     
     func path(in rect: CGRect) -> Path {
         Path { path in
@@ -344,11 +344,11 @@ struct Crosshairs: Shape {
     }
     
     func vertical(in rect: CGRect, dx: CGFloat) -> CGRect {
-        .init(center: rect.center.d(x: dx), size: CGSize(width: line, height: max))
+        .init(center: rect.center.rounded().d(x: dx), size: CGSize(width: line, height: max))
     }
     
     func horizontal(in rect: CGRect, dy: CGFloat) -> CGRect {
-        .init(center: rect.center.d(y: dy), size: CGSize(width: max, height: line))
+        .init(center: rect.center.rounded().d(y: dy), size: CGSize(width: max, height: line))
     }
     
 }
@@ -379,7 +379,8 @@ struct CursorDecoration: View {
     @ViewBuilder
     var crosshairs: some View {
         if showCrosshairs {
-            Crosshairs()
+            Crosshairs(line: 2, gap: 2)
+                .fill(.white, style: .init(antialiased: false))
         }
     }
     

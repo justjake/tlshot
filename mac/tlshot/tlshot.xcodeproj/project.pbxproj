@@ -13,6 +13,7 @@
 		C12AEF8F2C443E4600B29527 /* Cursors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF8E2C443E4600B29527 /* Cursors.swift */; };
 		C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */; };
 		C140CAEC2C457B1B00FAB807 /* ContourPathExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */; };
+		C1448EAE2C459D2B00639D0D /* TldrawView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1448EAD2C459D2B00639D0D /* TldrawView.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -57,6 +58,7 @@
 		C12AEF8E2C443E4600B29527 /* Cursors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cursors.swift; sourceTree = "<group>"; };
 		C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorDecorationOverlay.swift; sourceTree = "<group>"; };
 		C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContourPathExtractor.swift; sourceTree = "<group>"; };
+		C1448EAD2C459D2B00639D0D /* TldrawView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawView.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -151,6 +153,7 @@
 				C176459B2C3F8DB800E60BE4 /* Assets.xcassets */,
 				C17645A02C3F8DB800E60BE4 /* tlshot.entitlements */,
 				C176459D2C3F8DB800E60BE4 /* Preview Content */,
+				C1448EAD2C459D2B00639D0D /* TldrawView.swift */,
 			);
 			path = tlshot;
 			sourceTree = "<group>";
@@ -326,6 +329,7 @@
 				C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */,
 				C17645CB2C415C6A00E60BE4 /* CGRect+Coordinates.swift in Sources */,
 				C12AEF8D2C43453C00B29527 /* CursorModifier.swift in Sources */,
+				C1448EAE2C459D2B00639D0D /* TldrawView.swift in Sources */,
 				C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */,
 				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,

@@ -202,8 +202,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
         
+#if DEBUG
         // TODO: not this
         startCapture(.window)
+#endif
     }
     
     func showErrorAlert(error: Error) {
