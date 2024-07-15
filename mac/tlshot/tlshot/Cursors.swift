@@ -12,7 +12,63 @@ import Vision
 // https://stackoverflow.com/questions/69314578/convert-swiftui-view-to-nsimage
 // Image -> path
 // https://stackoverflow.com/questions/74181654/stroke-image-border-in-swiftui
-final class CursorBuilder {
+class ContourPathExtractor: ObservableObject {
+    let image: Image
+    let width: Double
+    private let visionResolution = 512.0
+    private var result: CGPath?
+    
+    init(image: Image, width: Double) {
+        self.image = image
+        self.width = width
+    }
+    
+    @MainActor func buildSync() throws -> CGPath? {
+        if let existing = result {
+            return existing
+        }
+        
+        guard let contourInput = Self.renderToImage(image, width: visionResolution) else {
+            print("CursorBuilder.buildContourInput: nil")
+            return nil
+        }
+        
+        guard let contourData = try Self.extractImagePath(
+            contourInput,
+            outputWidth: width,
+            contourDetectResolution: visionResolution
+        ) else {
+            print("CursorBuilder.extractImagePath: nil")
+            return nil
+        }
+        
+        self.result = contourData
+        return contourData
+    }
+    
+    func buildAsync() async throws -> CGPath? {
+        if let existing = result {
+            return existing
+        }
+        
+        guard let contourInput = await Self.renderToImage(image, width: visionResolution) else {
+            print("CursorBuilder.buildContourInput: nil")
+            return nil
+        }
+        
+        guard let contourData = try Self.extractImagePath(
+            contourInput,
+            outputWidth: width,
+            contourDetectResolution: visionResolution
+        ) else {
+            print("CursorBuilder.extractImagePath: nil")
+            return nil
+        }
+        
+        self.result = contourData
+        return contourData
+    }
+    
     @MainActor static func renderToImage(
         _ image: Image,
         width: CGFloat
@@ -33,7 +89,7 @@ final class CursorBuilder {
         )
         return imageRenderer.cgImage
     }
-
+    
     // Extracted outline paths are 0..1 and lose their aspect ratio.
     static func extractOutlineData(
         _ cgImage: CGImage,
@@ -91,35 +147,91 @@ final class CursorBuilder {
             targetSize: outputWidth)
         return denormalizedPath.copy(using: &tx2)
     }
+}
+
+struct ImageProps: Equatable {
+    static let defaults = ImageProps(
+        width: 40,
+        scale: 2,
+        proposedSize: .init(width: 40, height: 40)
+    )
     
     let width: Double
-    let shadowWidth = 3.0
+    let scale: Double
+    let proposedSize: ProposedViewSize
+}
+
+struct Empty: Equatable {}
+
+class ViewRenderHolder<Content: View>: ViewRenderHolderWithProps<Empty, Content> {
+    
+    init(imageProps: ImageProps = ImageProps.defaults, render: @escaping () -> Content) {
+        super.init(props: Empty(), imageProps: imageProps, render: { _ in render() })
+    }
+}
+    
+
+class ViewRenderHolderWithProps<
+    Props: Equatable,
+    Content: View
+>: ObservableObject {
+    @Published public var props: Props
+    private let render: (Props) -> Content
+    @Published private var lastRenderResult: Content?
+    
+    @Published private var imageProps: ImageProps
+    @Published private var lastImageResult: CGImage?
+    private var renderer: ImageRenderer<Content>?
+    
+    init(
+        props: Props,
+        imageProps: ImageProps = ImageProps.defaults,
+        render: @escaping (Props) -> Content
+    ) {
+        self.props = props
+        self.render = render
+        self.imageProps = imageProps
+    }
+    
+    @MainActor func render(
+        props changeProps: Props? = nil,
+        imageProps changeImageProps: ImageProps? = nil
+    ) -> CGImage? {
+        if let newProps = changeProps, newProps != props {
+            lastRenderResult = nil
+            lastImageResult = nil
+            props = newProps
+        }
+        
+        let renderResult = lastRenderResult ?? render(self.props)
+        lastRenderResult = renderResult
+        
+        if let newImageProps = changeImageProps, newImageProps != imageProps {
+            lastImageResult = nil
+        }
+        lastImageResult = lastImageResult ?? renderImage(renderResult)
+        
+        return lastImageResult
+    }
+    
+    @MainActor private func renderImage(_ view: Content) -> CGImage? {
+        let renderer = self.renderer ?? ImageRenderer(content: view)
+        self.renderer = renderer
+        renderer.scale = imageProps.scale // hi
+        renderer.proposedSize = imageProps.proposedSize
+        renderer.isOpaque = false
+        print("imageProps \(imageProps)")
+        return renderer.cgImage
+    }
+}
+
+struct CameraWithStroke: View {
+    let cgPath: CGPath
+    
+    let width: Double
     let lineWidth = 3.0
-    let visionResolution = 512.0
-    let scale = 2.0
     
-    private let input: Image
-    private var contourInput: CGImage?
-    private var pathResult: CGPath?
-    private var imageResult: CGImage?
-    private var result: NSCursor?
-    
-    init(_ image: Image, width: Double = 20.0) {
-        self.input = image
-        self.width = width
-    }
-    
-    @MainActor func buildContourInput() -> CGImage? {
-        contourInput = contourInput ?? Self.renderToImage(input, width: visionResolution)
-        return contourInput
-    }
-    
-    func buildPath(contourInput: CGImage) throws -> CGPath? {
-        try pathResult = pathResult ?? Self.extractImagePath(contourInput, outputWidth: width, contourDetectResolution: visionResolution)
-        return pathResult
-    }
-    
-    func buildView(cgPath: CGPath) -> some View {
+    var body: some View {
         let path = Path(cgPath)
         return path.background(in: path.stroke(lineWidth: lineWidth))
             .frame(width: width, height: width)
@@ -127,110 +239,25 @@ final class CursorBuilder {
             .backgroundStyle(.white)
             .compositingGroup()
     }
-    
-    @MainActor func buildResultImage(cgPath: CGPath) -> CGImage? {
-        let view = buildView(cgPath: cgPath)
-            .frame(width: width * scale, height: width * scale)
-        let imageRenderer = ImageRenderer(content: view)
-        imageRenderer.scale = scale
-        imageRenderer.isOpaque = false
-        imageRenderer.proposedSize = .init(
-            width: width * scale,
-            height: width * scale
-        )
-        print("w/h", imageRenderer.proposedSize)
-        imageResult = imageResult ?? imageRenderer.cgImage
-        return imageResult
-    }
-    
-    func buildCursor(resultImage: CGImage) -> NSCursor {
-        let nsImage = NSImage(cgImage: resultImage, size: .init(width: width * scale, height: width * scale))
-        let finalResult = result ?? NSCursor(image: nsImage, hotSpot: nsImage.size.center)
-        result = finalResult
-        return finalResult
-    }
-    
-    @MainActor func buildSync() throws -> NSCursor? {
-        guard let contourInput = buildContourInput() else {
-            print("CursorBuilder.buildContourInput: nil")
-            return nil
-        }
-        guard let cgPath = try buildPath(contourInput: contourInput) else {
-            print("CursorBuilder.buildPath: nil")
-            return nil
-        }
-        guard let resultImage = buildResultImage(cgPath: cgPath) else {
-            print("CursorBuilder.buildResultImage: nil")
-            return nil
-        }
-        return buildCursor(resultImage: resultImage)
-    }
-    
-    func buildAsync() async throws -> NSCursor? {
-        guard let contourInput = await buildContourInput() else {
-            print("CursorBuilder.buildContourInput: nil")
-            return nil
-        }
-        guard let cgPath = try buildPath(contourInput: contourInput) else {
-            print("CursorBuilder.buildPath: nil")
-            return nil
-        }
-        guard let resultImage = await buildResultImage(cgPath: cgPath) else {
-            print("CursorBuilder.buildResultImage: nil")
-            return nil
-        }
-        return buildCursor(resultImage: resultImage)
-    }
 }
 
 struct Cursors: View {
-    static var cameraFill = Image(systemName: "camera.fill")
+    static var cameraPath = ContourPathExtractor(image: Image(systemName: "camera.fill"), width: 40)
+    
+    @MainActor static var cameraView = CameraWithStroke(cgPath: try! cameraPath.buildSync()!, width: 40)
+   
+    @MainActor static var cameraRenderer = ViewRenderHolder(
+    ) { cameraView }
     
     var body: some View {
         HStack {
-            // Composing camera from bits
-            if false {
-                VStack {
-                    Self.cameraFill
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 100, height: 100)
-                    
-                    let contourInput = cameraContourInput()
-                    Image(nsImage: NSImage(cgImage: contourInput, size: NSSize(width: contourInput.width, height: contourInput.height)))
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 100)
-                    
-                    let cameraPath = Path(cameraCGPath())
-                    
-                    let black = cameraPath
-                        .foregroundStyle(.black)
-                    
-                    black.frame(width: 100, height: 100)
-                    
-                    let whiteStroke = cameraPath
-                        .stroke(lineWidth: 10)
-                        .foregroundStyle(.white)
-                    
-                    whiteStroke.frame(width: 100, height: 100)
-                    
-                    let mouse = black.background { whiteStroke }
-                    let shadowed = mouse
-                        .compositingGroup()
-                        .shadow(color: .black, radius: 2, x: 0, y: 1)
-                    shadowed.frame(width: 100, height: 100)
-                    
-                }
-            }
-            
             VStack(spacing: 20) {
                 Text("Camera").font(.headline)
                 
                 mouseView()
                 
-                let mouseImage = resultImage()
-                let _ = print("mosueImage: \(mouseImage)")
+                let mouseImage = Self.cameraRenderer.render()!
+//                let _ = print("mosueImage: \(mouseImage)")
                 Image(nsImage:
                         NSImage(cgImage: mouseImage, size: NSSize(width: mouseImage.width, height: mouseImage.height)))
                     .resizable()
@@ -271,9 +298,12 @@ struct Cursors: View {
     
     func cursorImage(_ cursor: NSCursor) -> some View {
         Image(nsImage: cursor.image)
-//            .aspectRatio(contentMode: .fit)
-//            .frame(width: cursor.image.size.width, height: cursor.image.size.height)
     }
+    
+    @MainActor func mouseView() -> some View {
+        Self.cameraView
+    }
+    
     
     @MainActor func cameraWithBadge(_ badge: String) -> some View {
         ZStack {
@@ -283,31 +313,6 @@ struct Cursors: View {
         }
         .compositingGroup()
         .shadow(radius: 1, x:0, y:1)
-    }
-    
-    @MainActor func cameraContourInput() -> CGImage {
-        let cursorBuilder = CursorBuilder(Self.cameraFill, width: 100)
-        return cursorBuilder.buildContourInput()!
-    }
-    
-    @MainActor func cameraCGPath() -> CGPath {
-        let cursorBuilder = CursorBuilder(Self.cameraFill, width: 100)
-        let cgImage = cursorBuilder.buildContourInput()!
-        return try! cursorBuilder.buildPath(contourInput: cgImage)!
-    }
-    
-    @MainActor func mouseView() -> some View {
-        let cursorBuilder = CursorBuilder(Self.cameraFill, width: 20)
-        let cgImage = cursorBuilder.buildContourInput()!
-        let path = try! cursorBuilder.buildPath(contourInput: cgImage)!
-        return cursorBuilder.buildView(cgPath: path)
-    }
-    
-    @MainActor func resultImage() -> CGImage {
-        let cursorBuilder = CursorBuilder(Self.cameraFill, width: 20)
-        let cgImage = cursorBuilder.buildContourInput()!
-        let path = try! cursorBuilder.buildPath(contourInput: cgImage)!
-        return cursorBuilder.buildResultImage(cgPath: path)!
     }
 }
 
@@ -320,5 +325,4 @@ extension View {
 #Preview {
     Cursors()
         .expand()
-        .background(.white)
 }

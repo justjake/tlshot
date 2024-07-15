@@ -47,6 +47,10 @@ extension CGSize {
     var center: CGPoint {
         .init(x: width / 2, y: height / 2)
     }
+    
+    init(square: Double) {
+        self.init(width: square, height: square)
+    }
 }
 
 /// CoreGraphics / Quartz uses a coordinate space where the origin (0, 0) is at the top-left of the primary display. Increasing y goes down.
@@ -117,6 +121,10 @@ extension CGRect {
         let dx = size.width / 2
         let dy = size.height / 2
         self.init(x: center.x - dx, y: center.y - dy, width: size.width, height: size.height)
+    }
+    
+    init(square: CGFloat) {
+        self.init(origin: .zero, size: CGSize(square: square))
     }
 }
 

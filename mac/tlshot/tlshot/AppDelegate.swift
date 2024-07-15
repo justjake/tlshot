@@ -162,8 +162,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         // Build our mouse cursor
         Task {
-            let cursorBuilder = CursorBuilder(Image(systemName: "camera.fill"), width: 20)
-            let cursor = try await cursorBuilder.buildAsync()
+            let cameraView = await CameraWithStroke(cgPath: try! Cursors.cameraPath.buildAsync()!, width: 40)
+                .compositingGroup()
+                .mouseShadow()
+            let cameraRenderer = ViewRenderHolder() { cameraView }
+            let cgImage = cameraRenderer.render()!
+            let nsImage = NSImage(cgImage: cgImage, size: CGSize(square: 25))
+            nsImage.setName("CameraCursor")
+            let cursor = NSCursor(image: nsImage, hotSpot: nsImage.size.center)
             Task { @MainActor in self.customWindowCursor = cursor }
         }
 
