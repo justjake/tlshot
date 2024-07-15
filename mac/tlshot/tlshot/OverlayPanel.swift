@@ -9,12 +9,6 @@ import Foundation
 import AppKit
 import SwiftUI
 
-extension NSWindow {
-    var appDelegate: AppDelegate {
-        AppDelegate.shared
-    }
-}
-
 extension NSWindow.Level {
     public static var shieldWindow: NSWindow.Level {
         NSWindow.Level(rawValue: NSWindow.Level.RawValue(CGShieldingWindowLevel()))
@@ -117,7 +111,7 @@ class OverlayPanel<Content: View>: NSPanel {
         /// The safe area is ignored because the title bar still interferes with the geometry
         let newView = view(self)
             .ignoresSafeArea()
-            .environmentObject(appDelegate)
+            .environmentObject(AppDelegate.shared)
         
         let hostingView = NSHostingView(rootView: newView)
         hostingView.setFrameSize(contentRect.size)

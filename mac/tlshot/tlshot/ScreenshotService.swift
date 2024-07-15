@@ -115,6 +115,10 @@ class ScreenshotService {
     ]
     
     struct WindowInfo: CustomStringConvertible, Identifiable {
+        static func mock(id: Int) -> WindowInfo {
+            .init(id: id, layer: 0, windowName: "Some Window", appPID: 12345, appName: "Dog Food Machine", frame: .cg(.zero), isOnScreen: true)
+        }
+        
         let id: Int
         
         /// Not quite sure what this means

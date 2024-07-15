@@ -11,6 +11,7 @@
 		C12AEF8B2C4328D500B29527 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF8A2C4328D500B29527 /* AppDelegate.swift */; };
 		C12AEF8D2C43453C00B29527 /* CursorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF8C2C43453C00B29527 /* CursorModifier.swift */; };
 		C12AEF8F2C443E4600B29527 /* Cursors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF8E2C443E4600B29527 /* Cursors.swift */; };
+		C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -53,6 +54,7 @@
 		C12AEF8A2C4328D500B29527 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C12AEF8C2C43453C00B29527 /* CursorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorModifier.swift; sourceTree = "<group>"; };
 		C12AEF8E2C443E4600B29527 /* Cursors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cursors.swift; sourceTree = "<group>"; };
+		C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorDecorationOverlay.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -126,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				C12AEF8E2C443E4600B29527 /* Cursors.swift */,
+				C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */,
 				C17645972C3F8DB400E60BE4 /* TlshotApp.swift */,
 				C12AEF8A2C4328D500B29527 /* AppDelegate.swift */,
 				C12AEF8C2C43453C00B29527 /* CursorModifier.swift */,
@@ -316,6 +319,7 @@
 				C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */,
 				C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */,
 				C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */,
+				C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */,
 				C17645CB2C415C6A00E60BE4 /* CGRect+Coordinates.swift in Sources */,
 				C12AEF8D2C43453C00B29527 /* CursorModifier.swift in Sources */,
 				C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */,

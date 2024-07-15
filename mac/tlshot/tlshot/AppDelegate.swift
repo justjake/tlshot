@@ -9,9 +9,22 @@ import AppKit
 import SwiftUI
 import CoreGraphics
 
+
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     typealias WindowInfo = ScreenshotService.WindowInfo
+    
+    enum ShiftClickHoverState {
+        case adding(WindowInfo)
+        case removing(WindowInfo)
+    }
+
     static var shared = AppDelegate()
+    
+    static var isSwiftPreview: Bool {
+        ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+    
+    let isSwiftPreview = AppDelegate.isSwiftPreview
     
     // App state
     @AppStorage(SettingsKey.hidePermissionWarning) var hidePermissionWarning: Bool = false
@@ -33,11 +46,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     // capture.area state
     @Published var dragStart: NSPoint? = nil
+    @Published var dragCancelling = false
 
     // capture.window state
     @Published var hoveredWindow: WindowInfo?
     @Published var selectedWindows: [WindowInfo] = []
     @Published var modifierFlags: NSEvent.ModifierFlags = .zero
+    var shiftClickHoverState: ShiftClickHoverState? {
+        hoveredWindow.flatMap { computeShiftClickHoverState(hovered: $0) }
+    }
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -48,6 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     lazy var mouseListener = EventMonitor(.leftMouse) { @MainActor [self] event in
         updateMouseLocation()
+        if isSwiftPreview {
+            return
+        }
+        
         defer { render() }
         
         // Window
@@ -107,7 +128,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             if prevTargets.count > 0 {
                 print("  esc: removed targets instead of closing: \(prevTargets.count)")
                 selectedWindows = []
-                return event
+                return nil
+            }
+            
+            if let dragStart = dragStart {
+                print("  esc: removing drag start instead of closing: \(dragStart)")
+                self.dragCancelling = true
+                return nil
             }
             
             onCaptureClose()
@@ -129,16 +156,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
         
+        if isSwiftPreview {
+            return
+        }
+        
         // Build our mouse cursor
         Task {
             let cursorBuilder = CursorBuilder(Image(systemName: "camera.fill"), width: 20)
             let cursor = try await cursorBuilder.buildAsync()
             Task { @MainActor in self.customWindowCursor = cursor }
         }
+
         
         renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
-//        print("\(self).hasPermission: \(hasPermission)")
         
         // TODO: not this
         startCapture(.area)
@@ -161,11 +192,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func onDragStart() {
+        if dragCancelling {
+            return
+        }
         dragStart = NSEvent.mouseLocation.rounded()
         print("onDragStart", dragStart)
     }
     
     var dragRect: NSRect? {
+        if dragCancelling {
+            return nil
+        }
         if let p1 = dragStart {
             return NSRect(p1, mouseLocation)
         }
@@ -173,14 +210,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func onClickWindow(_ window: ScreenshotService.WindowInfo) {
-        if modifierFlags.contains(.shift) {
-            // Shift-click: add window to set of windows
-            if let exists = selectedWindows.firstIndex(where: { $0.id == window.id }) {
-                selectedWindows.remove(at: exists)
-            } else {
-                selectedWindows.append(window)
-            }
+        // Shift-click: add window to set of windows
+        switch shiftClickHoverState {
+        case .adding(let windowInfo):
+            selectedWindows.append(windowInfo)
             return
+        case .removing(let windowInfo):
+            selectedWindows.removeAll { $0.id == windowInfo.id }
+            return
+        case nil: break
         }
         
         // Regular click: pick that win!
@@ -192,7 +230,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func onDragEnd() {
-        defer { dragStart = nil }
+        defer {
+            dragStart = nil
+            dragCancelling = false
+        }
         guard let rect = dragRect else {
             print("onDragEnd: no rect?")
             return
@@ -208,6 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func startCapture(_ action: CaptureAction, mediaType: CaptureMediaType = .image) {
         captureAction = action
         captureMediaType = mediaType
+        dragCancelling = false
         updateMouseLocation()
         render()
     }
@@ -244,9 +286,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if captureAction != nil {
             keyboardListener.start()
             mouseListener.start()
+            CursorDecorationOverlay.shared.show(point: mouseLocation)
             ShieldOverlayManager.shared.start()
         } else {
             ShieldOverlayManager.shared.stop()
+            CursorDecorationOverlay.shared.hide()
             mouseListener.stop()
             keyboardListener.stop()
         }
@@ -382,6 +426,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 //            print("  mouse NS.asCG: \(mouseLocation.isNS.asCG)")
 //            print("  mouse CG:      \(location)")
 //        }
+
         
     }
+        
+    func computeShiftClickHoverState(hovered: WindowInfo) -> ShiftClickHoverState? {
+        if captureAction != .window {
+            return nil
+        }
+        
+        if !modifierFlags.contains(.shift) {
+            return nil
+        }
+        
+        if selectedWindows.contains(where: { $0.id == hovered.id }) {
+            return .removing(hovered)
+        } else {
+            return .adding(hovered)
+        }
+    }
+
 }

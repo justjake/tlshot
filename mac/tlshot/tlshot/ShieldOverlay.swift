@@ -92,9 +92,42 @@ class ShieldOverlay: ObservableObject {
         @EnvironmentObject var app: AppDelegate
         @ObservedObject var props: ShieldOverlay
         var isMouseScreen: Bool { props.screen == app.mouseScreen }
+        @State var localMousePosition: CGPoint?
+        var useLocalMousePosition = true
+        
+        var localShiftClickHoverState: AppDelegate.ShiftClickHoverState?
+        var shiftClickHoverState: AppDelegate.ShiftClickHoverState? {
+            localShiftClickHoverState ?? app.shiftClickHoverState
+        }
+        
+        var mousePosition: CGPoint? {
+            if useLocalMousePosition {
+                return localMousePosition
+            } else if isMouseScreen {
+                let nsPoint = props.panel.convertPoint(fromScreen: app.mouseLocation) as CGPoint
+                // TODO: is this going to be CGPoint style SwiftUI top-left thingy?
+                return props.panel.contentView?.convert(nsPoint, from: nil)
+            }
+            return nil
+        }
         
         var body: some View {
             VStack {
+                if let position = mousePosition {
+                    let actionSymbol: String? = switch shiftClickHoverState {
+                    case .adding(let windowInfo):
+                        "plus.circle.fill"
+                    case .removing(let windowInfo):
+                        "minus.circle.fill"
+                    case nil: nil
+                    }
+                    CursorDecoration(
+                        showActionSymbol: actionSymbol,
+                        showCrosshairs: app.captureAction == .area
+                    )
+                    .position(position)
+                }
+                
                 Spacer()
                 
                 HStack(spacing: 16) {
@@ -175,18 +208,25 @@ class ShieldOverlay: ObservableObject {
 //                color: isMouseScreen ? .accentColor : .secondary
 //            )
             .cursor(app.desiredCursor)
-            .onContinuousHover {
-                if case .active = $0 {
+            .onContinuousHover { event in
+                switch event {
+                case .active(let point):
                     if !props.panel.isKeyWindow {
                         props.panel.makeKeyAndOrderFront(nil)
                     }
                     
-                    if app.captureAction == nil {
+                    if app.captureAction == nil && !app.isSwiftPreview {
                         print("XXX: mouse over ShieldOverlayView, but not capturing!")
                         app.render()
                     }
+                    
+                    localMousePosition = point
+                case .ended:
+                    localMousePosition = nil
                 }
-            }
+            }.gesture(DragGesture().onChanged {
+                localMousePosition = $0.location
+            })
         }
         
         private var divider: some View {
@@ -243,15 +283,17 @@ extension View {
 
 #Preview("Area") {
     let screen = NSScreen.main!
-    let bg = ScreenshotService.shared.screenshot(screen.frame.isNS)
+    let bg = NSImage(named: "SwiftUIPreviewBackground")
     let delegate = AppDelegate()
     delegate.mouseScreen = screen
     delegate.captureAction = .area
     let props = ShieldOverlay(screen)
-    return ShieldOverlay.ShieldView(props: props)
+    return ShieldOverlay.ShieldView(
+        props: props
+    )
         .environmentObject(delegate)
         .background {
-            Image(decorative: bg!, scale: 2, orientation: .up)
+            Image(nsImage: bg!)
         }
      
 }
@@ -264,14 +306,113 @@ struct VisualEffectView: NSViewRepresentable {
 
 #Preview("Window") {
     let screen = NSScreen.main!
-    let bg = ScreenshotService.shared.screenshot(screen.frame.isNS)
+    let bg = NSImage(named: "SwiftUIPreviewBackground")
     let delegate = AppDelegate()
     delegate.mouseScreen = screen
     delegate.captureAction = .window
     let props = ShieldOverlay(screen)
-    return ShieldOverlay.ShieldView(props: props)
+    return ShieldOverlay.ShieldView(
+        props: props,
+        localShiftClickHoverState: .adding(ScreenshotService.WindowInfo.mock(id: 1))
+    )
         .environmentObject(delegate)
         .background {
-            Image(decorative: bg!, scale: 2, orientation: .up)
+            Image(nsImage: bg!)
         }
+}
+
+
+func +(lhs: CGPoint, rhs: CGVector) -> CGPoint {
+    CGPoint(x: lhs.x + rhs.dx, y: lhs.y + rhs.dy)
+}
+
+struct Crosshairs: Shape {
+    let max: Double = 10_000.0
+    let line: Double = 1.0
+    let gap = 1.0
+    
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.addRects([
+                vertical(in: rect, dx: gap),
+                vertical(in: rect, dx: -gap),
+                horizontal(in: rect, dy: gap),
+                horizontal(in: rect, dy: -gap),
+            ])
+        }
+    }
+    
+    func vertical(in rect: CGRect, dx: CGFloat) -> CGRect {
+        .init(center: rect.center.d(x: dx), size: CGSize(width: line, height: max))
+    }
+    
+    func horizontal(in rect: CGRect, dy: CGFloat) -> CGRect {
+        .init(center: rect.center.d(y: dy), size: CGSize(width: max, height: line))
+    }
+    
+}
+
+extension CGPoint {
+    func d(x: CGFloat = 0, y: CGFloat = 0) -> CGPoint {
+        CGPoint(x: self.x + x, y: self.y + y)
+    }
+}
+
+struct CursorDecoration: View {
+    static let actionOffset = CGSize(width: 18, height: 18)
+    let symbolSize: CGFloat = 16
+    
+    var showActionSymbol: String?
+    var showCrosshairs: Bool
+    
+    var body: some View {
+        ZStack {
+            crosshairs
+            actionIndicator
+                .offset(Self.actionOffset)
+        }
+        .zIndex(1)
+    }
+    
+    // Crosshairs
+    @ViewBuilder
+    var crosshairs: some View {
+        if showCrosshairs {
+            Crosshairs()
+        }
+    }
+    
+    
+    // Action Indicator
+    
+    @ViewBuilder
+    var actionIndicator: some View {
+        if let name = showActionSymbol {
+            symbol(name)
+        }
+    }
+               
+    var plus: some View { symbol("plus.circle.fill") }
+    var minus: some View { symbol("minus.circle.fill") }
+
+    func symbol(_ systemName: String) -> some View {
+        CursorSymbolBadge(systemName: systemName)
+        // Flattens this view, so that the shadow never
+        // ends up lagging behind the rest of the views during
+        // our frequent re-renders.
+            .drawingGroup()
+    }
+}
+
+struct CursorSymbolBadge: View {
+    let systemName: String
+    var body: some View {
+        Image(systemName: systemName)
+            .resizable()
+            .symbolRenderingMode(.multicolor)
+            .aspectRatio(contentMode: .fill)
+            .fontWeight(.bold)
+            .frame(width: 14, height: 14)
+            .zIndex(1)
+    }
 }

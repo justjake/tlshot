@@ -68,7 +68,7 @@ class WindowPicker {
         lazy var panel: some NSPanel = OverlayPanel(.zero) { OverlayView(props: self) }
         
         struct OverlayView: View {
-            @ObservedObject var app: AppDelegate = AppDelegate.shared
+            @EnvironmentObject var app: AppDelegate
             @ObservedObject var props: WindowPickerOverlay
             
             var color: Color {

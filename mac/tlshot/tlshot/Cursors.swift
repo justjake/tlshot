@@ -126,7 +126,6 @@ final class CursorBuilder {
             .foregroundStyle(.black)
             .backgroundStyle(.white)
             .compositingGroup()
-            .shadow(color: .black, radius: shadowWidth, x: 1, y: 1)
     }
     
     @MainActor func buildResultImage(cgPath: CGPath) -> CGImage? {
@@ -190,41 +189,43 @@ struct Cursors: View {
     var body: some View {
         HStack {
             // Composing camera from bits
-            VStack {
-                Self.cameraFill
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 100, height: 100)
-                
-                let contourInput = cameraContourInput()
-                Image(nsImage: NSImage(cgImage: contourInput, size: NSSize(width: contourInput.width, height: contourInput.height)))
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 100)
-                
-                let cameraPath = Path(cameraCGPath())
-                
-                let black = cameraPath
-                    .foregroundStyle(.black)
-                
-                black.frame(width: 100, height: 100)
-                
-                let whiteStroke = cameraPath
-                    .stroke(lineWidth: 10)
-                    .foregroundStyle(.white)
-                
-                whiteStroke.frame(width: 100, height: 100)
-                
-                let mouse = black.background { whiteStroke }
-                let shadowed = mouse
-                    .compositingGroup()
-                    .shadow(color: .black, radius: 2, x: 0, y: 1)
-                shadowed.frame(width: 100, height: 100)
-                
+            if false {
+                VStack {
+                    Self.cameraFill
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 100, height: 100)
+                    
+                    let contourInput = cameraContourInput()
+                    Image(nsImage: NSImage(cgImage: contourInput, size: NSSize(width: contourInput.width, height: contourInput.height)))
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 100)
+                    
+                    let cameraPath = Path(cameraCGPath())
+                    
+                    let black = cameraPath
+                        .foregroundStyle(.black)
+                    
+                    black.frame(width: 100, height: 100)
+                    
+                    let whiteStroke = cameraPath
+                        .stroke(lineWidth: 10)
+                        .foregroundStyle(.white)
+                    
+                    whiteStroke.frame(width: 100, height: 100)
+                    
+                    let mouse = black.background { whiteStroke }
+                    let shadowed = mouse
+                        .compositingGroup()
+                        .shadow(color: .black, radius: 2, x: 0, y: 1)
+                    shadowed.frame(width: 100, height: 100)
+                    
+                }
             }
             
-            // Contact sheet
             VStack(spacing: 20) {
+                Text("Camera").font(.headline)
                 
                 mouseView()
                 
@@ -237,7 +238,51 @@ struct Cursors: View {
                     .frame(width: 40, height: 40)
 
             }.frame(width: 100)
+            
+            VStack(spacing: 20) {
+                Text("Badging").font(.headline)
+                
+                cameraWithBadge("plus.circle.fill")
+                cameraWithBadge("minus.circle.fill")
+
+                ZStack {
+                    cursorImage(NSCursor.arrow)
+                    CursorSymbolBadge(systemName: "plus.circle.fill")
+                        .mouseShadow()
+                        .offset(x: 14, y: 12)
+                }
+                
+                ZStack {
+                    cursorImage(NSCursor.pointingHand)
+                    CursorSymbolBadge(systemName: "plus.circle.fill")
+                        .mouseShadow()
+                        .offset(x: 14, y: 12)
+                }
+                
+                ZStack {
+                    cursorImage(NSCursor.pointingHand)
+                    CursorSymbolBadge(systemName: "minus.circle.fill")
+                        .mouseShadow()
+                        .offset(x: 14, y: 12)
+                }
+            }
         }
+    }
+    
+    func cursorImage(_ cursor: NSCursor) -> some View {
+        Image(nsImage: cursor.image)
+//            .aspectRatio(contentMode: .fit)
+//            .frame(width: cursor.image.size.width, height: cursor.image.size.height)
+    }
+    
+    @MainActor func cameraWithBadge(_ badge: String) -> some View {
+        ZStack {
+            mouseView()
+            CursorSymbolBadge(systemName: badge)
+                .offset(x: 12, y: 6)
+        }
+        .compositingGroup()
+        .shadow(radius: 1, x:0, y:1)
     }
     
     @MainActor func cameraContourInput() -> CGImage {
@@ -266,7 +311,14 @@ struct Cursors: View {
     }
 }
 
+extension View {
+    func mouseShadow() -> some View {
+        self.shadow(radius: 1, y: 1)
+    }
+}
+
 #Preview {
     Cursors()
         .expand()
+        .background(.white)
 }

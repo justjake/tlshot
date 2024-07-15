@@ -31,7 +31,7 @@ class ImageWindow: NSWindow {
     }
     
     override func close() {
-        appDelegate.removeImageWindow(self)
+        AppDelegate.shared.removeImageWindow(self)
         super.close()
     }
 }
