@@ -32,7 +32,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @AppStorage(SettingsKey.windowIncludeShadow) var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) var windowIncludeDesktop: Bool = false
 
-    @Published var customWindowCursor: NSCursor?
+    @Published var cameraCursor: NSCursor?
+    @Published var cameraPlusCursor: NSCursor?
+    @Published var cameraMinusCursor: NSCursor?
+    
     @Published var hasPermission: Bool = false
     @Published var imageWindows: [NSWindow] = []
     @Published var desiredCursor: NSCursor?
@@ -160,17 +163,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             return
         }
         
-        // Build our mouse cursor
+        // Build our mouse cursors
         Task {
-            let cameraView = await CameraWithStroke(cgPath: try! Cursors.cameraPath.buildAsync()!, width: 40)
-                .compositingGroup()
-                .mouseShadow()
-            let cameraRenderer = ViewRenderHolder() { cameraView }
-            let cgImage = cameraRenderer.render()!
-            let nsImage = NSImage(cgImage: cgImage, size: CGSize(square: 25))
-            nsImage.setName("CameraCursor")
-            let cursor = NSCursor(image: nsImage, hotSpot: nsImage.size.center)
-            Task { @MainActor in self.customWindowCursor = cursor }
+            let cameraPath = try! await Cursors.cameraPath.buildAsync()
+            let cameraViewBuilder = CameraViewBuilder(cameraPath!)
+            
+            func makeCursor(name: String, image: CGImage?, size: CGSize? = nil, offset: CGSize? = nil) -> NSCursor {
+                let nsImage: NSImage = image!.nsImage(size: size)!
+                nsImage.setName(name)
+                return NSCursor(image: nsImage, hotSpot: nsImage.size.center.d(x: offset?.width ?? 0, y: offset?.height ?? 0))
+            }
+            
+            Task { @MainActor in
+                self.cameraCursor = makeCursor(
+                    name: "Camera",
+                    image: cameraViewBuilder.cameraRenderer.render(),
+                    size: .init(square: 28)
+                )
+                
+                let badgeOffset = CGSize(width: -4, height: -4)
+                let badgeSize = CGSize(square: 36)
+                self.cameraPlusCursor = makeCursor(
+                    name: "CameraPlus",
+                    image: cameraViewBuilder.cameraPlusRenderer.render(),
+                    size: badgeSize,
+                    offset: badgeOffset
+                )
+                self.cameraMinusCursor = makeCursor(
+                    name: "CameraMinus",
+                    image: cameraViewBuilder.cameraMinusRenderer.render(),
+                    size: badgeSize,
+                    offset: badgeOffset
+                )
+            }
         }
 
         
@@ -178,7 +203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         hasPermission = CGPreflightScreenCaptureAccess()
         
         // TODO: not this
-        startCapture(.area)
+        startCapture(.window)
     }
     
     func showErrorAlert(error: Error) {
@@ -305,10 +330,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func updateCursor() {
         let nextCursor = switch captureAction {
         case .area: NSCursor.crosshair
-        case .window: if modifierFlags.contains(.shift) {
-            NSCursor.dragCopy
-        } else {
-            customWindowCursor ?? NSCursor.pointingHand
+        case .window: switch shiftClickHoverState {
+            case .adding(let windowInfo): cameraPlusCursor ?? NSCursor.dragCopy
+            case .removing(let windowInfo): cameraMinusCursor ?? NSCursor.pointingHand
+            case nil: cameraCursor ?? NSCursor.pointingHand
         }
         case nil: NSCursor.arrow
         }
