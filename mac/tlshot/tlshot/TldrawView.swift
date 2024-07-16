@@ -16,17 +16,39 @@ struct TldrawView: View {
 }
 
 struct TldrawWebView: NSViewRepresentable {
-    class Coordinator: NSObject, ObservableObject, WKNavigationDelegate {
+    var bridgeEnvironment: BridgeEnvironment = BridgeEnvironment(appName: "tlshot", initialFileURL: nil, theme: .light)
+    @Environment(\.colorScheme) var colorScheme
+
+    class Coordinator: NSObject, ObservableObject, WKNavigationDelegate, WKScriptMessageHandler {
+        
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        }
+        
+        var view: TldrawWebView {
+            get { _view }
+            set {
+                _view = newValue
+                bridge.view = newValue
+            }
+        }
+        
+        private var _view: TldrawWebView
         var userContentController = WKUserContentController()
         var configuration: WKWebViewConfiguration
-        
-        override init() {
+        var bridge: BridgeMessageDelegate
+
+        init(_ view: TldrawWebView) {
+            self._view = view
+            bridge = BridgeMessageDelegate(view)
             configuration = WKWebViewConfiguration()
             configuration.userContentController = userContentController
             configuration.applicationNameForUserAgent = "tlshot"
             configuration.limitsNavigationsToAppBoundDomains = true
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
             configuration.preferences.isTextInteractionEnabled = true
+            userContentController.add(bridge as WKScriptMessageHandler, name: "notify")
+            userContentController.addScriptMessageHandler(bridge as WKScriptMessageHandlerWithReply, contentWorld: .page, name: "request")
+            userContentController.addUserScript(bridge.getUserScript())
         }
         
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
@@ -35,6 +57,7 @@ struct TldrawWebView: NSViewRepresentable {
         
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("Navigation finished")
+            print("------------------------------------------------")
         }
         
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
@@ -47,27 +70,26 @@ struct TldrawWebView: NSViewRepresentable {
         }
     }
     
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
     
     func makeNSView(context: Context) -> WKWebView {
+        context.coordinator.view = self
         let view = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
         view.navigationDelegate = context.coordinator
-        
-        print("makeNSView")
-        
-//        view.loadHTMLString("<body><h1>tlshot</h1></body>", baseURL: nil)
-        
+        view.load(URLRequest(url: URL(string: "http://localhost:5173/")!))
         return view
     }
     
     func updateNSView(_ nsView: WKWebView, context: Context) {
-        print("updateNSView")
-        nsView.loadHTMLString("<body><h1>tlshot</h1></body>", baseURL: nil)
-        // Pass.
+        context.coordinator.view = self
     }
 }
 
 #Preview {
+    VStack {
+        Text("Rendered at \(Date())").padding(6)
+        
     TldrawView()
         .expand()
+    }
 }

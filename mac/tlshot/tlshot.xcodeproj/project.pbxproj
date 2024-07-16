@@ -14,6 +14,8 @@
 		C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */; };
 		C140CAEC2C457B1B00FAB807 /* ContourPathExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */; };
 		C1448EAE2C459D2B00639D0D /* TldrawView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1448EAD2C459D2B00639D0D /* TldrawView.swift */; };
+		C149800C2C45EDE500C4E4D0 /* BridgeTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */; };
+		C149800E2C45F1E900C4E4D0 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800D2C45F1E900C4E4D0 /* Bridge.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -59,6 +61,8 @@
 		C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorDecorationOverlay.swift; sourceTree = "<group>"; };
 		C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContourPathExtractor.swift; sourceTree = "<group>"; };
 		C1448EAD2C459D2B00639D0D /* TldrawView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawView.swift; sourceTree = "<group>"; };
+		C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BridgeTypes.swift; sourceTree = "<group>"; };
+		C149800D2C45F1E900C4E4D0 /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -131,6 +135,8 @@
 		C17645962C3F8DB400E60BE4 /* tlshot */ = {
 			isa = PBXGroup;
 			children = (
+				C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */,
+				C149800D2C45F1E900C4E4D0 /* Bridge.swift */,
 				C12AEF8E2C443E4600B29527 /* Cursors.swift */,
 				C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */,
 				C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */,
@@ -315,6 +321,7 @@
 			files = (
 				C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */,
 				C12AEF8F2C443E4600B29527 /* Cursors.swift in Sources */,
+				C149800C2C45EDE500C4E4D0 /* BridgeTypes.swift in Sources */,
 				C140CAEC2C457B1B00FAB807 /* ContourPathExtractor.swift in Sources */,
 				C12AEF892C4328B200B29527 /* ImageWindow.swift in Sources */,
 				C17645C92C40C56100E60BE4 /* LoupeView.swift in Sources */,
@@ -324,6 +331,7 @@
 				C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */,
 				C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */,
 				C176459A2C3F8DB400E60BE4 /* ContentView.swift in Sources */,
+				C149800E2C45F1E900C4E4D0 /* Bridge.swift in Sources */,
 				C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */,
 				C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */,
 				C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */,

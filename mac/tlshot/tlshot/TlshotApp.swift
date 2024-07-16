@@ -24,6 +24,7 @@ enum TlshotError: LocalizedError {
     case missingFileData
     case unknownFileType(UTType)
     case invalidJson(Data)
+    case invalidData(String)
     case notImplemented(String)
     case captureFailed(String)
     
