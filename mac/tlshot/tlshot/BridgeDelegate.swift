@@ -156,30 +156,103 @@ class BridgeDebugLogger {
 }
 
 class BridgeAssetServer {
-    private(set) var images: [Int:CGImage] = [:]
+    enum AssetType: String {
+        case proxy = "proxy"
+        case cgImage = "cgImage"
+        case svg = "svg"
+    }
     
-    func add(image: CGImage) {
-        images[image.hashValue] = image
+    private var images: [String:CGImage] = [:]
+    private var svgs: [String:String] = [:]
+    
+    // Returns URL of asset
+    func add(image: CGImage) -> String {
+        images["\(image.hashValue)"] = image
+        return url("cgImage/\(image.hashValue)")
+    }
+    
+    func add(svg: CreateSVGRequest) -> String {
+        svgs[svg.assetID] = svg.svgText
+        return url("svg/\(svg.assetID)")
+    }
+    
+    func getInitialAsset() -> InitialAsset? {
+        guard let image = images.values.first else {
+            return nil
+        }
+        
+        return InitialAsset(fileSize: Double(image.png?.count ?? 0), h: Double(image.height), isAnimated: false, mimeType: "image/png", name: "Screenshot", src: url("cgImage/\(image.hashValue)"), w: Double(image.width))
     }
     
     func onRequest(_ request: URLRequest) async throws -> BridgeURLResponse {
-        if request.url?.scheme != BridgeProtocol.asset.rawValue {
+        guard let url = request.url else {
             throw BridgeError.notSupportedByDelegate
         }
         
-        guard let imageIDString = request.url?.lastPathComponent, let imageID = Int(imageIDString) else {
-            throw BridgeError.message("Not a valid asset request: \(request)")
+        if url.scheme != BridgeProtocol.asset.rawValue {
+            throw BridgeError.notSupportedByDelegate
         }
         
+        // Expect url.pathComponents = [
+        //   "/",
+        //   "cgImage" | "svg",
+        //   name
+        // ]
+        guard
+            url.pathComponents.count >= 3,
+            let assetType = AssetType(rawValue: url.pathComponents[1])
+        else {
+            throw BridgeError.message("Not a valid asset request: \(request) (\(url.pathComponents))")
+        }
+        let assetName = url.pathComponents[2]
+        
+        switch assetType {
+        case .cgImage:
+            return try serveCgImage(assetName, url: url)
+        case .svg:
+            return try serveSvg(assetName, url: url)
+        case .proxy:
+            return try await serveProxy(url)
+        }
+    }
+    
+    func serveCgImage(_ imageID: String, url: URL) throws -> BridgeURLResponse {
         guard let image = images[imageID] else {
-            throw BridgeError.message("Not found: \(imageID)")
+            throw BridgeError.message("CGImage not found: \(imageID)")
         }
         
         guard let data = image.png else {
             throw TlshotError.invalidData("Cannot convert image to PNG")
         }
         
-        return .binary(data, url: request.url!, mimeType: "image/png")
+        return .binary(data, url: url, mimeType: "image/png")
+    }
+    
+    func serveSvg(_ name: String, url: URL) throws -> BridgeURLResponse {
+        guard let svgText = svgs[name] else {
+            throw BridgeError.message("SVG not found: \(name)")
+        }
+        
+        return .utf8(svgText, url: url, mimeType: "image/svg+xml")
+    }
+    
+    func serveProxy(_ url: URL) async throws -> BridgeURLResponse {
+        guard let urlText = url.query(percentEncoded: false) else {
+            throw BridgeError.message("not vaid query: \(url)")
+        }
+        
+        guard let proxyUrl = URL(string: urlText) else {
+            throw BridgeError.message("not valid url: \(url)")
+        }
+        
+        print("Proxy attempt: \(proxyUrl)")
+        let (data, response) = try await URLSession.shared.data(from: proxyUrl)
+        print("Proxy ok: \(response.mimeType)")
+        return .binary(data, url: url, mimeType: response.mimeType ?? "text/html")
+    }
+    
+    private func url(_ path: String) -> String {
+        return "\(BridgeProtocol.asset.rawValue)://assets/\(path)"
     }
 }
 

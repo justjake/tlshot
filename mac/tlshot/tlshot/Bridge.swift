@@ -142,6 +142,7 @@ extension SaveRequest: IncomingEncodableRequest {
 
 enum BridgeURLResponse {
     case binary(Data, url: URL, mimeType: String)
+    case utf8(String, url: URL, mimeType: String)
     case empty
 }
 
@@ -166,17 +167,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     var env: BridgeEnvironment {
         BridgeEnvironment(
             appName: "tlshot",
-            initialAsset: assetServer.images.values.first.map { image in
-                InitialAsset(
-                    fileSize: 0,
-                    h: Double(image.height),
-                    isAnimated: false,
-                    mimeType: "image/png",
-                    name: "Screenshot \(image.hashValue)",
-                    src: "\(BridgeProtocol.asset.rawValue)://cgImage/\(image.hashValue)",
-                    w: Double(image.width)
-                )
-            },
+            initialAsset: assetServer.getInitialAsset(),
             theme: {switch colorScheme {
             case .light: .light
             case .dark: .dark
@@ -214,9 +205,17 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                 }
                 
                 switch response {
-                case .binary(let data, url: let url, mimeType: let mimeType):
+                case .binary(let data, url: _, mimeType: let mimeType):
                     let response = httpResponse(request: request, mimeType: mimeType, expectedContentLength: data.count)
                     urlSchemeTask.didReceive(response)
+                    urlSchemeTask.didReceive(data)
+                    urlSchemeTask.didFinish()
+                case .utf8(let text, url: _, mimeType: let mimeType):
+                    let response = httpResponse(request: request, mimeType: mimeType, expectedContentLength: text.lengthOfBytes(using: .utf8))
+                    urlSchemeTask.didReceive(response)
+                    guard let data = text.data(using: .utf8) else {
+                        throw TlshotError.invalidData("Cannot encode text respnse")
+                    }
                     urlSchemeTask.didReceive(data)
                     urlSchemeTask.didFinish()
                 case .empty:
@@ -270,10 +269,13 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
         do {
             let msg = try Request.fromWebKit(message)
-            let response = switch msg.type {
+            let response: Encodable = try await { switch msg.type {
             case .getName:
-                try await helloWorldDelegate.onRequest(.fromJSON(string: msg.json))
-            }
+                return try await helloWorldDelegate.onRequest(.fromJSON(string: msg.json))
+            case .createSVGAsset:
+                let url = try assetServer.add(svg: .fromJSON(string: msg.json))
+                return CreateSVGResponse(assetURL: url)
+            } }()
             
             return try (response.toJSON().asString(), nil)
         } catch {

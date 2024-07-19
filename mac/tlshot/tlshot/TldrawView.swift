@@ -64,7 +64,10 @@ struct TldrawWebView: NSViewRepresentable {
         let webview = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
         webview.isInspectable = true
         webview.navigationDelegate = context.coordinator
-        webview.load(URLRequest(url: URL(string: "http://localhost:5173/")!))
+        let preview = "http://localhost:5173/"
+        let percentEncoded = preview.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
+        let encoded = URL(string: "asset://assets/proxy/something?\(preview)")!
+        webview.load(URLRequest(url: URL(string: preview)!))
         context.coordinator.bridge.webview = webview
         context.coordinator.bridge.colorScheme = colorScheme
         return webview

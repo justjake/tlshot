@@ -1,23 +1,111 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AssetRecordType,
   Editor,
+  TLComponents,
+  TLDefaultShape,
   TLImageAsset,
   TLShapePartial,
   Tldraw,
   createShapeId,
+  exportToBlob,
   getHashForString,
   getSvgAsImage,
+  useEditor,
 } from "tldraw";
-import { bridge } from "./Bridge";
+import { bridge, BridgeIncomingHandlers } from "./Bridge";
+
+async function makeSvgUrl(editor: Editor) {
+  const svg = await editor.getSvgString(
+    Array.from(editor.getPageShapeIds(editor.getCurrentPageId())),
+    {
+      scale: 2,
+    }
+  );
+  if (!svg) throw new Error("Failed to get SVG string");
+
+  const imagesToReplace = editor
+    .getCurrentPageShapes()
+    .map(async (unknownShape) => {
+      const shape = unknownShape as TLDefaultShape;
+      if (shape.type !== "image") return;
+      console.log("props", shape.props);
+      const asset = editor.getAsset(shape.props.assetId!);
+      const blob = await fetch(asset?.props.src!).then((res) => res.blob());
+      const dataUrl = await new Promise<string>((callback) => {
+        var a = new FileReader();
+        a.onload = function (e) {
+          callback(e.target.result as string);
+        };
+        a.readAsDataURL(blob);
+      });
+
+      // TODO: release blob url
+      return [asset?.props.src!, dataUrl];
+    });
+
+  const pairs = (await Promise.all(imagesToReplace)).filter(Boolean) as [
+    string,
+    string,
+  ][];
+
+  console.log("pairs", pairs);
+
+  let svgText = svg.svg;
+  for (const [url, blobUrl] of pairs) {
+    svgText = svgText.replace(url, blobUrl);
+  }
+
+  console.log("svgText", svgText);
+  const blobber = new Blob([svgText], { type: "image/svg+xml" });
+
+  return { info: svg, assetUrl: URL.createObjectURL(blobber) };
+}
+
+function TopPanel() {
+  const editor = useEditor();
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const makeSvg = async () => {
+    console.log("Making SVG");
+    const { assetUrl } = await makeSvgUrl(editor);
+    // window.location.href = assetUrl;
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.style.maxWidth = "100%";
+    image.style.backgroundColor = "purple";
+    image.src = assetUrl;
+    imageContainerRef.current!.appendChild(image);
+  };
+  return (
+    <div
+      style={{
+        position: "relative",
+        zIndex: 300,
+        pointerEvents: "all",
+        maxWidth: "50%",
+      }}
+    >
+      <button onClick={makeSvg}>Make SVG</button>
+      <div
+        ref={imageContainerRef}
+        style={{ background: "red", border: "1px solid red" }}
+      />
+      ;
+    </div>
+  );
+}
+
+const components: TLComponents = {
+  TopPanel,
+};
 
 function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
 
-  useEffect(() => {
+  const registerApi = useMemo<BridgeIncomingHandlers | undefined>(() => {
     if (!editor) return;
-    (globalThis as any).__tldraw__ = editor;
-    bridge.register({
+
+    return {
       save: async () => {
         const svg = await editor.getSvgString(
           Array.from(editor.getPageShapeIds(editor.getCurrentPageId())),
@@ -46,7 +134,14 @@ function App() {
           httpUpload: arrayBuffer,
         };
       },
-    });
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    if (!registerApi) return;
+    (globalThis as any).__tldraw__ = editor;
+    bridge.register(registerApi);
     editor.user.updateUserPreferences({ colorScheme: bridge.env.theme });
 
     const { initialAsset } = bridge.env;
@@ -86,7 +181,11 @@ function App() {
 
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <Tldraw inferDarkMode onMount={setEditor} />
+      <Tldraw
+        inferDarkMode
+        onMount={setEditor}
+        components={components}
+      ></Tldraw>
     </div>
   );
 }

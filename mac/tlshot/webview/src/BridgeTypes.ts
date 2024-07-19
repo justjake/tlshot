@@ -53,6 +53,10 @@ export interface BridgeRequestMap {
     request: GetNameRequest;
     response: GetNameResponse;
   };
+  createSvgAsset: {
+    request: CreateSvgRequest;
+    response: CreateSvgResponse;
+  };
 }
 
 export interface BridgeIncomingMap {
@@ -85,4 +89,13 @@ export type BridgeImageAssetProps = {
 export enum BridgeProtocol {
   httpResponse = "tlshot-response",
   asset = "asset",
+}
+
+export interface CreateSvgRequest {
+  assetId: string;
+  svgText: string;
+}
+
+export interface CreateSvgResponse {
+  assetUrl: string;
 }

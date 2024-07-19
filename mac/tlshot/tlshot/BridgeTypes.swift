@@ -19,6 +19,8 @@
 //   let bridgeIncomingType = try? JSONDecoder().decode(BridgeIncomingType.self, from: jsonData)
 //   let bridgeImageAssetProps = try? JSONDecoder().decode(BridgeImageAssetProps.self, from: jsonData)
 //   let bridgeProtocol = try? JSONDecoder().decode(BridgeProtocol.self, from: jsonData)
+//   let createSVGRequest = try? JSONDecoder().decode(CreateSVGRequest.self, from: jsonData)
+//   let createSVGResponse = try? JSONDecoder().decode(CreateSVGResponse.self, from: jsonData)
 
 //
 // Hashable or Equatable:
@@ -149,7 +151,56 @@ enum BridgeIncomingType: String, Codable, Hashable {
 
 // MARK: - BridgeRequestMap
 struct BridgeRequestMap: Codable, Hashable {
+    let createSVGAsset: CreateSVGAsset
     let getName: GetName
+
+    enum CodingKeys: String, CodingKey {
+        case createSVGAsset = "createSvgAsset"
+        case getName
+    }
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - CreateSVGAsset
+struct CreateSVGAsset: Codable, Hashable {
+    let request: CreateSVGRequest
+    let response: CreateSVGResponse
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - CreateSVGRequest
+struct CreateSVGRequest: Codable, Hashable {
+    let assetID, svgText: String
+
+    enum CodingKeys: String, CodingKey {
+        case assetID = "assetId"
+        case svgText
+    }
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - CreateSVGResponse
+struct CreateSVGResponse: Codable, Hashable {
+    let assetURL: String
+
+    enum CodingKeys: String, CodingKey {
+        case assetURL = "assetUrl"
+    }
 }
 
 //
@@ -261,6 +312,7 @@ enum BridgeNotificationType: String, Codable, Hashable {
 }
 
 enum BridgeRequestType: String, Codable, Hashable {
+    case createSVGAsset = "createSvgAsset"
     case getName = "getName"
 }
 

@@ -25,25 +25,25 @@ class ImageWindow: NSWindow {
             title = "Image Editor"
             
             let ourBridge = Bridge()
-            ourBridge.assetServer.add(image: image)
+            let assetURL = ourBridge.assetServer.add(image: image)
 
             let view = TldrawWebView(bridge: ourBridge)
                 .expand()
             
-            Task {
-                do {
-                    let result = try await ourBridge.saveReq(.init(saveID: "0"))
-                    print("XXX: save \(result)")
-
-                    let nextWindow = ImageWindow(rect: self.frame, image: result.1.cgImage(forProposedRect: nil, context: nil, hints: nil)!, edit: false)
-                    AppDelegate.shared.imageWindows.append(nextWindow)
-                    nextWindow.orderFront(nil)
-                    nextWindow.becomeMain()
-                    
-                } catch {
-                    print("XXX: error wit image \(error)")
-                }
-            }
+//            Task {
+//                do {
+//                    let result = try await ourBridge.saveReq(.init(saveID: "0"))
+//                    print("XXX: save \(result)")
+//
+//                    let nextWindow = ImageWindow(rect: self.frame, image: result.1.cgImage(forProposedRect: nil, context: nil, hints: nil)!, edit: false)
+//                    AppDelegate.shared.imageWindows.append(nextWindow)
+//                    nextWindow.orderFront(nil)
+//                    nextWindow.becomeMain()
+//                    
+//                } catch {
+//                    print("XXX: error wit image \(error)")
+//                }
+//            }
             
             bridge = ourBridge
             contentView = NSHostingView(rootView: view)

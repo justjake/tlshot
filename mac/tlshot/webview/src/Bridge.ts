@@ -79,6 +79,8 @@ function mockWebkitBridge(): WebkitBridge {
   };
 }
 
+export type BridgeIncomingHandlers = Bridge["incomingHandlers"];
+
 class Bridge {
   readonly webkit: WebkitBridge = (window as any).webkit ?? mockWebkitBridge();
   readonly env: BridgeEnvironment =
@@ -168,10 +170,10 @@ class Bridge {
     return this.webkit.messageHandlers.notify.postMessage({ type, json });
   }
 
-  async request<T extends BridgeRequestType>(
-    request: BridgeRequest<T>
+  async request<const T extends BridgeRequestType>(
+    type: T,
+    data: BridgeRequestMap[T]["request"]
   ): Promise<BridgeResponse<T>> {
-    const { type, data } = request;
     const json = JSON.stringify(data);
     const responseJsonString =
       await this.webkit.messageHandlers.request.postMessage({
