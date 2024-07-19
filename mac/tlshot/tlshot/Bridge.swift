@@ -7,6 +7,17 @@
 
 import Foundation
 import WebKit
+import SwiftUI
+
+extension BridgeEnvironment {
+    static var urlProtcol: String { "asset" }
+    
+    static func defaults(_ bridgeAsset: InitialAsset?) -> BridgeEnvironment {
+        BridgeEnvironment(
+            appName: "tlshot", initialAsset: bridgeAsset, theme: .dark
+        )
+    }
+}
 
 extension Data {
     func asString(encoding: String.Encoding = .utf8) -> String? {
@@ -17,6 +28,15 @@ extension Data {
 extension Encodable {
     func toJSON() throws -> Data {
         try JSONEncoder().encode(self)
+    }
+    
+    func toJSONString() throws -> String {
+        let data = try toJSON()
+        guard let string = data.asString() else {
+            // TODO: wrong?
+            throw TlshotError.invalidJson(data)
+        }
+        return string
     }
 }
 
@@ -33,6 +53,12 @@ extension Decodable {
     }
 }
 
+struct BridgeOutgoingEnvelope {
+    let requestId: UUID = UUID()
+    let type: BridgeIncomingType
+    let json: String
+}
+
 struct BridgeEnvelope<T: RawRepresentable<String>> {
     enum Err: Error {
         case notDictionary(Any)
@@ -44,7 +70,7 @@ struct BridgeEnvelope<T: RawRepresentable<String>> {
     var type: T
     var json: String
     
-    static func fromWebKit(_ message: WKScriptMessage) throws -> BridgeEnvelope {
+    @MainActor static func fromWebKit(_ message: WKScriptMessage) throws -> BridgeEnvelope {
         guard let dictionary = message.body as? NSDictionary else {
             throw Err.notDictionary(message.body)
         }
@@ -61,77 +87,194 @@ struct BridgeEnvelope<T: RawRepresentable<String>> {
     }
 }
 
+enum BridgeError: Error {
+    case noDelegate(Any)
+    case notSupportedByDelegate
+    case message(String)
+}
+
+enum BridgeResponseError: Error {
+    case bridge(Error)
+    case js(BridgeErrorLike)
+}
+
+extension ResponseNotification {
+    func result<T: Decodable>() -> Result<T, BridgeResponseError> {
+        guard let okJson = self.responseNotificationJSON else {
+            guard let jsError = self.error else {
+                return .failure(.bridge(TlshotError.invalidData("Contained neither .json or .error")))
+            }
+            return .failure(.js(jsError))
+        }
+        
+        do {
+            return try .success(T.fromJSON(string: okJson))
+        } catch {
+            return .failure(.bridge(error))
+        }
+    }
+}
+
 extension String {
     func reverseString() -> String {
         String(reversed())
     }
 }
 
-class BridgeMessageDelegate: NSObject, WKScriptMessageHandler, WKScriptMessageHandlerWithReply {
-    typealias Notification = BridgeEnvelope<BridgeNotificationType>
+// https://stackoverflow.com/questions/48312161/how-to-save-cgimage-to-data-in-swift
+extension CGImage {
+    var png: Data? {
+        guard let mutableData = CFDataCreateMutable(nil, 0),
+              let destination = CGImageDestinationCreateWithData(mutableData, "public.png" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, self, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return mutableData as Data
+    }
+}
+
+protocol IncomingEncodableRequest: Encodable {
+    static var requestType: BridgeIncomingType { get }
+}
+
+extension SaveRequest: IncomingEncodableRequest {
+    static var requestType: BridgeIncomingType { .save }
+}
+
+enum BridgeURLResponse {
+    case binary(Data, url: URL, mimeType: String)
+    case empty
+}
+
+
+protocol BridgeIncomingAPI {
+    func save(_ request: SaveRequest) async throws -> SaveResponse
+}
+
+
+class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessageHandlerWithReply, WKURLSchemeHandler {
     
-    init (_ view: TldrawWebView ) {
-        self.view = view
+    @Published var colorScheme: ColorScheme?
+    @MainActor weak var webview: WKWebView?
+    
+    var urlSchemes = [BridgeProtocol.asset.rawValue, BridgeProtocol.tlshotResponse.rawValue]
+    var assetServer = BridgeAssetServer()
+    var bootWaiter = BridgeBootWaiter()
+    var outgoingResponses = BridgeOutgoingRequestRegistry()
+    var debugLogger = BridgeDebugLogger()
+    var helloWorldDelegate = BridgeHelloWorldDelegate()
+    
+    var env: BridgeEnvironment {
+        BridgeEnvironment(
+            appName: "tlshot",
+            initialAsset: assetServer.images.values.first.map { image in
+                InitialAsset(
+                    fileSize: 0,
+                    h: Double(image.height),
+                    isAnimated: false,
+                    mimeType: "image/png",
+                    name: "Screenshot \(image.hashValue)",
+                    src: "\(BridgeProtocol.asset.rawValue)://cgImage/\(image.hashValue)",
+                    w: Double(image.width)
+                )
+            },
+            theme: {switch colorScheme {
+            case .light: .light
+            case .dark: .dark
+            case nil: .dark
+            default: .dark
+            }}()
+        )
     }
     
-    var view: TldrawWebView
+    func webView(_ webView: WKWebView, start urlSchemeTask: any WKURLSchemeTask) {
+        // HTTP request start
+        schemeHandler(urlSchemeTask)
+    }
+    
+    func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
+        // HTTP request end
+    }
+
+    
+    private func schemeHandler(_ urlSchemeTask: any WKURLSchemeTask) {
+        Task { @MainActor in
+            let request = urlSchemeTask.request
+            print("<< REQUEST \(request.httpMethod ?? "?") \(request.url.debug ?? "(no url)")")
+            print("   headers: \(request.allHTTPHeaderFields.debug ?? "?")")
+            print("   body: \((request.httpBody?.count).debug ?? "?")")
+            print("   bodyStream: \(request.httpBodyStream.debug ?? "?")")
+            do {
+                guard let scheme = urlSchemeTask.request.url?.scheme.flatMap({ BridgeProtocol(rawValue: $0) }) else {
+                    throw TlshotError.invalidData("Invalid scheme: \(urlSchemeTask.request)")
+                }
+                
+                let response = switch scheme {
+                case .asset: try await assetServer.onRequest(request)
+                case .tlshotResponse: try await outgoingResponses.onRequest(request)
+                }
+                
+                switch response {
+                case .binary(let data, url: let url, mimeType: let mimeType):
+                    let response = httpResponse(request: request, mimeType: mimeType, expectedContentLength: data.count)
+                    urlSchemeTask.didReceive(response)
+                    urlSchemeTask.didReceive(data)
+                    urlSchemeTask.didFinish()
+                case .empty:
+                    let response = httpResponse(request: request, mimeType: "text/plain", expectedContentLength: 0)
+                    urlSchemeTask.didReceive(response)
+                    urlSchemeTask.didFinish()
+                }
+            } catch {
+                urlSchemeTask.didFailWithError(error)
+                print(">> ERROR \(error)")
+            }
+        }
+    }
+    
+    private func httpResponse(
+        request: URLRequest,
+        mimeType: String?,
+        expectedContentLength: Int
+    ) -> HTTPURLResponse {
+        var headers: [String:String] = [:]
+        headers["Access-Control-Allow-Origin"] = "*"
+        headers["Content-Type"] = mimeType
+        headers["Content-Length"] = String(expectedContentLength)
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: headers)
+        return response!
+    }
+    
     
     // Notification
+    typealias Notification = BridgeEnvelope<BridgeNotificationType>
+    @MainActor
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         do {
             let message = try Notification.fromWebKit(message)
             switch message.type {
             case .booted:
-                try onBooted(BootedNotification.fromJSON(string: message.json))
+                try bootWaiter.onNotification(BootedNotification.fromJSON(string: message.json))
             case .debug:
-                try onDebug(DebugNotification.fromJSON(string: message.json))
+                try debugLogger.onNotification(DebugNotification.fromJSON(string: message.json))
+            case .response:
+                try outgoingResponses.onNotification(ResponseNotification.fromJSON(string: message.json))
             }
         } catch {
             print("\(self).didReceive error: \(error)")
         }
     }
     
-    var logIndex = 0
-    @discardableResult
-    func consoleLog(_ msg: String, _ index: Int? = nil) -> Int {
-        logIndex = index ?? logIndex + 1
-        let number = String(logIndex).reverseString().padding(toLength: 5, withPad: " ", startingAt: 0).reverseString()
-        let prefix = "[\(number)] JS: "
-        let msg = msg.split(separator: "\n").map { prefix + $0 }.joined(separator: "\n")
-        if index == nil {
-            print("/ -- \(Date()) --\\")
-        }
-        print(msg)
-        return logIndex
-    }
-
-    func onDebug(_ msg: DebugNotification) {
-        switch msg.type {
-        case .console:
-            consoleLog("console.\(msg.method?.rawValue ?? "?"): \(msg.message?.joined(separator: " ") ?? "")")
-        case .error:
-            let log = consoleLog("ERROR: \(msg.error?.name ?? "?"): \(msg.error?.message ?? "?")")
-            if let stack = msg.error?.stack {
-                consoleLog(stack, log)
-            }
-        case .unhandledRejection:
-            let log = consoleLog("ASYNC ERROR: \(msg.error?.name ?? "?"): \(msg.error?.message ?? "?")")
-            if let stack = msg.error?.stack {
-                consoleLog(stack, log)
-            }
-        }
-    }
-    
-    func onBooted(_ msg: BootedNotification) {
-        print("webview booted (time from js): \(Date(timeIntervalSince1970: msg.time/1000))")
-    }
-    
     // Request/Reply
     typealias Request = BridgeEnvelope<BridgeRequestType>
+    @MainActor
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
         do {
-            let message = try Request.fromWebKit(message)
-            let response = try await onRequest(message)
+            let msg = try Request.fromWebKit(message)
+            let response = switch msg.type {
+            case .getName:
+                try await helloWorldDelegate.onRequest(.fromJSON(string: msg.json))
+            }
+            
             return try (response.toJSON().asString(), nil)
         } catch {
             print("\(self).didReceive error: \(error)")
@@ -140,17 +283,47 @@ class BridgeMessageDelegate: NSObject, WKScriptMessageHandler, WKScriptMessageHa
         }
     }
     
-    func onRequest(_ msg: Request) async throws -> Encodable {
-        switch msg.type {
-        case .getName:
-            return GetNameResponse(name: "Doug")
-        }
+    // Swift -> WebView requests
+    private func sendRequest<Req: IncomingEncodableRequest, Res: Decodable>(req: Req) async throws -> (Res, Data?) {
+        let requestID = UUID().uuidString
+        let requestJson = try req.toJSONString()
+        let envelope = BridgeIncomingEnvelope(
+            bridgeIncomingEnvelopeJSON: requestJson,
+            requestID: requestID,
+            type: Req.requestType
+        )
+        let envelopeJson = try envelope.toJSONString()
+        await bootWaiter.waitForBoot()
+        async let (responseEnvelope, responseHttp) = outgoingResponses.waitForResponse(requestID: requestID)
+        try await evalJS("globalThis.webkit.incomingMessageHandler(\(envelopeJson))")
+        let response: Res = try await responseEnvelope.result().get()
+        let responseData = await responseHttp?.httpBody
+        return (response, responseData)
     }
     
+    
+    @MainActor
+    func evalJS(_ js: String) throws {
+        guard let webview = self.webview else {
+            throw BridgeResponseError.bridge(TlshotError.notImplemented("no webview to send to"))
+        }
+        webview.evaluateJavaScript(js)
+    }
+    
+    func saveReq(_ msg: SaveRequest) async throws -> (SaveResponse, NSImage) {
+        let (res, data) = try await sendRequest(req: msg) as (SaveResponse, Data?)
+        guard let data = data else {
+            throw TlshotError.invalidData("No data for response: \(res)")
+        }
+        guard let image = NSImage(data: data) else {
+            throw TlshotError.invalidData("Data didn't produce valid NSImage")
+        }
+        return (res, image)
+    }
+
     func getUserScript() -> WKUserScript {
-        let bridgeEnv = view.bridgeEnvironment
         let script = """
-        globalThis.__BRIDGE_ENVIRONMENT__ = \(try! bridgeEnv.toJSON().asString()!)
+        globalThis.__BRIDGE_ENVIRONMENT__ = \(try! env.toJSON().asString()!)
         """
         
         return WKUserScript(source: script, injectionTime: .atDocumentStart, forMainFrameOnly: true)

@@ -8,40 +8,25 @@
 import SwiftUI
 import WebKit
 
-struct TldrawView: View {
-    var body: some View {
-        TldrawWebView()
-            .expand()
-    }
-}
-
 struct TldrawWebView: NSViewRepresentable {
-    var bridgeEnvironment: BridgeEnvironment = BridgeEnvironment(appName: "tlshot", initialFileURL: nil, theme: .light)
+    static var sharedProcessPool = WKProcessPool()
+    
+    var bridge: Bridge
     @Environment(\.colorScheme) var colorScheme
 
     class Coordinator: NSObject, ObservableObject, WKNavigationDelegate, WKScriptMessageHandler {
-        
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         }
         
-        var view: TldrawWebView {
-            get { _view }
-            set {
-                _view = newValue
-                bridge.view = newValue
-            }
-        }
-        
-        private var _view: TldrawWebView
         var userContentController = WKUserContentController()
         var configuration: WKWebViewConfiguration
-        var bridge: BridgeMessageDelegate
+        var bridge: Bridge
 
-        init(_ view: TldrawWebView) {
-            self._view = view
-            bridge = BridgeMessageDelegate(view)
+        init(_ bridge: Bridge) {
+            self.bridge = bridge
             configuration = WKWebViewConfiguration()
             configuration.userContentController = userContentController
+            configuration.processPool = TldrawWebView.sharedProcessPool
             configuration.applicationNameForUserAgent = "tlshot"
             configuration.limitsNavigationsToAppBoundDomains = true
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
@@ -49,6 +34,9 @@ struct TldrawWebView: NSViewRepresentable {
             userContentController.add(bridge as WKScriptMessageHandler, name: "notify")
             userContentController.addScriptMessageHandler(bridge as WKScriptMessageHandlerWithReply, contentWorld: .page, name: "request")
             userContentController.addUserScript(bridge.getUserScript())
+            for scheme in bridge.urlSchemes {
+                configuration.setURLSchemeHandler(bridge, forURLScheme: scheme)
+            }
         }
         
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
@@ -70,18 +58,22 @@ struct TldrawWebView: NSViewRepresentable {
         }
     }
     
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeCoordinator() -> Coordinator { Coordinator(bridge) }
     
     func makeNSView(context: Context) -> WKWebView {
-        context.coordinator.view = self
-        let view = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
-        view.navigationDelegate = context.coordinator
-        view.load(URLRequest(url: URL(string: "http://localhost:5173/")!))
-        return view
+        let webview = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
+        webview.isInspectable = true
+        webview.navigationDelegate = context.coordinator
+        webview.load(URLRequest(url: URL(string: "http://localhost:5173/")!))
+        context.coordinator.bridge.webview = webview
+        context.coordinator.bridge.colorScheme = colorScheme
+        return webview
     }
     
     func updateNSView(_ nsView: WKWebView, context: Context) {
-        context.coordinator.view = self
+        context.coordinator.bridge = bridge
+        context.coordinator.bridge.webview = nsView
+        context.coordinator.bridge.colorScheme = colorScheme
     }
 }
 
@@ -89,7 +81,7 @@ struct TldrawWebView: NSViewRepresentable {
     VStack {
         Text("Rendered at \(Date())").padding(6)
         
-    TldrawView()
-        .expand()
+        let bridge = Bridge()
+        TldrawWebView(bridge: bridge) .expand()
     }
 }

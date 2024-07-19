@@ -1,14 +1,14 @@
 import {
-  BootedNotification,
   BridgeEnvironment,
-  BridgeErrorLike,
+  BridgeIncomingEnvelope,
+  BridgeIncomingMap,
+  BridgeIncomingType,
   BridgeNotificationMap,
   BridgeNotificationType,
+  BridgeProtocol,
   BridgeRequestMap,
   BridgeRequestType,
-  DebugNotification,
-  GetNameRequest,
-  GetNameResponse,
+  ResponseNotification,
 } from "./BridgeTypes";
 
 // Things that exist
@@ -26,6 +26,7 @@ interface WebkitBridge {
       postMessage: (message: TODO) => Promise<TODO>;
     };
   };
+  incomingMessageHandler?: (message: TODO) => void;
 }
 
 // Abstractions over those things
@@ -52,8 +53,16 @@ type BridgeRequest<T extends BridgeRequestType> = BridgeRequestTypeMap[T];
 type BridgeResponse<T extends BridgeRequestType> =
   BridgeRequestMap[T]["response"];
 
-class Bridge {
-  readonly webkit: WebkitBridge = (window as any).webkit ?? {
+function mockEnvironment(): BridgeEnvironment {
+  return {
+    appName: "tlshot/web",
+    theme: "dark",
+    initialAsset: undefined,
+  };
+}
+
+function mockWebkitBridge(): WebkitBridge {
+  return {
     messageHandlers: {
       notify: {
         postMessage: (...args) => {
@@ -68,11 +77,84 @@ class Bridge {
       },
     },
   };
-  readonly env: BridgeEnvironment = (window as any).__BRIDGE_ENVIRONMENT__ ?? {
-    appName: "tlshot/web",
-    theme: "dark",
-    initialFileURL: undefined,
+}
+
+class Bridge {
+  readonly webkit: WebkitBridge = (window as any).webkit ?? mockWebkitBridge();
+  readonly env: BridgeEnvironment =
+    (window as any).__BRIDGE_ENVIRONMENT__ ?? mockEnvironment();
+
+  incomingHandlers: {
+    [key in BridgeIncomingType]: (
+      data: BridgeIncomingMap[key]["request"]
+    ) => Promise<
+      BridgeIncomingMap[key]["response"] & { httpUpload?: BodyInit }
+    >;
+  } = {
+    save: this.noOp("save"),
   };
+
+  incomingMessageHandler: (message: BridgeIncomingEnvelope) => void = async (
+    message
+  ) => {
+    const { requestId, type, json: incomingJson } = message;
+    console.log(">> RECEIVED", requestId, type, message);
+    const incoming = JSON.parse(incomingJson);
+    const handler = this.incomingHandlers[type];
+    try {
+      const { httpUpload, ...result } = await Promise.resolve(
+        handler(incoming)
+      );
+      console.log(
+        "<< RESPONDING",
+        requestId,
+        type,
+        result,
+        `httpUpload=${Boolean(httpUpload)} ${httpUpload}`,
+        httpUpload
+      );
+
+      if (httpUpload) {
+        await fetch(`${BridgeProtocol.httpResponse}://request/${requestId}`, {
+          method: "POST",
+          body: httpUpload,
+        });
+      }
+
+      this.notify({
+        type: "response",
+        data: {
+          requestId,
+          type,
+          json: JSON.stringify(result),
+          error: null,
+          httpUpload: Boolean(httpUpload),
+        },
+      });
+    } catch (error) {
+      console.log("<< ERRORED", requestId, type, error);
+      this.notify({
+        type: "response",
+        data: {
+          requestId,
+          type,
+          json: null,
+          error: parseUnknownError(error),
+          httpUpload: false,
+        },
+      });
+    }
+  };
+
+  register(handlers: typeof this.incomingHandlers) {
+    this.incomingHandlers = handlers;
+    this.webkit.incomingMessageHandler = this.incomingMessageHandler as any;
+    this.booted();
+  }
+
+  booted() {
+    this.notify({ type: "booted", data: { time: Date.now() } });
+  }
 
   isWebOnly() {
     return this.env.appName.includes("web");
@@ -97,6 +179,12 @@ class Bridge {
         json,
       });
     return JSON.parse(responseJsonString as string);
+  }
+
+  private noOp(name: string) {
+    return () => {
+      throw new Error(`No handler for ${name}`);
+    };
   }
 }
 
@@ -164,8 +252,5 @@ if (!bridge.isWebOnly()) {
     };
   }
 }
-// For testing
-bridge.notify({ type: "booted", data: { time: Date.now() } });
-bridge.request({ type: "getName", data: {} }).then((response) => {
-  console.log("bridge response", response);
-});
+
+(globalThis as any).__bridge__ = bridge;

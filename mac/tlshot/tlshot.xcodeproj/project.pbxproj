@@ -34,6 +34,7 @@
 		C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */; };
 		C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D02C41B36400E60BE4 /* TldrawDocument.swift */; };
 		C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */; };
+		C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +86,7 @@
 		C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
 		C17645D02C41B36400E60BE4 /* TldrawDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawDocument.swift; sourceTree = "<group>"; };
 		C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSelectionOverlayManager.swift; sourceTree = "<group>"; };
+		C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +139,7 @@
 			children = (
 				C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */,
 				C149800D2C45F1E900C4E4D0 /* Bridge.swift */,
+				C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */,
 				C12AEF8E2C443E4600B29527 /* Cursors.swift */,
 				C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */,
 				C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */,
@@ -335,6 +338,7 @@
 				C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */,
 				C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */,
 				C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */,
+				C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */,
 				C17645CB2C415C6A00E60BE4 /* CGRect+Coordinates.swift in Sources */,
 				C12AEF8D2C43453C00B29527 /* CursorModifier.swift in Sources */,
 				C1448EAE2C459D2B00639D0D /* TldrawView.swift in Sources */,

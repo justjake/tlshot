@@ -59,6 +59,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         hoveredWindow.flatMap { computeShiftClickHoverState(hovered: $0) }
     }
     
+    @Published var imageByHash: [Int:CGImage] = [:]
+    
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
         // https://gist.github.com/iccir/c1da6e537718b99b0c14ef76765aec45
@@ -415,11 +417,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {
+        self.imageByHash[image.hashValue] = image
         let usable = NSScreen.main?.visibleFrame ?? .infinite
         let width = min(usable.width * 0.9, max(400, frame.width))
         let height = min(usable.height * 0.9, max(400, frame.height))
         let windowFrame = CGRect(center: frame.center, size: CGSize(width: width, height: height))
-        let window = ImageWindow(rect: windowFrame, image: image)
+        let window = ImageWindow(rect: windowFrame, image: image, edit: true)
         imageWindows.append(window)
         render()
         window.makeKeyAndOrderFront(nil)

@@ -7,10 +7,18 @@
 //   let debugNotification = try? JSONDecoder().decode(DebugNotification.self, from: jsonData)
 //   let getNameRequest = try? JSONDecoder().decode(GetNameRequest.self, from: jsonData)
 //   let getNameResponse = try? JSONDecoder().decode(GetNameResponse.self, from: jsonData)
+//   let saveRequest = try? JSONDecoder().decode(SaveRequest.self, from: jsonData)
+//   let saveResponse = try? JSONDecoder().decode(SaveResponse.self, from: jsonData)
+//   let responseNotification = try? JSONDecoder().decode(ResponseNotification.self, from: jsonData)
 //   let bridgeNotificationMap = try? JSONDecoder().decode(BridgeNotificationMap.self, from: jsonData)
 //   let bridgeRequestMap = try? JSONDecoder().decode(BridgeRequestMap.self, from: jsonData)
+//   let bridgeIncomingMap = try? JSONDecoder().decode(BridgeIncomingMap.self, from: jsonData)
+//   let bridgeIncomingEnvelope = try? JSONDecoder().decode(BridgeIncomingEnvelope.self, from: jsonData)
 //   let bridgeNotificationType = try? JSONDecoder().decode(BridgeNotificationType.self, from: jsonData)
 //   let bridgeRequestType = try? JSONDecoder().decode(BridgeRequestType.self, from: jsonData)
+//   let bridgeIncomingType = try? JSONDecoder().decode(BridgeIncomingType.self, from: jsonData)
+//   let bridgeImageAssetProps = try? JSONDecoder().decode(BridgeImageAssetProps.self, from: jsonData)
+//   let bridgeProtocol = try? JSONDecoder().decode(BridgeProtocol.self, from: jsonData)
 
 //
 // Hashable or Equatable:
@@ -23,8 +31,22 @@ import Foundation
 // MARK: - BridgeEnvironment
 struct BridgeEnvironment: Codable, Hashable {
     let appName: String
-    let initialFileURL: String?
+    let initialAsset: InitialAsset?
     let theme: Theme
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - InitialAsset
+struct InitialAsset: Codable, Hashable {
+    let fileSize, h: Double
+    let isAnimated: Bool
+    let mimeType, name, src: String
+    let w: Double
 }
 
 enum Theme: String, Codable, Hashable {
@@ -42,6 +64,7 @@ enum Theme: String, Codable, Hashable {
 struct BridgeNotificationMap: Codable, Hashable {
     let booted: BootedNotification
     let debug: DebugNotification
+    let response: ResponseNotification
 }
 
 //
@@ -98,6 +121,32 @@ enum TypeEnum: String, Codable, Hashable {
 // for types that require the use of JSONAny, nor will the implementation of Hashable be
 // synthesized for types that have collections (such as arrays or dictionaries).
 
+// MARK: - ResponseNotification
+struct ResponseNotification: Codable, Hashable {
+    let error: BridgeErrorLike?
+    let httpUpload: Bool
+    let responseNotificationJSON: String?
+    let requestID: String
+    let type: BridgeIncomingType
+
+    enum CodingKeys: String, CodingKey {
+        case error, httpUpload
+        case responseNotificationJSON = "json"
+        case requestID = "requestId"
+        case type
+    }
+}
+
+enum BridgeIncomingType: String, Codable, Hashable {
+    case save = "save"
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
 // MARK: - BridgeRequestMap
 struct BridgeRequestMap: Codable, Hashable {
     let getName: GetName
@@ -136,11 +185,100 @@ struct GetNameResponse: Codable, Hashable {
     let name: String
 }
 
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - BridgeIncomingMap
+struct BridgeIncomingMap: Codable, Hashable {
+    let save: Save
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - Save
+struct Save: Codable, Hashable {
+    let request: SaveRequest
+    let response: SaveResponse
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - SaveRequest
+struct SaveRequest: Codable, Hashable {
+    let saveID: String
+
+    enum CodingKeys: String, CodingKey {
+        case saveID = "saveId"
+    }
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - SaveResponse
+struct SaveResponse: Codable, Hashable {
+    let height: Double
+    let svg: String
+    let width: Double
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - BridgeIncomingEnvelope
+struct BridgeIncomingEnvelope: Codable, Hashable {
+    let bridgeIncomingEnvelopeJSON, requestID: String
+    let type: BridgeIncomingType
+
+    enum CodingKeys: String, CodingKey {
+        case bridgeIncomingEnvelopeJSON = "json"
+        case requestID = "requestId"
+        case type
+    }
+}
+
 enum BridgeNotificationType: String, Codable, Hashable {
     case booted = "booted"
     case debug = "debug"
+    case response = "response"
 }
 
 enum BridgeRequestType: String, Codable, Hashable {
     case getName = "getName"
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - BridgeImageAssetProps
+struct BridgeImageAssetProps: Codable, Hashable {
+    let fileSize, h: Double
+    let isAnimated: Bool
+    let mimeType, name, src: String
+    let w: Double
+}
+
+enum BridgeProtocol: String, Codable, Hashable {
+    case asset = "asset"
+    case tlshotResponse = "tlshot-response"
 }
