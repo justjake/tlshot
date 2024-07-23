@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AssetRecordType,
   Editor,
+  PngHelpers,
   TLComponents,
   TLDefaultShape,
   TLImageAsset,
+  TLShapeId,
   TLShapePartial,
   Tldraw,
   createShapeId,
@@ -15,15 +17,7 @@ import {
 } from "tldraw";
 import { bridge, BridgeIncomingHandlers } from "./Bridge";
 
-async function makeSvgUrl(editor: Editor) {
-  const svg = await editor.getSvgString(
-    Array.from(editor.getPageShapeIds(editor.getCurrentPageId())),
-    {
-      scale: 2,
-    }
-  );
-  if (!svg) throw new Error("Failed to get SVG string");
-
+async function replaceAssetUrlsWithDataUrls(editor: Editor, svgString: string) {
   const imagesToReplace = editor
     .getCurrentPageShapes()
     .map(async (unknownShape) => {
@@ -32,15 +26,24 @@ async function makeSvgUrl(editor: Editor) {
       console.log("props", shape.props);
       const asset = editor.getAsset(shape.props.assetId!);
       const blob = await fetch(asset?.props.src!).then((res) => res.blob());
-      const dataUrl = await new Promise<string>((callback) => {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
         var a = new FileReader();
         a.onload = function (e) {
-          callback(e.target.result as string);
+          const result = e.target?.result;
+          if (typeof result !== "string") {
+            const error = new Error(
+              `Expected FileReader.result to be a string, instead: ${typeof result}`
+            );
+            return reject(error);
+          }
+          return resolve(result);
+        };
+        a.onerror = (e) => {
+          reject(e.target?.error ?? new Error("Unknown FileReader error"));
         };
         a.readAsDataURL(blob);
       });
 
-      // TODO: release blob url
       return [asset?.props.src!, dataUrl];
     });
 
@@ -49,17 +52,25 @@ async function makeSvgUrl(editor: Editor) {
     string,
   ][];
 
-  console.log("pairs", pairs);
-
-  let svgText = svg.svg;
+  let result = svgString;
   for (const [url, blobUrl] of pairs) {
-    svgText = svgText.replace(url, blobUrl);
+    result = result.replace(url, blobUrl);
   }
+  return result;
+}
 
-  console.log("svgText", svgText);
-  const blobber = new Blob([svgText], { type: "image/svg+xml" });
-
-  return { info: svg, assetUrl: URL.createObjectURL(blobber) };
+async function getCurrentPageSvg(editor: Editor) {
+  const result = await editor.getSvgString(
+    Array.from(editor.getCurrentPageShapeIds()),
+    {
+      scale: 2,
+    }
+  );
+  if (!result) {
+    throw new Error(`Failed to get SVG string`);
+  }
+  result.svg = await replaceAssetUrlsWithDataUrls(editor, result.svg);
+  return result;
 }
 
 function TopPanel() {
@@ -67,15 +78,46 @@ function TopPanel() {
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const makeSvg = async () => {
     console.log("Making SVG");
-    const { assetUrl } = await makeSvgUrl(editor);
+    const svg = await getCurrentPageSvg(editor);
+    const canvas = await getSvgAsCanvas(editor, svg.svg, {
+      height: svg.height,
+      width: svg.width,
+      quality: 100,
+      scale: 1,
+      type: "png",
+    });
+    // if (!element) throw new Error("Failed to get canvas");
+    const blob = await canvasToBlob({
+      ...canvas,
+      quality: 100,
+      type: "png",
+    });
+    if (!blob) {
+      throw new Error("sdafsdfa blobber");
+    }
+    const url = URL.createObjectURL(blob);
     // window.location.href = assetUrl;
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.style.maxWidth = "100%";
-    image.style.backgroundColor = "purple";
-    image.src = assetUrl;
-    imageContainerRef.current!.appendChild(image);
+    const element = new Image();
+    element.crossOrigin = "anonymous";
+    element.src = url;
+    element.onload = () => {
+      URL.revokeObjectURL(url);
+    };
+
+    element.style.maxWidth = "100%";
+    element.style.backgroundColor = "purple";
+    imageContainerRef.current!.appendChild(element);
   };
+
+  const save = () => {
+    bridge.notify({
+      type: "prepareSave",
+      data: {
+        saveId: Date.now().toString(),
+      },
+    });
+  };
+
   return (
     <div
       style={{
@@ -86,6 +128,7 @@ function TopPanel() {
       }}
     >
       <button onClick={makeSvg}>Make SVG</button>
+      <button onClick={save}>Save</button>
       <div
         ref={imageContainerRef}
         style={{ background: "red", border: "1px solid red" }}
@@ -107,30 +150,33 @@ function App() {
 
     return {
       save: async () => {
-        const svg = await editor.getSvgString(
-          Array.from(editor.getPageShapeIds(editor.getCurrentPageId())),
-          {
-            scale: 2,
-          }
-        );
-        if (!svg) {
-          throw new Error("Failed to get SVG string");
-        }
-        const image = await getSvgAsImage(editor, svg.svg, {
+        const svg = await getCurrentPageSvg(editor);
+        const canvas = await getSvgAsCanvas(editor, svg.svg, {
+          height: svg.height,
+          width: svg.width,
           quality: 100,
           scale: 1,
           type: "png",
-          width: svg.width,
-          height: svg.height,
         });
-        if (!image) {
+        if (!canvas) {
           throw new Error("Failed to get image");
+        }
+
+        const image = await canvasToBlob({
+          ...canvas,
+          quality: 100,
+          type: "png",
+        });
+
+        if (!image) {
+          throw new Error("dafdsf");
         }
 
         const arrayBuffer = await image.arrayBuffer();
         console.log("image byte length:", arrayBuffer.byteLength);
         return {
           ...svg,
+          svg: "(its not used right)",
           httpUpload: arrayBuffer,
         };
       },
@@ -185,9 +231,105 @@ function App() {
         inferDarkMode
         onMount={setEditor}
         components={components}
+        options={{
+          defaultSvgPadding: 0,
+        }}
       ></Tldraw>
     </div>
   );
+}
+
+/** @public */
+export async function getSvgAsCanvas(
+  editor: Editor,
+  svgString: string,
+  options: {
+    type: "png" | "jpeg" | "webp";
+    quality: number;
+    scale: number;
+    width: number;
+    height: number;
+  }
+) {
+  const { type, quality, scale, width, height } = options;
+
+  const clampedWidth = Math.floor(scale * width);
+  const clampedHeight = Math.floor(scale * height);
+  const effectiveScale = clampedWidth / width;
+
+  const svgUrl = URL.createObjectURL(
+    new Blob([svgString], { type: "image/svg+xml" })
+  );
+
+  const canvas = await new Promise<HTMLCanvasElement | null>((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+
+    image.onload = async () => {
+      // safari will fire `onLoad` before the fonts in the SVG are
+      // actually loaded. just waiting around a while is brittle, but
+      // there doesn't seem to be any better solution for now :( see
+      // https://bugs.webkit.org/show_bug.cgi?id=219770
+      if (editor.environment.isSafari) {
+        console.log("isSafari");
+        await new Promise((resolve) => editor.timers.setTimeout(resolve, 250));
+      }
+
+      const canvas = document.createElement("canvas") as HTMLCanvasElement;
+      const ctx = canvas.getContext("2d")!;
+
+      canvas.width = clampedWidth;
+      canvas.height = clampedHeight;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(image, 0, 0, clampedWidth, clampedHeight);
+
+      URL.revokeObjectURL(svgUrl);
+
+      resolve(canvas);
+    };
+
+    image.onerror = () => {
+      resolve(null);
+    };
+
+    image.src = svgUrl;
+  });
+  return { canvas, effectiveScale };
+}
+
+async function canvasToBlob(args: {
+  canvas: HTMLCanvasElement | null;
+  effectiveScale: number;
+  type: "png" | "jpeg" | "webp";
+  quality: number;
+}) {
+  const { canvas, effectiveScale, type, quality } = args;
+  if (!canvas) return null;
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          resolve(null);
+        }
+        resolve(blob);
+      },
+      "image/" + type,
+      quality
+    )
+  );
+
+  if (!blob) return null;
+
+  if (type === "png") {
+    const view = new DataView(await blob.arrayBuffer());
+    return PngHelpers.setPhysChunk(view, effectiveScale, {
+      type: "image/" + type,
+    });
+  } else {
+    return blob;
+  }
 }
 
 export default App;

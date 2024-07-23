@@ -66,6 +66,7 @@ enum Theme: String, Codable, Hashable {
 struct BridgeNotificationMap: Codable, Hashable {
     let booted: BootedNotification
     let debug: DebugNotification
+    let prepareSave: SaveRequest
     let response: ResponseNotification
 }
 
@@ -115,6 +116,21 @@ enum TypeEnum: String, Codable, Hashable {
     case console = "console"
     case error = "error"
     case unhandledRejection = "unhandledRejection"
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - SaveRequest
+struct SaveRequest: Codable, Hashable {
+    let saveID: String
+
+    enum CodingKeys: String, CodingKey {
+        case saveID = "saveId"
+    }
 }
 
 //
@@ -265,21 +281,6 @@ struct Save: Codable, Hashable {
 // for types that require the use of JSONAny, nor will the implementation of Hashable be
 // synthesized for types that have collections (such as arrays or dictionaries).
 
-// MARK: - SaveRequest
-struct SaveRequest: Codable, Hashable {
-    let saveID: String
-
-    enum CodingKeys: String, CodingKey {
-        case saveID = "saveId"
-    }
-}
-
-//
-// Hashable or Equatable:
-// The compiler will not be able to synthesize the implementation of Hashable or Equatable
-// for types that require the use of JSONAny, nor will the implementation of Hashable be
-// synthesized for types that have collections (such as arrays or dictionaries).
-
 // MARK: - SaveResponse
 struct SaveResponse: Codable, Hashable {
     let height: Double
@@ -308,6 +309,7 @@ struct BridgeIncomingEnvelope: Codable, Hashable {
 enum BridgeNotificationType: String, Codable, Hashable {
     case booted = "booted"
     case debug = "debug"
+    case prepareSave = "prepareSave"
     case response = "response"
 }
 

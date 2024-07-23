@@ -130,6 +130,13 @@ extension CGImage {
     }
 }
 
+extension NSImage {
+    func cgImage(size: CGSize? = nil) -> CGImage? {
+        var rect = CGRect(origin: .zero, size: size ?? self.size)
+        return cgImage(forProposedRect: &rect, context: nil, hints: nil)
+    }
+}
+
 struct CameraWithStroke: View {
     let cgPath: CGPath
     

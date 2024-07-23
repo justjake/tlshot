@@ -46,6 +46,7 @@ export interface BridgeNotificationMap {
   debug: DebugNotification;
   booted: BootedNotification;
   response: ResponseNotification;
+  prepareSave: SaveRequest;
 }
 
 export interface BridgeRequestMap {

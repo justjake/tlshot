@@ -257,6 +257,15 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                 try debugLogger.onNotification(DebugNotification.fromJSON(string: message.json))
             case .response:
                 try outgoingResponses.onNotification(ResponseNotification.fromJSON(string: message.json))
+            case .prepareSave:
+                let req = try SaveRequest.fromJSON(string: message.json)
+                Task {
+                    let (res, img) = try await saveReq(req)
+                    print("img: \(img)")
+                    let window = ImageDisplayWindow(rect: CGRect(center: NSScreen.main?.frame.center ?? .zero, size: img.size), image: img)
+                    window.makeKeyAndOrderFront(nil)
+                    AppDelegate.shared.imageWindows.append(window)
+                }
             }
         } catch {
             print("\(self).didReceive error: \(error)")
@@ -320,6 +329,10 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
         guard let image = NSImage(data: data) else {
             throw TlshotError.invalidData("Data didn't produce valid NSImage")
         }
+//        print("saveReq: data \(String(reflecting: data)) \(data.count)")
+//        let writeTo = FileManager.default.temporaryDirectory.appendingPathComponent("test image \(data.hashValue).png", conformingTo: .png)
+//        try data.write(to: writeTo)
+//        NSWorkspace.shared.open(writeTo)
         return (res, image)
     }
 

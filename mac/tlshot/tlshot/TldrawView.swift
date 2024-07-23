@@ -27,7 +27,9 @@ struct TldrawWebView: NSViewRepresentable {
             configuration = WKWebViewConfiguration()
             configuration.userContentController = userContentController
             configuration.processPool = TldrawWebView.sharedProcessPool
-            configuration.applicationNameForUserAgent = "tlshot"
+            // need to include the word "Safari" to get tldraw to apply WebKit fixes
+            // https://github.com/tldraw/tldraw/blob/348ff9f66a24cc41738a2eff10a87ef6b535bf3f/packages/editor/src/lib/editor/managers/EnvironmentManager.ts#L7
+            configuration.applicationNameForUserAgent = "tlshot (like Safari)"
             configuration.limitsNavigationsToAppBoundDomains = true
             configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
             configuration.preferences.isTextInteractionEnabled = true
@@ -65,8 +67,6 @@ struct TldrawWebView: NSViewRepresentable {
         webview.isInspectable = true
         webview.navigationDelegate = context.coordinator
         let preview = "http://localhost:5173/"
-        let percentEncoded = preview.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)!
-        let encoded = URL(string: "asset://assets/proxy/something?\(preview)")!
         webview.load(URLRequest(url: URL(string: preview)!))
         context.coordinator.bridge.webview = webview
         context.coordinator.bridge.colorScheme = colorScheme

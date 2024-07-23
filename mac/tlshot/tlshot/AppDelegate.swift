@@ -422,7 +422,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let width = min(usable.width * 0.9, max(400, frame.width))
         let height = min(usable.height * 0.9, max(400, frame.height))
         let windowFrame = CGRect(center: frame.center, size: CGSize(width: width, height: height))
-        let window = ImageWindow(rect: windowFrame, image: image, edit: true)
+        let window = ImageEditWindow(rect: windowFrame, image: image)
         imageWindows.append(window)
         render()
         window.makeKeyAndOrderFront(nil)
