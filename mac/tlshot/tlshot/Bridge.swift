@@ -163,6 +163,8 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     var outgoingResponses = BridgeOutgoingRequestRegistry()
     var debugLogger = BridgeDebugLogger()
     var helloWorldDelegate = BridgeHelloWorldDelegate()
+    var imageName = ""
+    var app: AppDelegate = AppDelegate.shared
     
     var env: BridgeEnvironment {
         BridgeEnvironment(
@@ -260,11 +262,16 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
             case .prepareSave:
                 let req = try SaveRequest.fromJSON(string: message.json)
                 Task {
-                    let (res, img) = try await saveReq(req)
-                    print("img: \(img)")
-                    let window = ImageDisplayWindow(rect: CGRect(center: NSScreen.main?.frame.center ?? .zero, size: img.size), image: img)
-                    window.makeKeyAndOrderFront(nil)
-                    AppDelegate.shared.imageWindows.append(window)
+                    await app.handleErrors {
+                        let (res, img) = try await saveReq(req)
+                        let url = try app.getImageURL(forName: imageName)
+                        guard let data = img.cgImage()?.png else {
+                            throw TlshotError.captureFailed("PNG creation failed")
+                        }
+                        try data.write(to: url)
+                        let context = Notif.SavedFile(fileURL: url, pngImageData: data, responseAction: nil)
+                        try await app.onSavedFile(context: context)
+                    }
                 }
             }
         } catch {

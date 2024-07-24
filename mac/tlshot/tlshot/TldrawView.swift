@@ -13,6 +13,7 @@ struct TldrawWebView: NSViewRepresentable {
     
     var bridge: Bridge
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var app: AppDelegate
 
     class Coordinator: NSObject, ObservableObject, WKNavigationDelegate, WKScriptMessageHandler {
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -22,8 +23,9 @@ struct TldrawWebView: NSViewRepresentable {
         var configuration: WKWebViewConfiguration
         var bridge: Bridge
 
-        init(_ bridge: Bridge) {
+        init(_ bridge: Bridge, _ app: AppDelegate) {
             self.bridge = bridge
+            bridge.app = app
             configuration = WKWebViewConfiguration()
             configuration.userContentController = userContentController
             configuration.processPool = TldrawWebView.sharedProcessPool
@@ -60,7 +62,9 @@ struct TldrawWebView: NSViewRepresentable {
         }
     }
     
-    func makeCoordinator() -> Coordinator { Coordinator(bridge) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(bridge, app)
+    }
     
     func makeNSView(context: Context) -> WKWebView {
         let webview = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
@@ -75,6 +79,7 @@ struct TldrawWebView: NSViewRepresentable {
     
     func updateNSView(_ nsView: WKWebView, context: Context) {
         context.coordinator.bridge = bridge
+        context.coordinator.bridge.app = app
         context.coordinator.bridge.webview = nsView
         context.coordinator.bridge.colorScheme = colorScheme
     }

@@ -53,12 +53,20 @@ extension URL {
     }
 }
 
+enum AfterSaveAction: String {
+    case showNotification
+    case revealInFinder
+    case showNotificationAndCopy
+    case none
+}
+
 struct SettingsKey {
     static let windowIncludeDesktop = "windowIncludeDesktop"
     static let windowIncludeMenuBarWithDesktop = "windowIncludeMenuBarWithDesktop"
     static let windowIncludeShadow = "windowIncludeShadow"
     static let hidePermissionWarning = "hidePermissionWarning"
     static let saveFolder = "saveFolder"
+    static let afterSaveAction = "afterSaveAction"
     
     private init() {}
 }
@@ -71,6 +79,7 @@ struct TlshotApp: App {
     @AppStorage(SettingsKey.windowIncludeShadow) private var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) private var windowIncludeDesktop: Bool = false
     @AppStorage(SettingsKey.windowIncludeMenuBarWithDesktop) private var windowIncludeMenuBarWithDesktop = false
+    @AppStorage(SettingsKey.afterSaveAction) private var afterSaveAction: AfterSaveAction = .none
     
     var body: some Scene {
 //        DocumentGroup(newDocument: TldrawDocument()) { group in
@@ -115,6 +124,15 @@ struct TlshotApp: App {
             Toggle("Include desktop", isOn: $windowIncludeDesktop)
             Toggle("Include menu bar with desktop", isOn: $windowIncludeMenuBarWithDesktop)
                 .disabled(!windowIncludeDesktop)
+            
+            Divider()
+            
+            Picker("After save...", selection: $afterSaveAction) {
+                Text("Show notification").tag(AfterSaveAction.showNotification)
+                Text("Show and copy to clipboard").tag(AfterSaveAction.showNotificationAndCopy)
+                Text("Reveal in Finder").tag(AfterSaveAction.revealInFinder)
+                Text("Do nothing").tag(AfterSaveAction.none)
+            }
             
             
             if !appDelegate.hasPermission {

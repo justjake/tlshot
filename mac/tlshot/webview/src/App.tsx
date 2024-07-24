@@ -9,6 +9,7 @@ import {
   TLShapeId,
   TLShapePartial,
   Tldraw,
+  TldrawOptions,
   createShapeId,
   exportToBlob,
   getHashForString,
@@ -231,13 +232,15 @@ function App() {
         inferDarkMode
         onMount={setEditor}
         components={components}
-        options={{
-          defaultSvgPadding: 0,
-        }}
+        options={EDITOR_OPTIONS}
       ></Tldraw>
     </div>
   );
 }
+
+const EDITOR_OPTIONS: Partial<TldrawOptions> = {
+  defaultSvgPadding: 0,
+};
 
 /** @public */
 export async function getSvgAsCanvas(

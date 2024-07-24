@@ -28,7 +28,7 @@ class ImageDisplayWindow: NSWindow {
 class ImageEditWindow: NSWindow {
     var bridge: Bridge?
     
-    init(rect: CGRect, image: CGImage) {
+    init(rect: CGRect, image: CGImage, name: String) {
         super.init(
             contentRect: rect,
             styleMask: [.closable, .resizable, .titled],
@@ -37,27 +37,15 @@ class ImageEditWindow: NSWindow {
         )
 
         isReleasedWhenClosed = false
-        title = "Image Editor"
+        title = name
         
         let ourBridge = Bridge()
+        ourBridge.imageName = name
         let assetURL = ourBridge.assetServer.add(image: image)
 
         let view = TldrawWebView(bridge: ourBridge)
             .expand()
-        
-//        Task {
-//            do {
-//                let result = try await ourBridge.saveReq(.init(saveID: "0"))
-//                print("XXX: save \(result)")
-//
-//                let nextWindow = ImageDisplayWindow(rect: self.frame, image: result.1)
-//                AppDelegate.shared.imageWindows.append(nextWindow)
-//                nextWindow.orderFront(nil)
-//                nextWindow.becomeMain()
-//            } catch {
-//                print("XXX: error wit image \(error)")
-//            }
-//        }
+            .environmentObject(AppDelegate.shared)
         
         bridge = ourBridge
         contentView = NSHostingView(rootView: view)

@@ -8,9 +8,10 @@
 import AppKit
 import SwiftUI
 import CoreGraphics
+import UserNotifications
 
 
-final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUserNotificationCenterDelegate {
     typealias WindowInfo = ScreenshotService.WindowInfo
     
     enum ShiftClickHoverState {
@@ -31,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @AppStorage(SettingsKey.saveFolder) var saveFolder: URL?
     @AppStorage(SettingsKey.windowIncludeShadow) var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) var windowIncludeDesktop: Bool = false
+    @AppStorage(SettingsKey.afterSaveAction) var afterSaveAction: AfterSaveAction = .none
 
     @Published var cameraCursor: NSCursor?
     @Published var cameraPlusCursor: NSCursor?
@@ -160,6 +162,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
+        Notif.CategoryID.register()
+        UNUserNotificationCenter.current().delegate = self
         
         if isSwiftPreview {
             return
@@ -210,6 +214,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 #endif
     }
     
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let categoryIdentifier = response.notification.request.content.categoryIdentifier
+        let category = Notif.CategoryID(rawValue: categoryIdentifier)
+        await handleErrors {
+            switch category {
+            case .savedFile: try Notif.SavedFile.fromNotification(response).performResponseAction()
+            case .none:
+                throw TlshotError.invalidData("Unknown notification category \(categoryIdentifier)")
+            }
+            
+        }
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        return .banner
+    }
+
+    
+    @MainActor
     func showErrorAlert(error: Error) {
         let systemPrefsTag = 64
         // https://stackoverflow.com/questions/18417432/how-to-show-alert-pop-up-in-in-cocoa-on-macos
@@ -224,6 +247,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if response.rawValue == systemPrefsTag {
             AppDelegate.openSystemSettings()
         }
+    }
+    
+    func getImageName() -> String {
+        var formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH.mm.ss a"
+        let now = formatter.string(from: Date.now)
+        return "Screenshot \(now)"
     }
     
     @MainActor func onDragStart() {
@@ -354,7 +384,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         desiredCursor = nextCursor
     }
     
-    @MainActor func onChooseSaveFolder() {
+    @MainActor func getImageURL(forName: String) throws -> URL {
+        try getOrChooseSaveFolder().appendingPathComponent(forName, conformingTo: .png)
+    }
+    
+    @MainActor func getOrChooseSaveFolder() throws -> URL {
+        if let url = saveFolder {
+            return url
+        }
+        
+        let newUrl = try chooseSaveFolder()
+        saveFolder = newUrl
+        return newUrl
+    }
+    
+    @MainActor func chooseSaveFolder() throws -> URL {
         let panel = NSOpenPanel()
         panel.message = "Tlshot will save all captures here"
         panel.allowsMultipleSelection = false
@@ -362,7 +406,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
         if panel.runModal() == .OK, let url = panel.url {
-            self.saveFolder = url
+            return url
+        }
+        throw TlshotError.captureFailed("Didn't choose save folder")
+    }
+    
+    func onSavedFile(context: Notif.SavedFile) async throws {
+        await handleErrors {
+            print("\(self).onAfterSaveAction \(afterSaveAction)")
+            switch afterSaveAction {
+            case .showNotification:
+                try await context.sendNotification()
+            case .revealInFinder:
+                context.revealInFinder()
+            case .showNotificationAndCopy:
+                context.copyToClipboard()
+                try await context.sendNotification()
+            case .none:
+                return
+            }
+        }
+    }
+    
+    
+    @MainActor func onChooseSaveFolder() {
+        do {
+            saveFolder = try chooseSaveFolder()
+        } catch {
+            print("onChooseSaveFolder: \(error)")
         }
     }
     
@@ -408,6 +479,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
     
+    @MainActor
     func handleErrors(block: () throws -> Void) -> Void {
         do {
             return try block()
@@ -416,13 +488,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
     
+    func handleErrors(block: () async throws -> Void) async -> Void {
+        do {
+            return try await block()
+        } catch {
+            await showErrorAlert(error: error)
+        }
+    }
+
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {
         self.imageByHash[image.hashValue] = image
         let usable = NSScreen.main?.visibleFrame ?? .infinite
         let width = min(usable.width * 0.9, max(400, frame.width))
         let height = min(usable.height * 0.9, max(400, frame.height))
         let windowFrame = CGRect(center: frame.center, size: CGSize(width: width, height: height))
-        let window = ImageEditWindow(rect: windowFrame, image: image)
+        let window = ImageEditWindow(rect: windowFrame, image: image, name: getImageName())
         imageWindows.append(window)
         render()
         window.makeKeyAndOrderFront(nil)

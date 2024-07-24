@@ -35,6 +35,7 @@
 		C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D02C41B36400E60BE4 /* TldrawDocument.swift */; };
 		C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */; };
 		C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */; };
+		C1CD21622C5188500079AAEF /* NotificationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21612C5188500079AAEF /* NotificationSupport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +88,7 @@
 		C17645D02C41B36400E60BE4 /* TldrawDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawDocument.swift; sourceTree = "<group>"; };
 		C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSelectionOverlayManager.swift; sourceTree = "<group>"; };
 		C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeDelegate.swift; sourceTree = "<group>"; };
+		C1CD21612C5188500079AAEF /* NotificationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSupport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -163,6 +165,7 @@
 				C17645A02C3F8DB800E60BE4 /* tlshot.entitlements */,
 				C176459D2C3F8DB800E60BE4 /* Preview Content */,
 				C1448EAD2C459D2B00639D0D /* TldrawView.swift */,
+				C1CD21612C5188500079AAEF /* NotificationSupport.swift */,
 			);
 			path = tlshot;
 			sourceTree = "<group>";
@@ -322,6 +325,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1CD21622C5188500079AAEF /* NotificationSupport.swift in Sources */,
 				C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */,
 				C12AEF8F2C443E4600B29527 /* Cursors.swift in Sources */,
 				C149800C2C45EDE500C4E4D0 /* BridgeTypes.swift in Sources */,
