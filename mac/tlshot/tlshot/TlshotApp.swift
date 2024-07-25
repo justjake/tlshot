@@ -20,13 +20,14 @@ enum CaptureMediaType {
     case video
 }
 
-enum TlshotError: LocalizedError {
+enum TlshotError: LocalizedError, Equatable {
     case missingFileData
     case unknownFileType(UTType)
     case invalidJson(Data)
     case invalidData(String)
     case notImplemented(String)
     case captureFailed(String)
+    case pickSaveFolderCancelled
     
     var errorDescription: String? {
         "\(self)"
@@ -35,6 +36,7 @@ enum TlshotError: LocalizedError {
     var recoverySuggestion: String? {
         switch self {
         case .captureFailed: "Grant permission in System Settings"
+        case .pickSaveFolderCancelled: "Pick a folder to save your captures from the Tlshot menu"
         default: nil
         }
     }
@@ -66,6 +68,7 @@ struct SettingsKey {
     static let windowIncludeShadow = "windowIncludeShadow"
     static let hidePermissionWarning = "hidePermissionWarning"
     static let saveFolder = "saveFolder"
+    static let saveFolderBookmark = "saveFolderBookmark"
     static let afterSaveAction = "afterSaveAction"
     
     private init() {}
@@ -75,7 +78,6 @@ struct SettingsKey {
 struct TlshotApp: App {
     
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
-    @AppStorage(SettingsKey.saveFolder) private var saveFolder: URL?
     @AppStorage(SettingsKey.windowIncludeShadow) private var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) private var windowIncludeDesktop: Bool = false
     @AppStorage(SettingsKey.windowIncludeMenuBarWithDesktop) private var windowIncludeMenuBarWithDesktop = false
@@ -104,7 +106,7 @@ struct TlshotApp: App {
             
             Divider()
             
-            if let chosenSaveFolder = saveFolder {
+            if let chosenSaveFolder = try? appDelegate.getSaveFolder() {
                 Text("Save to \(chosenSaveFolder.describeHomedirRelative)")
             } else {
                 Text("No save folder chosen")

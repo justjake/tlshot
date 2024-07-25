@@ -36,6 +36,7 @@
 		C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */; };
 		C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */; };
 		C1CD21622C5188500079AAEF /* NotificationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21612C5188500079AAEF /* NotificationSupport.swift */; };
+		C1CD21642C51C9C20079AAEF /* SaveDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -89,6 +90,7 @@
 		C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSelectionOverlayManager.swift; sourceTree = "<group>"; };
 		C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeDelegate.swift; sourceTree = "<group>"; };
 		C1CD21612C5188500079AAEF /* NotificationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSupport.swift; sourceTree = "<group>"; };
+		C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveDirectory.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +168,7 @@
 				C176459D2C3F8DB800E60BE4 /* Preview Content */,
 				C1448EAD2C459D2B00639D0D /* TldrawView.swift */,
 				C1CD21612C5188500079AAEF /* NotificationSupport.swift */,
+				C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */,
 			);
 			path = tlshot;
 			sourceTree = "<group>";
@@ -349,6 +352,7 @@
 				C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */,
 				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,
+				C1CD21642C51C9C20079AAEF /* SaveDirectory.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

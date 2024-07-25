@@ -189,7 +189,10 @@ function App() {
     if (!registerApi) return;
     (globalThis as any).__tldraw__ = editor;
     bridge.register(registerApi);
-    editor.user.updateUserPreferences({ colorScheme: bridge.env.theme });
+    editor.user.updateUserPreferences({
+      colorScheme: bridge.env.theme,
+      isSnapMode: true,
+    });
 
     const { initialAsset } = bridge.env;
     if (initialAsset) {

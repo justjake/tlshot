@@ -264,13 +264,10 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                 Task {
                     await app.handleErrors {
                         let (res, img) = try await saveReq(req)
-                        let url = try app.getImageURL(forName: imageName)
                         guard let data = img.cgImage()?.png else {
                             throw TlshotError.captureFailed("PNG creation failed")
                         }
-                        try data.write(to: url)
-                        let context = Notif.SavedFile(fileURL: url, pngImageData: data, responseAction: nil)
-                        try await app.onSavedFile(context: context)
+                        try await app.saveImage(name: imageName, data: data)
                     }
                 }
             }

@@ -100,7 +100,8 @@ struct Notif {
         
         func toNotification() -> UNNotificationRequest {
             let content = UNMutableNotificationContent()
-            content.title = "Saved \"\(fileURL.lastPathComponent)\""
+            content.title = fileURL.lastPathComponent
+            content.body = "Saved to \(fileURL.deletingLastPathComponent().relativePath)"
             content.userInfo["fileURL"] = fileURL.formatted()
             content.userInfo["pngImageData"] = pngImageData
             content.sound = nil

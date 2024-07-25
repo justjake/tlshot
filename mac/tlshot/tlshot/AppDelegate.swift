@@ -29,7 +29,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     
     // App state
     @AppStorage(SettingsKey.hidePermissionWarning) var hidePermissionWarning: Bool = false
-    @AppStorage(SettingsKey.saveFolder) var saveFolder: URL?
     @AppStorage(SettingsKey.windowIncludeShadow) var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) var windowIncludeDesktop: Bool = false
     @AppStorage(SettingsKey.afterSaveAction) var afterSaveAction: AfterSaveAction = .none
@@ -62,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     }
     
     @Published var imageByHash: [Int:CGImage] = [:]
+    @Published var saveDirectory = SaveDirectory()
     
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
@@ -384,54 +384,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         desiredCursor = nextCursor
     }
     
-    @MainActor func getImageURL(forName: String) throws -> URL {
-        try getOrChooseSaveFolder().appendingPathComponent(forName, conformingTo: .png)
-    }
-    
-    @MainActor func getOrChooseSaveFolder() throws -> URL {
-        if let url = saveFolder {
-            return url
-        }
-        
-        let newUrl = try chooseSaveFolder()
-        saveFolder = newUrl
-        return newUrl
-    }
-    
-    @MainActor func chooseSaveFolder() throws -> URL {
-        let panel = NSOpenPanel()
-        panel.message = "Tlshot will save all captures here"
-        panel.allowsMultipleSelection = false
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-        if panel.runModal() == .OK, let url = panel.url {
-            return url
-        }
-        throw TlshotError.captureFailed("Didn't choose save folder")
-    }
-    
-    func onSavedFile(context: Notif.SavedFile) async throws {
-        await handleErrors {
-            print("\(self).onAfterSaveAction \(afterSaveAction)")
-            switch afterSaveAction {
-            case .showNotification:
-                try await context.sendNotification()
-            case .revealInFinder:
-                context.revealInFinder()
-            case .showNotificationAndCopy:
-                context.copyToClipboard()
-                try await context.sendNotification()
-            case .none:
+    func saveImage(name: String, data: Data) async throws {
+        print("\(self).saveImage(\(name))")
+        // Ensure we have a folder, if we don't, cancel.
+        do {
+            _ = try await saveDirectory.getOrChooseSaveFolder()
+        } catch {
+            if let tlerror = error as? TlshotError, tlerror == .pickSaveFolderCancelled {
+                print("\(self).saveImage: Picking save folder cancelled, abort save")
                 return
             }
+            throw error
+        }
+        
+        let url = try await saveDirectory.saveImage(name: name, data: data)
+        let context = Notif.SavedFile(fileURL: url, pngImageData: data, responseAction: nil)
+        
+        print("\(self).saveImage(\(name)): afterSaveAction \(afterSaveAction)")
+        switch afterSaveAction {
+        case .showNotification:
+            try await context.sendNotification()
+        case .revealInFinder:
+            context.revealInFinder()
+        case .showNotificationAndCopy:
+            context.copyToClipboard()
+            try await context.sendNotification()
+        case .none:
+            return
         }
     }
     
+    func getSaveFolder() throws -> URL? {
+        return try saveDirectory.getSaveFolder()
+    }
     
     @MainActor func onChooseSaveFolder() {
         do {
-            saveFolder = try chooseSaveFolder()
+            try saveDirectory.chooseSaveFolder()
         } catch {
             print("onChooseSaveFolder: \(error)")
         }
