@@ -36,16 +36,24 @@ extension TlshotNotification {
         
         try await center.add(toNotification())
     }
+    
+    static func assertCategory(_ response: UNNotificationResponse) throws {
+        guard response.notification.request.content.categoryIdentifier == identifier else {
+            throw TlshotError.invalidData("not \(self.identifier)")
+        }
+    }
 }
 
 
 struct Notif {
     enum CategoryID: String, CaseIterable {
         case savedFile
+        case copyAndClose
         
         var category: UNNotificationCategory {
             switch self {
             case .savedFile: SavedFile.category
+            case .copyAndClose: CopyAndClose.category
             }
         }
         
@@ -67,6 +75,47 @@ struct Notif {
             case .revealInFinder:
                 UNNotificationAction(identifier: rawValue, title: "Reveal in Finder")
             }
+        }
+    }
+    
+    struct CopyAndClose: TlshotNotification {
+        var imageName: String
+        var pngImageData: Data
+        
+        static var identifier = CategoryID.copyAndClose.rawValue
+        static var category = UNNotificationCategory(
+            identifier: identifier,
+            actions: [ActionID.copyToClipboard.action],
+            intentIdentifiers: []
+        )
+        
+        func copyToClipboard() {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setData(pngImageData, forType: .png)
+        }
+
+        func toNotification() -> UNNotificationRequest {
+            let content = UNMutableNotificationContent()
+            content.title = imageName
+            content.body = "Copied to clipboard"
+            content.userInfo["imageName"] = imageName
+            content.userInfo["pngImageData"] = pngImageData
+            content.sound = nil
+            content.interruptionLevel = .active
+            content.categoryIdentifier = Self.identifier
+        }
+        
+        static func fromNotification(_ response: UNNotificationResponse) throws -> Notif.CopyAndClose {
+            try assertCategory(response)
+            let content = response.notification.request.content
+            guard let data = content.userInfo["pngImageData"] as? Data else {
+                throw TlshotError.invalidData("No pngImageData")
+            }
+            guard let imageName = content.userInfo["imageName"] as? String else {
+                throw TlshotError.invalidData("No imageName")
+            }
+            return Self(imageName: imageName, pngImageData: data)
         }
     }
 
@@ -113,9 +162,7 @@ struct Notif {
         }
         
         static func fromNotification(_ response: UNNotificationResponse) throws -> Notif.SavedFile {
-            guard response.notification.request.content.categoryIdentifier == identifier else {
-                throw TlshotError.invalidData("not \(self.identifier)")
-            }
+            try assertCategory(response)
             let content = response.notification.request.content
             guard let fileURLString = content.userInfo["fileURL"] as? String, let fileURL = URL(string: fileURLString) else {
                 throw TlshotError.invalidData("no fileURL")

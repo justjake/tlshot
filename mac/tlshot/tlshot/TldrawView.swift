@@ -101,9 +101,50 @@ struct TldrawWebView: NSViewRepresentable {
 
 #Preview {
     VStack {
-        Text("Rendered at \(Date())").padding(6)
+        Text("Rendered at \(Date())").padding(.top, 8)
         
         let bridge = Bridge()
-        TldrawWebView(bridge: bridge) .expand()
-    }
+        TldrawWebView(bridge: bridge)
+            .toolbar {
+                ToolbarItemGroup {
+                    Button(action: {}) {
+                        Label("Capture Window", systemImage: "macwindow.badge.plus")
+                    }
+                    Button(action: {}) {
+                        Label("Capture Area", systemImage: "rectangle.badge.plus")
+                    }
+                    
+                    Spacer(minLength: 100)
+
+                    Button(action: {}) {
+                        HStack(spacing: -1) {
+                            Image(systemName: "doc.on.doc")
+                            Image(systemName: "plus").imageScale(.small)
+                            Image(systemName: "trash")
+                        }
+                    }
+                    Button("Delete", systemImage: "trash", role: .destructive) {}
+
+                    Button(action: {}) {
+                        HStack(spacing: -1) {
+                            Image(systemName: "doc.on.doc")
+                            Image(systemName: "plus").imageScale(.small)
+                            Image(systemName: "checkmark.circle")
+                        }
+                    }
+                    
+                    Button("Done", systemImage: "checkmark.circle") {}
+                    //                    Button(action: {}) {
+                    //                        HStack(spacing: -1) {
+                    //                            Image(systemName: "square.and.arrow.down")
+                    //                            Image(systemName: "plus").imageScale(.small)
+                    //                            Image(systemName: "xmark.circle")
+                    //                        }
+                    //                    }
+
+                    
+                }
+            }
+            .expand()
+    }.environmentObject(AppDelegate.shared)
 }

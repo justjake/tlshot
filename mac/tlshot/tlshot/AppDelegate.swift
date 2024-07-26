@@ -230,23 +230,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         return .banner
     }
-
     
-    @MainActor
-    func showErrorAlert(error: Error) {
+    private let systemPrefsTag = 64
+    
+    private func buildAlert(error: Error) -> NSAlert {
         let systemPrefsTag = 64
         // https://stackoverflow.com/questions/18417432/how-to-show-alert-pop-up-in-in-cocoa-on-macos
-        print("\(self).showErrorAlert: \(error)")
+        print("\(self).buildAlert: \(error)")
         let alert = NSAlert(error: error)
         if case .captureFailed = error as? TlshotError {
             let button = alert.addButton(withTitle: "Open System Settings")
             button.tag = systemPrefsTag
             alert.addButton(withTitle: "OK")
         }
-        let response = alert.runModal()
+        return alert
+    }
+    
+    
+    private func handleAlertResponse(_ response: NSApplication.ModalResponse) {
         if response.rawValue == systemPrefsTag {
             AppDelegate.openSystemSettings()
         }
+    }
+    
+    @MainActor
+    func showErrorAlert(error: Error) {
+        let alert = buildAlert(error: error)
+        handleAlertResponse(alert.runModal())
+    }
+    
+    @MainActor
+    func showErrorAlert(error: Error, for window: NSWindow) async {
+        let alert = buildAlert(error: error)
+        let response = await alert.beginSheetModal(for: window)
+        handleAlertResponse(response)
     }
     
     func getImageName() -> String {

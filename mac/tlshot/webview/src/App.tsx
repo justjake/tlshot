@@ -1,52 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AssetRecordType,
   Box,
   Editor,
-  PngHelpers,
   TLComponents,
-  TLDefaultShape,
   TLImageAsset,
   TLShapePartial,
   Tldraw,
   TldrawOptions,
   createShapeId,
   getHashForString,
-  useEditor,
 } from "tldraw";
 import { bridge, BridgeIncomingHandlers } from "./Bridge";
 import { exportPng } from "./exportHelpers";
 
-function TopPanel() {
-  const save = () => {
-    bridge.notify({
-      type: "prepareSave",
-      data: {
-        saveId: Date.now().toString(),
-      },
-    });
-  };
-
-  return (
-    <div
-      style={{
-        position: "relative",
-        zIndex: 300,
-        pointerEvents: "all",
-        maxWidth: "50%",
-      }}
-    >
-      <button onClick={save}>Save</button>
-    </div>
-  );
-}
-
-const components: TLComponents = {
-  TopPanel,
-};
+const components: TLComponents = {};
 
 const EDITOR_OPTIONS: Partial<TldrawOptions> = {
   defaultSvgPadding: 0,
+  maxPages: 1,
 };
 
 function App() {
@@ -72,6 +44,10 @@ function App() {
     (globalThis as any).__tldraw__ = editor;
     bridge.register(registerApi);
     editor.user.updateUserPreferences({
+      // Brush size, etc relative to zoom.
+      // Zoom in to draw finer details
+      // https://tldraw.substack.com/i/145825699/whats-new
+      isDynamicSizeMode: true,
       colorScheme: bridge.env.theme,
       isSnapMode: true,
     });
@@ -116,9 +92,8 @@ function createInitialAsset(editor: Editor) {
     isLocked: true,
     props: {
       assetId: asset.id,
-      // Scale for @2x
-      h: asset.props.h / 2,
-      w: asset.props.w / 2,
+      h: asset.props.h,
+      w: asset.props.w,
     },
     meta: {},
     typeName: "shape",

@@ -166,6 +166,7 @@ class BridgeAssetServer {
     private var svgs: [String:String] = [:]
     
     // Returns URL of asset
+    @discardableResult
     func add(image: CGImage) -> String {
         images["\(image.hashValue)"] = image
         return url("cgImage/\(image.hashValue)")

@@ -46,7 +46,7 @@ async function getCurrentPageSvg(editor: Editor) {
   const result = await editor.getSvgString(
     Array.from(editor.getCurrentPageShapeIds()),
     {
-      scale: 2,
+      scale: 1,
     }
   );
   if (!result) {

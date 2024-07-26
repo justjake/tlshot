@@ -263,7 +263,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                 let req = try SaveRequest.fromJSON(string: message.json)
                 Task {
                     await app.handleErrors {
-                        let (res, img) = try await saveReq(req)
+                        let img = try await getPng()
                         guard let data = img.cgImage()?.png else {
                             throw TlshotError.captureFailed("PNG creation failed")
                         }
@@ -325,7 +325,8 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
         webview.evaluateJavaScript(js)
     }
     
-    func saveReq(_ msg: SaveRequest) async throws -> (SaveResponse, NSImage) {
+    func getPng() async throws -> NSImage {
+        let msg = SaveRequest(saveID: Date.now.formatted())
         let (res, data) = try await sendRequest(req: msg) as (SaveResponse, Data?)
         guard let data = data else {
             throw TlshotError.invalidData("No data for response: \(res)")
@@ -333,11 +334,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
         guard let image = NSImage(data: data) else {
             throw TlshotError.invalidData("Data didn't produce valid NSImage")
         }
-//        print("saveReq: data \(String(reflecting: data)) \(data.count)")
-//        let writeTo = FileManager.default.temporaryDirectory.appendingPathComponent("test image \(data.hashValue).png", conformingTo: .png)
-//        try data.write(to: writeTo)
-//        NSWorkspace.shared.open(writeTo)
-        return (res, image)
+        return image
     }
 
     func getUserScript() -> WKUserScript {
