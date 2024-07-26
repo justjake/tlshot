@@ -221,56 +221,169 @@ struct Cursors: View {
 
     }
     
+    
+    @ViewBuilder
+    var tldrawExtraIcons: some View {
+        VStack(spacing: tldrawToolSpacing) {
+            HStack(spacing: tldrawToolSpacing) {
+                systemImage("rectangle")
+                systemImage("circle")
+                systemImage("triangle")
+                systemImage("rhombus") // todo - looks like daimond, but is rhombus
+            }
+            
+            HStack(spacing: tldrawToolSpacing) {
+                systemImage("hexagon")
+                systemImage("oval.portrait")
+                systemImage("rhombus") // todo - looks like daimond, but is rhombus
+                systemImage("star")
+            }
+            
+            HStack(spacing: tldrawToolSpacing) {
+                systemImage("cloud")
+                systemImage("heart")
+                systemImage("x.square")
+                systemImage("checkmark.square")
+            }
+            
+            HStack(spacing: tldrawToolSpacing) {
+                systemImage("arrowshape.left")
+                systemImage("arrowshape.up")
+                systemImage("arrowshape.down")
+                systemImage("arrowshape.right")
+            }
+            
+            HStack(spacing: tldrawToolSpacing) {
+                systemImage("line.diagonal")
+                systemImage("highlighter")
+                systemImage("flashlight.on.fill") // lazer pointer
+                systemImage("viewfinder")
+            }
+        }
+    }
+    
+    let tldrawToolSpacing: CGFloat = 2
+    @ViewBuilder
+    var tldrawIcons: some View {
+        VStack {
+            Image("SwiftUIPreviewTldrawTools")
+            HStack(alignment: .top, spacing: tldrawToolSpacing) {
+                systemImage("cursorarrow")
+                systemImage("hand.raised.fingers.spread")
+                VStack(spacing: tldrawToolSpacing) {
+                    systemImage("pencil")
+                    systemImage("scribble")
+                    systemImage("scribble.variable")
+                }
+                systemImage("eraser")
+                VStack(spacing: tldrawToolSpacing) {
+                    systemImage("arrow.up.forward", size: 14)
+    //                systemImage("line.diagonal.arrow")
+                }
+                VStack(spacing: tldrawToolSpacing) {
+                    systemImage("character.cursor.ibeam")
+    //                systemImage("character.textbox")
+    //                systemImage("character")
+                }
+                
+                VStack(spacing: tldrawToolSpacing) {
+                    systemImage("note.text")
+                    systemImage("note")
+                    systemImage("newspaper")
+                }
+                systemImage("photo")
+                
+                // This should be native, as there's many more tools
+                // Or we need to replace all.
+                systemImage("square")
+                
+                
+                systemImage("macwindow.badge.plus", size: 28, offset: -2)
+                systemImage("rectangle.badge.plus", size: 28, offset: -2)
+                
+                Rectangle().foregroundStyle(.clear).frame(width: 25)
+            }
+            
+            HStack {
+                Spacer()
+                tldrawExtraIcons
+            }
+            
+        }
+    }
+    
+    func systemImage(_ name: String, size: CGFloat = 18, offset: CGFloat = 0, bg: Bool = true) -> some View {
+        let defaultPadding: CGFloat = 12
+        let scaleDelta = (18 - size) / 2
+        let padding = defaultPadding + scaleDelta
+        
+        return Image(systemName: name)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .padding(EdgeInsets(top: padding, leading: padding + offset, bottom: padding, trailing: padding - offset))
+            .background {
+                if bg {
+                    RoundedRectangle(cornerRadius: 5).foregroundStyle(.selection)
+                }
+            }
+    }
+    
+    
     var body: some View {
-        HStack {
-            VStack(spacing: 20) {
-                Text("Camera").font(.headline)
-                
-                mouseView()
-                
-                let mouseImage = cameraViews.cameraRenderer.render()!
-//                let _ = print("mosueImage: \(mouseImage)")
-                Image(nsImage:
-                        NSImage(cgImage: mouseImage, size: NSSize(width: mouseImage.width, height: mouseImage.height)))
+        VStack {
+            tldrawIcons
+            
+            HStack {
+                VStack(spacing: 20) {
+                    Text("Camera").font(.headline)
+                    
+                    mouseView()
+                    
+                    let mouseImage = cameraViews.cameraRenderer.render()!
+                    //                let _ = print("mosueImage: \(mouseImage)")
+                    Image(nsImage:
+                            NSImage(cgImage: mouseImage, size: NSSize(width: mouseImage.width, height: mouseImage.height)))
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 40, height: 40)
-
-            }.frame(width: 100)
-            
-            VStack(spacing: 20) {
-                Text("Badging").font(.headline)
+                    
+                }.frame(width: 100)
                 
-                cameraWithBadge("plus.circle.fill")
-                cameraWithBadge("minus.circle.fill")
-
-                ZStack {
-                    cursorImage(NSCursor.arrow)
-                    CursorSymbolBadge(systemName: "plus.circle.fill")
-                        .mouseShadow()
-                        .offset(x: 14, y: 12)
+                VStack(spacing: 20) {
+                    Text("Badging").font(.headline)
+                    
+                    cameraWithBadge("plus.circle.fill")
+                    cameraWithBadge("minus.circle.fill")
+                    
+                    ZStack {
+                        cursorImage(NSCursor.arrow)
+                        CursorSymbolBadge(systemName: "plus.circle.fill")
+                            .mouseShadow()
+                            .offset(x: 14, y: 12)
+                    }
+                    
+                    ZStack {
+                        cursorImage(NSCursor.pointingHand)
+                        CursorSymbolBadge(systemName: "plus.circle.fill")
+                            .mouseShadow()
+                            .offset(x: 14, y: 12)
+                    }
+                    
+                    ZStack {
+                        cursorImage(NSCursor.pointingHand)
+                        CursorSymbolBadge(systemName: "minus.circle.fill")
+                            .mouseShadow()
+                            .offset(x: 14, y: 12)
+                    }
                 }
                 
-                ZStack {
-                    cursorImage(NSCursor.pointingHand)
-                    CursorSymbolBadge(systemName: "plus.circle.fill")
-                        .mouseShadow()
-                        .offset(x: 14, y: 12)
+                VStack(spacing: 20) {
+                    Text("Rendered").font(.headline)
+                    cameraViews.cameraRenderer.view(size: CGSize(square: 28))
+                    cameraViews.cameraPlusRenderer.view(size: CGSize(square: 38))
+                    cameraViews.cameraMinusRenderer.view(size: CGSize(square: 38))
                 }
-                
-                ZStack {
-                    cursorImage(NSCursor.pointingHand)
-                    CursorSymbolBadge(systemName: "minus.circle.fill")
-                        .mouseShadow()
-                        .offset(x: 14, y: 12)
-                }
-            }
-            
-            VStack(spacing: 20) {
-                Text("Rendered").font(.headline)
-                cameraViews.cameraRenderer.view(size: CGSize(square: 28))
-                cameraViews.cameraPlusRenderer.view(size: CGSize(square: 38))
-                cameraViews.cameraMinusRenderer.view(size: CGSize(square: 38))
             }
         }
     }

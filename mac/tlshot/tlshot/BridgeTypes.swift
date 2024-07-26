@@ -127,16 +127,10 @@ enum TypeEnum: String, Codable, Hashable {
 // MARK: - SaveRequest
 struct SaveRequest: Codable, Hashable {
     let saveID: String
-    let type: BridgeIncomingType
 
     enum CodingKeys: String, CodingKey {
         case saveID = "saveId"
-        case type
     }
-}
-
-enum BridgeIncomingType: String, Codable, Hashable {
-    case save = "save"
 }
 
 //
@@ -159,6 +153,10 @@ struct ResponseNotification: Codable, Hashable {
         case requestID = "requestId"
         case type
     }
+}
+
+enum BridgeIncomingType: String, Codable, Hashable {
+    case save = "save"
 }
 
 //

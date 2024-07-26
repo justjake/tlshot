@@ -428,6 +428,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     
     @MainActor func onCaptureRect(area: CGRect) throws {
         onCaptureClose()
+//        print("onCaptureRect(\(area)")
+//        let screen = NSScreen.screens.first { $0.frame.intersects(area) }
+//        if let screen = screen {
+//            print("  screen: \(screen)")
+//            print("  screen.frame: \(screen.frame)")
+//            print("  info: \(screen.deviceDescription)")
+//            print("  backingRect: \(screen.convertRectToBacking(area))")
+//            print("  backingScaleFactor: \(screen.backingScaleFactor)")
+//        }
         if let image = ScreenshotService.shared.screenshot(area.isNS) {
             print("\(self).onCaptureRect image: \(image)")
             editImage(image, frame: area)
@@ -496,6 +505,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         render()
         window.makeKeyAndOrderFront(nil)
         window.makeMain()
+        NSApp.activate()
     }
     
     func renderActivationPolicy() {

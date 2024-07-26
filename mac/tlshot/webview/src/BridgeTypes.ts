@@ -25,7 +25,6 @@ export interface GetNameResponse {
 }
 
 interface SaveRequest {
-  type: "save";
   saveId: string;
 }
 

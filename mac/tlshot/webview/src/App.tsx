@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AssetRecordType,
+  Box,
   Editor,
   PngHelpers,
   TLComponents,
@@ -122,9 +123,26 @@ function createInitialAsset(editor: Editor) {
     meta: {},
     typeName: "shape",
   };
-  editor.createAssets([asset]);
-  editor.createShape(shape);
+  editor.run(() => {
+    editor.createAssets([asset]);
+    editor.createShape(shape);
+  });
   setTimeout(() => {
-    editor.zoomToFit();
-  }, 0);
+    zoomToFitWithInset(editor, 0);
+  });
+}
+
+function zoomToFitWithInset(editor: Editor, inset: number) {
+  const ids = [...editor.getCurrentPageShapeIds()];
+  if (ids.length <= 0) return;
+  const pageBounds = Box.Common(
+    compact(ids.map((id) => editor.getShapePageBounds(id)))
+  );
+  editor.zoomToBounds(pageBounds, {
+    inset,
+  });
+}
+
+function compact<T>(array: (T | null | undefined)[]): T[] {
+  return array.filter((x) => x !== null && x !== undefined) as T[];
 }
