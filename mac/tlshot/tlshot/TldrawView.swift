@@ -14,7 +14,7 @@ struct TldrawWebView: NSViewRepresentable {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var app: AppDelegate
 
-    class Coordinator: NSObject, ObservableObject, WKNavigationDelegate, WKScriptMessageHandler {
+    class Coordinator: NSObject, ObservableObject, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate {
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         }
         
@@ -59,6 +59,20 @@ struct TldrawWebView: NSViewRepresentable {
             // https://stackoverflow.com/questions/65997524/wkwebview-in-swiftui-not-loading-html-string-on-macos
             print("Process terminated")
         }
+        
+        @MainActor
+        func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo) async -> [URL]? {
+            guard let window = webView.window else {
+                return nil
+            }
+            let panel = NSOpenPanel()
+            panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+            panel.canChooseDirectories = parameters.allowsDirectories
+            guard await panel.beginSheetModal(for: window) == .OK else {
+                return nil
+            }
+            return panel.urls
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -67,6 +81,7 @@ struct TldrawWebView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> WKWebView {
         let webview = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
+        webview.uiDelegate = context.coordinator
         webview.isInspectable = true
         webview.navigationDelegate = context.coordinator
         let preview = "http://localhost:5173/"

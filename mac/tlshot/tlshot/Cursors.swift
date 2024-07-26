@@ -112,7 +112,6 @@ class ViewRenderHolderWithProps<
         renderer.scale = imageProps.scale // hi
         renderer.proposedSize = imageProps.proposedSizeWithDefault
         renderer.isOpaque = false
-        print("imageProps \(imageProps)")
         return renderer.cgImage
     }
     

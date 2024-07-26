@@ -131,7 +131,7 @@ struct TlshotApp: App {
             
             Picker("After save...", selection: $afterSaveAction) {
                 Text("Show notification").tag(AfterSaveAction.showNotification)
-                Text("Show and copy to clipboard").tag(AfterSaveAction.showNotificationAndCopy)
+                Text("Show notification and copy to clipboard").tag(AfterSaveAction.showNotificationAndCopy)
                 Text("Reveal in Finder").tag(AfterSaveAction.revealInFinder)
                 Text("Do nothing").tag(AfterSaveAction.none)
             }

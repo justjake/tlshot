@@ -25,13 +25,14 @@ export interface GetNameResponse {
 }
 
 interface SaveRequest {
+  type: "save";
   saveId: string;
 }
 
 interface SaveResponse {
-  svg: string;
-  width: number;
-  height: number;
+  svg?: string;
+  width?: number;
+  height?: number;
 }
 
 export interface ResponseNotification {

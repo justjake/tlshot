@@ -210,7 +210,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         
 #if DEBUG
         // TODO: not this
-        startCapture(.window)
+        startCapture(.area)
 #endif
     }
     
