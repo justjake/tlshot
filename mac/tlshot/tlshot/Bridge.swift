@@ -154,7 +154,7 @@ protocol BridgeIncomingAPI {
 
 class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessageHandlerWithReply, WKURLSchemeHandler {
     
-    @Published var colorScheme: ColorScheme?
+    var colorScheme: ColorScheme?
     @MainActor weak var webview: WKWebView?
     
     var urlSchemes = [BridgeProtocol.asset.rawValue, BridgeProtocol.tlshotResponse.rawValue]

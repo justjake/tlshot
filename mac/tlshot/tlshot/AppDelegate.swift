@@ -10,6 +10,12 @@ import SwiftUI
 import CoreGraphics
 import UserNotifications
 
+struct CaptureResult {
+    let frame: CGRect
+    let image: CGImage
+    var action: CaptureAction? = nil
+    var windows: [ScreenshotService.WindowInfo]? = nil
+}
 
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUserNotificationCenterDelegate {
     typealias WindowInfo = ScreenshotService.WindowInfo
@@ -44,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     // capture state
     @Published var captureAction: CaptureAction? = nil
     @Published var captureMediaType: CaptureMediaType = .image // TODO
+    @Published var captureCallback: ((Result<CaptureResult, Error>) -> Void)?
 
     @Published var mouseLocation: NSPoint = NSEvent.mouseLocation.rounded()
     @Published var mouseScreen: NSScreen? = nil
@@ -220,6 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         await handleErrors {
             switch category {
             case .savedFile: try Notif.SavedFile.fromNotification(response).performResponseAction()
+            case .copyAndClose: try Notif.CopyAndClose.fromNotification(response).copyToClipboard()
             case .none:
                 throw TlshotError.invalidData("Unknown notification category \(categoryIdentifier)")
             }
@@ -328,6 +336,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
     }
     
+    func performCapture(_ action: CaptureAction, mediaType: CaptureMediaType = .image) async throws -> CaptureResult {
+        guard captureCallback == nil, captureAction == nil else {
+            throw TlshotError.captureFailed("Already a capture in progress")
+        }
+        async let result = withCheckedThrowingContinuation { cont in
+            captureCallback = {
+                self.captureCallback = nil
+                cont.resume(with: $0)
+            }
+        }
+        await startCapture(action, mediaType: mediaType)
+        return try await result
+    }
+    
+    @MainActor
     func startCapture(_ action: CaptureAction, mediaType: CaptureMediaType = .image) {
         captureAction = action
         captureMediaType = mediaType
@@ -336,6 +359,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         render()
     }
     
+    @MainActor
     func onCaptureClose() {
         modifierFlags = .zero
         captureAction = nil
@@ -343,6 +367,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         render()
     }
     
+    @MainActor
     func render() {
         updateCursor()
         defer { renderActivationPolicy() }
@@ -444,7 +469,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     }
     
     @MainActor func onCaptureRect(area: CGRect) throws {
-        onCaptureClose()
+        defer { onCaptureClose() }
 //        print("onCaptureRect(\(area)")
 //        let screen = NSScreen.screens.first { $0.frame.intersects(area) }
 //        if let screen = screen {
@@ -463,7 +488,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     }
     
     @MainActor func onCaptureWindows(_ windows: [ScreenshotService.WindowInfo]) throws {
-        onCaptureClose()
+        defer { onCaptureClose() }
         print("\(self).onCaptureWindows:", windows)
         var included = windows
         let bounds = included.map { $0.frame }.union().asCG
@@ -484,7 +509,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     }
     
     @MainActor func onCaptureFullscreen() throws {
-        onCaptureClose()
+        defer { onCaptureClose() }
         print("\(self).onCaptureFullscreen")
         if let image = ScreenshotService.shared.screenshotAll() {
             print("onCaptureFullscreen: got image \(image)")

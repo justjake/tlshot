@@ -104,6 +104,7 @@ struct Notif {
             content.sound = nil
             content.interruptionLevel = .active
             content.categoryIdentifier = Self.identifier
+            return UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         }
         
         static func fromNotification(_ response: UNNotificationResponse) throws -> Notif.CopyAndClose {
