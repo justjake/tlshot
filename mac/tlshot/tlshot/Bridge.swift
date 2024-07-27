@@ -12,9 +12,13 @@ import SwiftUI
 extension BridgeEnvironment {
     static var urlProtcol: String { "asset" }
     
+    static var assetOffset: CGFloat { 20 }
+    
+    static var scaleFactor: CGFloat { NSScreen.main?.backingScaleFactor ?? 2 }
+    
     static func defaults(_ bridgeAsset: InitialAsset?) -> BridgeEnvironment {
         BridgeEnvironment(
-            appName: "tlshot", initialAsset: bridgeAsset, theme: .dark
+            appName: "tlshot", assetOffsetX: assetOffset, backingScaleFactor: scaleFactor, initialAsset: bridgeAsset, theme: .dark
         )
     }
 }
@@ -140,6 +144,14 @@ extension SaveRequest: IncomingEncodableRequest {
     static var requestType: BridgeIncomingType { .save }
 }
 
+extension BridgeImageAssetProps: IncomingEncodableRequest {
+    static var requestType: BridgeIncomingType { .addAsset }
+}
+
+extension ZoomToFitRequest: IncomingEncodableRequest {
+    static var requestType: BridgeIncomingType { .zoomToFit }
+}
+
 enum BridgeURLResponse {
     case binary(Data, url: URL, mimeType: String)
     case utf8(String, url: URL, mimeType: String)
@@ -159,7 +171,8 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     
     var urlSchemes = [BridgeProtocol.asset.rawValue, BridgeProtocol.tlshotResponse.rawValue]
     var assetServer = BridgeAssetServer()
-    var bootWaiter = BridgeBootWaiter()
+    var bootWaiter = Waiter("js boot")
+    var renderWaiter = Waiter("tldraw render image")
     var outgoingResponses = BridgeOutgoingRequestRegistry()
     var debugLogger = BridgeDebugLogger()
     var helloWorldDelegate = BridgeHelloWorldDelegate()
@@ -169,6 +182,8 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     var env: BridgeEnvironment {
         BridgeEnvironment(
             appName: "tlshot",
+            assetOffsetX: BridgeEnvironment.assetOffset,
+            backingScaleFactor: BridgeEnvironment.scaleFactor,
             initialAsset: assetServer.getInitialAsset(),
             theme: {switch colorScheme {
             case .light: .light
@@ -254,7 +269,9 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
             let message = try Notification.fromWebKit(message)
             switch message.type {
             case .booted:
-                try bootWaiter.onNotification(BootedNotification.fromJSON(string: message.json))
+                try bootWaiter.notify(BootedNotification.fromJSON(string: message.json).time)
+            case .rendered:
+                try renderWaiter.notify(RenderedNotification.fromJSON(string: message.json).time)
             case .debug:
                 try debugLogger.onNotification(DebugNotification.fromJSON(string: message.json))
             case .response:
@@ -308,7 +325,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
             type: Req.requestType
         )
         let envelopeJson = try envelope.toJSONString()
-        await bootWaiter.waitForBoot()
+        await bootWaiter.wait()
         async let (responseEnvelope, responseHttp) = outgoingResponses.waitForResponse(requestID: requestID)
         try await evalJS("globalThis.webkit.incomingMessageHandler(\(envelopeJson))")
         let response: Res = try await responseEnvelope.result().get()
@@ -335,6 +352,17 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
             throw TlshotError.invalidData("Data didn't produce valid NSImage")
         }
         return image
+    }
+    
+    func addImageToCanvas(_ image: CGImage) async throws {
+        let url = assetServer.add(image: image)
+        let request = BridgeImageAssetProps(fileSize: Double(image.png?.count ?? 0), h: Double(image.height), isAnimated: false, mimeType: "image/png", name: image.hashValue.description, src: url, w: Double(image.width))
+        let (res, data) = try await sendRequest(req: request) as (EmptyResponse, Data?)
+        // Ok.
+    }
+    
+    func zoomToFit() async throws {
+        let (res, data) = try await sendRequest(req: ZoomToFitRequest()) as (EmptyResponse, Data?)
     }
 
     func getUserScript() -> WKUserScript {

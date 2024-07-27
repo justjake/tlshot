@@ -81,6 +81,7 @@ struct TldrawWebView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> WKWebView {
         let webview = WKWebView(frame: .zero, configuration: context.coordinator.configuration)
+        webview.underPageBackgroundColor = .clear
         webview.uiDelegate = context.coordinator
         webview.isInspectable = true
         webview.navigationDelegate = context.coordinator

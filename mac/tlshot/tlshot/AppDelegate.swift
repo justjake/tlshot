@@ -50,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     // capture state
     @Published var captureAction: CaptureAction? = nil
     @Published var captureMediaType: CaptureMediaType = .image // TODO
-    @Published var captureCallback: ((Result<CaptureResult, Error>) -> Void)?
+    var captureCallback: ((Result<CaptureResult, Error>) -> Void)?
 
     @Published var mouseLocation: NSPoint = NSEvent.mouseLocation.rounded()
     @Published var mouseScreen: NSScreen? = nil
@@ -315,7 +315,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         do {
             try onCaptureWindows([window])
         } catch {
-            showErrorAlert(error: error)
+            onCaptureError(error)
         }
     }
     
@@ -332,6 +332,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         do {
             try onCaptureRect(area: rect)
         } catch {
+            onCaptureError(error)
+        }
+    }
+    
+    @MainActor
+    func onCaptureError(_ error: Error) {
+        if let callback = captureCallback {
+            callback(.failure(error))
+        } else {
             showErrorAlert(error: error)
         }
     }
@@ -361,6 +370,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     
     @MainActor
     func onCaptureClose() {
+        if let callback = captureCallback {
+            callback(.failure(TlshotError.captureCancelled))
+        }
+        
         modifierFlags = .zero
         captureAction = nil
         updateMouseLocation()
@@ -481,7 +494,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
 //        }
         if let image = ScreenshotService.shared.screenshot(area.isNS) {
             print("\(self).onCaptureRect image: \(image)")
-            editImage(image, frame: area)
+            onCaptureSuccess(image, frame: area, windows: nil)
         } else {
             throw TlshotError.captureFailed("System didn't return an image")
         }
@@ -502,7 +515,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
         if let image = ScreenshotService.shared.screenshot(included) {
             print("onCaptureWindow: got image \(image)")
-            editImage(image, frame: bounds.isCG.asNS)
+            onCaptureSuccess(image, frame: bounds.isCG.asNS, windows: included)
         } else {
             throw TlshotError.captureFailed("System didn't return an image")
         }
@@ -513,7 +526,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         print("\(self).onCaptureFullscreen")
         if let image = ScreenshotService.shared.screenshotAll() {
             print("onCaptureFullscreen: got image \(image)")
-            editImage(image, frame: NSScreen.main?.visibleFrame ?? .zero)
+            onCaptureSuccess(image, frame: NSScreen.main?.visibleFrame ?? .zero, windows: nil)
         } else {
             throw TlshotError.captureFailed("System didn't return an image")
         }
@@ -535,9 +548,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
             await showErrorAlert(error: error)
         }
     }
+    
+    @MainActor func onCaptureSuccess(_ image: CGImage, frame: CGRect, windows: [WindowInfo]?) {
+        if let callback = captureCallback {
+            let result = CaptureResult(frame: frame, image: image, action: captureAction, windows: windows)
+            callback(.success(result))
+            return
+        }
+        editImage(image, frame: frame)
+    }
 
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {
-        self.imageByHash[image.hashValue] = image
         let usable = NSScreen.main?.visibleFrame ?? .infinite
         let width = min(usable.width * 0.9, max(400, frame.width))
         let height = min(usable.height * 0.9, max(400, frame.height))
@@ -545,9 +566,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         let window = ImageEditWindow(rect: windowFrame, image: image, name: getImageName())
         imageWindows.append(window)
         render()
-        window.makeKeyAndOrderFront(nil)
-        window.makeMain()
-        NSApp.activate()
+        window.setIsVisible(false)
+        Task { @MainActor in
+            await window.waitForRender()
+            window.setIsVisible(true)
+            window.makeKeyAndOrderFront(nil)
+            window.makeMain()
+            NSApp.activate()
+        }
     }
     
     func renderActivationPolicy() {

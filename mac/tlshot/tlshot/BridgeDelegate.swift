@@ -95,29 +95,34 @@ class BridgeOutgoingRequestRegistry {
     }
 }
 
-class BridgeBootWaiter {
-    @MainActor private var didBoot = false
-    @MainActor private var onBootCallbacks: [() -> Void] = []
+class Waiter {
+    let eventName: String
+    @MainActor private var didHappen = false
+    @MainActor private var callbacks: [() -> Void] = []
     
-    @MainActor func onNotification(_ booted: BootedNotification) -> Void {
-        print("webview booted (time from js): \(Date(timeIntervalSince1970: booted.time/1000))")
-        didBoot = true
-        let cbs = onBootCallbacks
-        onBootCallbacks = []
+    init(_ eventName: String) {
+        self.eventName = eventName
+    }
+    
+    @MainActor func notify(_ time: Double) -> Void {
+        print("\(self): \(eventName) (time from js): \(Date(timeIntervalSince1970: time/1000))")
+        didHappen = true
+        let cbs = callbacks
+        callbacks = []
         for cb in cbs {
             cb()
         }
     }
     
-    @MainActor func waitForBoot() async {
-        if didBoot {
+    @MainActor func wait() async {
+        if didHappen {
             return
         }
-        print("  (waiting for JS to boot)")
-        await withCheckedContinuation { cont in onBootCallbacks.append {
+        print("  (\(self) waiting for \(eventName)")
+        await withCheckedContinuation { cont in callbacks.append {
             cont.resume()
         }}
-        print("  (js booted)")
+        print("  (\(self) \(eventName)")
     }
 }
 

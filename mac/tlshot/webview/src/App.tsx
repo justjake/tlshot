@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AssetRecordType,
   Box,
+  DefaultColorStyle,
+  DefaultSizeStyle,
   Editor,
   TLComponents,
   TLImageAsset,
+  TLImageShape,
   TLShapePartial,
   Tldraw,
   TldrawOptions,
@@ -13,6 +16,7 @@ import {
 } from "tldraw";
 import { bridge, BridgeIncomingHandlers } from "./Bridge";
 import { exportPng } from "./exportHelpers";
+import { BridgeImageAssetProps } from "./BridgeTypes";
 
 const components: TLComponents = {};
 
@@ -35,6 +39,22 @@ function App() {
           httpUpload: arrayBuffer,
         };
       },
+      addAsset: async (props) => {
+        addAsset(editor, props);
+        return {};
+      },
+      zoomToFit: async () => {
+        setTimeout(() => {
+          const bounds = getPageBounds(editor);
+          if (bounds) {
+            editor.zoomToBounds(bounds, {
+              inset: bridge.getGutterSize(),
+              animation: { duration: 100 },
+            });
+          }
+        });
+        return {};
+      },
     };
   }, [editor]);
 
@@ -43,15 +63,19 @@ function App() {
     if (!registerApi) return;
     (globalThis as any).__tldraw__ = editor;
     bridge.register(registerApi);
-    editor.user.updateUserPreferences({
-      // Brush size, etc relative to zoom.
-      // Zoom in to draw finer details
-      // https://tldraw.substack.com/i/145825699/whats-new
-      isDynamicSizeMode: true,
-      colorScheme: bridge.env.theme,
-      isSnapMode: true,
+    editor.run(() => {
+      editor.user.updateUserPreferences({
+        // Brush size, etc relative to zoom.
+        // Zoom in to draw finer details
+        // https://tldraw.substack.com/i/145825699/whats-new
+        isDynamicSizeMode: true,
+        colorScheme: bridge.env.theme,
+        isSnapMode: true,
+      });
+      editor.setStyleForNextShapes(DefaultColorStyle, "blue");
+      editor.setStyleForNextShapes(DefaultSizeStyle, "xl");
+      createInitialAsset(editor);
     });
-    createInitialAsset(editor);
   }, [editor]);
 
   return (
@@ -68,12 +92,28 @@ function App() {
 
 export default App;
 
+let initialImageId: TLImageShape["id"] | undefined;
+let initialImageUnlocked = false;
+
 function createInitialAsset(editor: Editor) {
   const { initialAsset } = bridge.env;
   if (!initialAsset) {
+    bridge.rendered();
     return;
   }
+  addAsset(editor, initialAsset);
+  setTimeout(() => {
+    const bounds = getPageBounds(editor);
+    if (bounds) {
+      editor.zoomToBounds(bounds, {
+        inset: 0,
+      });
+      bridge.rendered();
+    }
+  });
+}
 
+function addAsset(editor: Editor, initialAsset: BridgeImageAssetProps) {
   const urlHash = getHashForString(initialAsset.src);
   const asset: TLImageAsset = {
     id: AssetRecordType.createId(urlHash),
@@ -82,14 +122,29 @@ function createInitialAsset(editor: Editor) {
     type: "image",
     typeName: "asset",
   };
+
+  const existingImages = editor
+    .getCurrentPageShapesSorted()
+    .filter((shape) => shape.type === "image") as TLImageShape[];
+  let maxTrailingBound = -Infinity;
+  for (const image of existingImages) {
+    maxTrailingBound = Math.max(
+      maxTrailingBound,
+      editor.getShapePageBounds(image)?.maxX ?? -Infinity
+    );
+  }
+
   const shape: TLShapePartial = {
     id: createShapeId(asset.id),
     type: "image",
-    x: 0,
+    x:
+      maxTrailingBound === -Infinity
+        ? 0
+        : maxTrailingBound + bridge.getGutterSize(),
     y: 0,
     opacity: 1,
     // Draw stuff relative to the image please
-    isLocked: true,
+    isLocked: existingImages.length === 0,
     props: {
       assetId: asset.id,
       h: asset.props.h,
@@ -98,24 +153,24 @@ function createInitialAsset(editor: Editor) {
     meta: {},
     typeName: "shape",
   };
+
   editor.run(() => {
     editor.createAssets([asset]);
     editor.createShape(shape);
   });
-  setTimeout(() => {
-    zoomToFitWithInset(editor, 0);
-  });
+
+  if (existingImages.length === 0) {
+    initialImageId = shape.id;
+  } else if (initialImageId && !initialImageUnlocked) {
+    editor.updateShape({ id: initialImageId, type: "image", isLocked: false });
+    initialImageUnlocked = true;
+  }
 }
 
-function zoomToFitWithInset(editor: Editor, inset: number) {
+function getPageBounds(editor: Editor) {
   const ids = [...editor.getCurrentPageShapeIds()];
   if (ids.length <= 0) return;
-  const pageBounds = Box.Common(
-    compact(ids.map((id) => editor.getShapePageBounds(id)))
-  );
-  editor.zoomToBounds(pageBounds, {
-    inset,
-  });
+  return Box.Common(compact(ids.map((id) => editor.getShapePageBounds(id))));
 }
 
 function compact<T>(array: (T | null | undefined)[]): T[] {

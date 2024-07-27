@@ -152,6 +152,14 @@ struct CameraWithStroke: View {
     }
 }
 
+final class TrayIconBuilder {
+    static var trayPathBuilder = ContourPathExtractor(image: Image("TrayIcon"), extractedPathWidth: 20)
+    var path: CGPath
+    init (_ path: CGPath) {
+        self.path = path
+    }
+}
+
 final class CameraViewBuilder {
     static var cameraPathBuilder = ContourPathExtractor(
         image: Image(systemName: "camera.fill"),
@@ -199,6 +207,9 @@ struct Cursors: View {
         image: Image(systemName: "camera.fill"),
         extractedPathWidth: 20
     )
+    
+    @MainActor
+    static var trayPath = ContourPathExtractor(image: Image("TrayIcon"), extractedPathWidth: 20)
     
     @MainActor
     static var cameraViewBuilder = CameraViewBuilder(try! cameraPath.buildSync()!)
@@ -329,9 +340,19 @@ struct Cursors: View {
             }
     }
     
+    @MainActor
+    @ViewBuilder
+    var trayIcon: some View {
+        let path = try! Self.trayPath.buildSync()!
+        Path(path)
+            .frame(width: 30, height: 30)
+    }
+    
     
     var body: some View {
         VStack {
+            trayIcon
+            
             tldrawIcons
             
             HStack {
@@ -415,6 +436,7 @@ extension View {
 }
 
 #Preview {
-    Cursors()
-        .expand()
+    ScrollView {
+        Cursors()
+    }.expand()
 }

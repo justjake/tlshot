@@ -28,6 +28,7 @@ enum TlshotError: LocalizedError, Equatable {
     case notImplemented(String)
     case captureFailed(String)
     case pickSaveFolderCancelled
+    case captureCancelled
     
     var errorDescription: String? {
         "\(self)"
@@ -76,19 +77,24 @@ struct SettingsKey {
 
 @main
 struct TlshotApp: App {
-    
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @AppStorage(SettingsKey.windowIncludeShadow) private var windowIncludeShadow: Bool = true
     @AppStorage(SettingsKey.windowIncludeDesktop) private var windowIncludeDesktop: Bool = false
     @AppStorage(SettingsKey.windowIncludeMenuBarWithDesktop) private var windowIncludeMenuBarWithDesktop = false
     @AppStorage(SettingsKey.afterSaveAction) private var afterSaveAction: AfterSaveAction = .none
     
+    static var trayImage = {
+        let image = NSImage(named: "TrayIcon")!
+        image.isTemplate = true
+        return image
+    }()
+    
     var body: some Scene {
 //        DocumentGroup(newDocument: TldrawDocument()) { group in
 //            ContentView(document: group.$document)
 //        }
         
-        MenuBarExtra("tlshot") {
+        MenuBarExtra(content: {
             Button("Capture Area") {
                 appDelegate.startCapture(.area)
             }
@@ -100,9 +106,9 @@ struct TlshotApp: App {
                     try appDelegate.onCaptureFullscreen()
                 }
             }
-//            Button("Record video") {
-//                appDelegate.startCapture(.area, mediaType: .video)
-//            }
+            //            Button("Record video") {
+            //                appDelegate.startCapture(.area, mediaType: .video)
+            //            }
             
             Divider()
             
@@ -122,7 +128,7 @@ struct TlshotApp: App {
                 get: { windowIncludeShadow || windowIncludeDesktop },
                 set: { windowIncludeShadow = $0 }
             ))
-                .disabled(windowIncludeDesktop)
+            .disabled(windowIncludeDesktop)
             Toggle("Include desktop", isOn: $windowIncludeDesktop)
             Toggle("Include menu bar with desktop", isOn: $windowIncludeMenuBarWithDesktop)
                 .disabled(!windowIncludeDesktop)
@@ -146,13 +152,20 @@ struct TlshotApp: App {
                     AppDelegate.openSystemSettings()
                 }
             }
-
+            
             Divider()
             
             Button("Quit") {
                 NSApplication.shared.terminate(self)
             }.keyboardShortcut("Q", modifiers: .command)
-        }
+
+        }, label: {
+            Label(
+                title: { Text("tlshot") },
+                icon: { Image(nsImage: Self.trayImage) }
+            )
+        })
     }
+    
 }
 

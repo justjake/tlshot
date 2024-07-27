@@ -26,7 +26,16 @@ class ImageDisplayWindow: NSWindow {
 }
 
 class ImageEditWindow: NSWindow {
+    func waitForRender() async {
+        await bridge.renderWaiter.wait()
+    }
+    
+    private var bridge: Bridge
+    
     init(rect: CGRect, image: CGImage, name: String) {
+        let bridge = Bridge()
+        self.bridge = bridge
+        
         super.init(
             contentRect: rect,
             styleMask: [.closable, .resizable, .titled, .miniaturizable],
@@ -37,7 +46,6 @@ class ImageEditWindow: NSWindow {
         isReleasedWhenClosed = false
         title = name
         
-        let bridge = Bridge()
         bridge.imageName = name
         bridge.assetServer.add(image: image)
         let view = ImageEditView(bridge: bridge, window: self, imageName: name).environmentObject(AppDelegate.shared)
@@ -78,18 +86,49 @@ struct ImageEditView: View {
             }
     }
     
-    private func onCaptureWindow() async throws {
+    private func onCapture(_ action: CaptureAction) async throws {
+        let result = try await app.performCapture(action)
+        try await bridge.addImageToCanvas(result.image)
+        guard let screen = window.screen else {
+            return
+        }
         
+        let contentRect = window.contentRect(forFrameRect: window.frame)
+        var newContentRect = CGRect(
+            origin: contentRect.origin,
+            size: .init(
+                width: min(
+                    contentRect.width + BridgeEnvironment.assetOffset + result.frame.width,
+                    screen.visibleFrame.width
+                ),
+                height: min(
+                    max(contentRect.height, result.frame.height),
+                    screen.visibleFrame.height
+                )
+            )
+        )
+        var newFrame = window.frameRect(forContentRect: newContentRect)
+        if newFrame.maxX > screen.visibleFrame.maxX {
+            newFrame = CGRect(center: screen.visibleFrame.center, size: newFrame.size)
+        }
+        window.setFrame(newFrame, display: true, animate: false)
+        try await bridge.zoomToFit()
+    }
+    
+    private func onCaptureWindow() async throws {
+        try await onCapture(.window)
     }
     
     private func onCaptureArea() async throws {
-        
+        try await onCapture(.area)
     }
     
     private func onCopyAndDelete() async throws {
         let data = try await getImageData()
         let notification = Notif.CopyAndClose(imageName: imageName, pngImageData: data)
         notification.copyToClipboard()
+        try await onDelete()
+        
         switch app.afterSaveAction {
         case .showNotification:
             try await notification.sendNotification()
@@ -132,6 +171,11 @@ struct ImageEditView: View {
             do {
                 try await block()
             } catch {
+                if error as? TlshotError == TlshotError.captureCancelled {
+                    // It's okay if the user cancelled a capture
+                    return
+                }
+                
                 await app.showErrorAlert(error: error, for: window)
             }
         }

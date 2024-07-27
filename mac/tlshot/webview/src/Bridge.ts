@@ -57,6 +57,8 @@ function mockEnvironment(): BridgeEnvironment {
   return {
     appName: "tlshot/web",
     theme: "dark",
+    assetOffsetX: 20,
+    backingScaleFactor: 2,
     initialAsset: undefined,
   };
 }
@@ -94,6 +96,8 @@ class Bridge {
     >;
   } = {
     save: this.noOp("save"),
+    addAsset: this.noOp("addAsset"),
+    zoomToFit: this.noOp("zoomToFit"),
   };
 
   incomingMessageHandler: (message: BridgeIncomingEnvelope) => void = async (
@@ -148,6 +152,11 @@ class Bridge {
     }
   };
 
+  getGutterSize() {
+    // TODO: replace 2 with a scale constant
+    return this.env.assetOffsetX * this.env.backingScaleFactor;
+  }
+
   register(handlers: typeof this.incomingHandlers) {
     this.incomingHandlers = handlers;
     this.webkit.incomingMessageHandler = this.incomingMessageHandler as any;
@@ -156,6 +165,10 @@ class Bridge {
 
   booted() {
     this.notify({ type: "booted", data: { time: Date.now() } });
+  }
+
+  rendered() {
+    this.notify({ type: "rendered", data: { time: Date.now() } });
   }
 
   isWebOnly() {

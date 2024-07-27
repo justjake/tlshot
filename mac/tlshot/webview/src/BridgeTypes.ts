@@ -1,10 +1,16 @@
 export interface BridgeEnvironment {
   appName: string;
   theme: "dark" | "light";
+  assetOffsetX: number;
+  backingScaleFactor: number;
   initialAsset: BridgeImageAssetProps | undefined;
 }
 
 export interface BootedNotification {
+  time: number;
+}
+
+export interface RenderedNotification {
   time: number;
 }
 
@@ -45,6 +51,7 @@ export interface ResponseNotification {
 export interface BridgeNotificationMap {
   debug: DebugNotification;
   booted: BootedNotification;
+  rendered: RenderedNotification;
   response: ResponseNotification;
   prepareSave: SaveRequest;
 }
@@ -65,7 +72,17 @@ export interface BridgeIncomingMap {
     request: SaveRequest;
     response: SaveResponse;
   };
+  addAsset: {
+    request: BridgeImageAssetProps;
+    response: EmptyResponse;
+  };
+  zoomToFit: {
+    request: ZoomToFitRequest;
+    response: EmptyResponse;
+  };
 }
+interface ZoomToFitRequest {}
+interface EmptyResponse {}
 
 export interface BridgeIncomingEnvelope {
   type: BridgeIncomingType;
