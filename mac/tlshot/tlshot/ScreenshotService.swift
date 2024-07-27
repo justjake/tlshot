@@ -157,6 +157,10 @@ class ScreenshotService {
             layer == CGWindowLevelKey.mainMenuWindow.cgLevel
         }
         
+        var isCursorWindow: Bool {
+            layer == CGWindowLevelKey.cursorWindow.cgLevel
+        }
+        
         var description: String {
             let parts: [String] = [
                 "\(id) \(frame.asCG)",
@@ -226,6 +230,12 @@ class ScreenshotService {
             if window.appPID == ProcessInfo.processInfo.processIdentifier {
                 return isScreenshotAble(windowNumber: window.id)
             }
+            if window.isCursorWindow {
+                // We don't seem to hit this ever, but keeping it in just in case,
+                // since I thought I saw some cases where we included the cursor.
+                print("exclude cursor window \(window)")
+                return false
+            }
             return true
         }
     }
@@ -272,9 +282,12 @@ class ScreenshotService {
 
     func screenshot(_ rect: CoordRect) -> CGImage? {
         // Try to screenshot region excluding own windows
-        return screenshot(rect.asCG, windows: windows())
-            // Fall back to fully flattened image
-            ?? CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, baseImageOptions)
+        if let regular = screenshot(rect.asCG, windows: windows()) {
+            return regular
+        }
+        print("screenshoot \(rect): first attempt null, fall back to CGWindowListCreateImage")
+        // Fall back to fully flattened image
+        return CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, baseImageOptions)
     }
     
     func screenshotAll() -> CGImage? {

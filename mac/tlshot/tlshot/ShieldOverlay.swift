@@ -124,7 +124,7 @@ class ShieldOverlay: ObservableObject {
                     CursorDecoration(
                         // Now handled by cursor rendering
                         showActionSymbol: nil,
-                        showCrosshairs: app.captureAction == .area
+                        showCrosshairs: false // app.captureAction == .area
                     )
                     .position(position)
                 }

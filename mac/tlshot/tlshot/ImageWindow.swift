@@ -28,7 +28,7 @@ class ImageDisplayWindow: NSWindow {
 extension NSWindow {
     func setContentFrame(_ rect: NSRect, animate: Bool = false) {
         let frameRect = frameRect(forContentRect: rect)
-        setFrame(rect, display: true, animate: animate)
+        setFrame(frameRect, display: true, animate: animate)
     }
 }
 

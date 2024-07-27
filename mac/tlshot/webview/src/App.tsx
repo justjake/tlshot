@@ -96,8 +96,9 @@ function App() {
         colorScheme: bridge.env.theme,
         isSnapMode: true,
       });
+      editor.updateInstanceState({ isDebugMode: false });
       editor.setStyleForNextShapes(DefaultColorStyle, "blue");
-      editor.setStyleForNextShapes(DefaultSizeStyle, "xl");
+      editor.setStyleForNextShapes(DefaultSizeStyle, "l");
       createInitialAsset(editor);
     });
   }, [editor]);
@@ -192,8 +193,6 @@ function addAsset(
     editor.updateShape({ id: initialImageId, type: "image", isLocked: false });
     initialImageUnlocked = true;
   }
-
-  editor.eventNames;
 
   return loggedPromise<void>("addAssetImageLoad", async (resolve) => {
     await wait(editor);
