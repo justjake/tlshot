@@ -201,6 +201,49 @@ class Bridge {
       throw new Error(`No handler for ${name}`);
     };
   }
+
+  private disposed = false;
+
+  dispose() {
+    this.disposed = true;
+  }
+
+  addBridgeEventListeners() {
+    window.addEventListener("error", (event) => {
+      if (this.disposed) return;
+      bridge.notify({
+        type: "debug",
+        data: { type: "error", error: parseUnknownError(event.error) },
+      });
+    });
+
+    window.addEventListener("unhandledrejection", (event) => {
+      if (this.disposed) return;
+      bridge.notify({
+        type: "debug",
+        data: {
+          type: "unhandledRejection",
+          error: parseUnknownError(event.reason),
+        },
+      });
+    });
+
+    for (const name of ["error", "log", "debug"] as const) {
+      const original = console[name].bind(console);
+      console[name] = (...args: unknown[]) => {
+        original(...args);
+        if (this.disposed) return;
+        bridge.notify({
+          type: "debug",
+          data: {
+            type: "console",
+            method: name,
+            message: args.map(trySerializeForDebugging),
+          },
+        });
+      };
+    }
+  }
 }
 
 function trySerializeForDebugging(value: unknown) {
@@ -235,37 +278,16 @@ function parseUnknownError(value: unknown) {
 export const bridge = new Bridge();
 
 if (!bridge.isWebOnly()) {
-  window.addEventListener("error", (event) => {
-    bridge.notify({
-      type: "debug",
-      data: { type: "error", error: parseUnknownError(event.error) },
-    });
-  });
-
-  window.addEventListener("unhandledrejection", (event) => {
-    bridge.notify({
-      type: "debug",
-      data: {
-        type: "unhandledRejection",
-        error: parseUnknownError(event.reason),
-      },
-    });
-  });
-
-  for (const name of ["error", "log", "debug"] as const) {
-    const original = console[name].bind(console);
-    console[name] = (...args: unknown[]) => {
-      original(...args);
-      bridge.notify({
-        type: "debug",
-        data: {
-          type: "console",
-          method: name,
-          message: args.map(trySerializeForDebugging),
-        },
-      });
-    };
-  }
+  bridge.addBridgeEventListeners();
 }
 
 (globalThis as any).__bridge__ = bridge;
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    bridge.dispose();
+    if ((globalThis as any).__bridge__ === bridge) {
+      delete (globalThis as any).__bridge__;
+    }
+  });
+}

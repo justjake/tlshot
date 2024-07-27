@@ -70,6 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     @Published var imageByHash: [Int:CGImage] = [:]
     @Published var saveDirectory = SaveDirectory()
     
+    var nextEditWindow: ImageEditWindow?
+    
     static func openSystemSettings() {
         // https://github.com/feedback-assistant/reports/issues/184
         // https://gist.github.com/iccir/c1da6e537718b99b0c14ef76765aec45
@@ -364,6 +366,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         captureAction = action
         captureMediaType = mediaType
         dragCancelling = false
+        nextEditWindow = nextEditWindow ?? ImageEditWindow(rect: NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 600))
+        nextEditWindow?.setIsVisible(false)
         updateMouseLocation()
         render()
     }
@@ -376,6 +380,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         
         modifierFlags = .zero
         captureAction = nil
+        nextEditWindow = nil
         updateMouseLocation()
         render()
     }
@@ -563,16 +568,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         let width = min(usable.width * 0.9, max(400, frame.width))
         let height = min(usable.height * 0.9, max(400, frame.height))
         let windowFrame = CGRect(center: frame.center, size: CGSize(width: width, height: height))
-        let window = ImageEditWindow(rect: windowFrame, image: image, name: getImageName())
-        imageWindows.append(window)
-        render()
+        let window = nextEditWindow ?? ImageEditWindow(rect: windowFrame)
+        nextEditWindow = nil
         window.setIsVisible(false)
-        Task { @MainActor in
-            await window.waitForRender()
-            window.setIsVisible(true)
-            window.makeKeyAndOrderFront(nil)
-            window.makeMain()
-            NSApp.activate()
+        imageWindows.append(window)
+        let imageName = getImageName()
+        Task {
+            await handleErrors { @MainActor in
+                await window.waitForRender()
+                try await window.addInitialImage(image: image, name: imageName, frame: windowFrame)
+                render()
+                window.setIsVisible(true)
+                window.makeKeyAndOrderFront(nil)
+                window.makeMain()
+                NSApp.activate()
+            }
         }
     }
     

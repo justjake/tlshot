@@ -152,6 +152,10 @@ extension ZoomToFitRequest: IncomingEncodableRequest {
     static var requestType: BridgeIncomingType { .zoomToFit }
 }
 
+extension WaitForResizeRequest: IncomingEncodableRequest {
+    static var requestType: BridgeIncomingType { .waitForResize }
+}
+
 enum BridgeURLResponse {
     case binary(Data, url: URL, mimeType: String)
     case utf8(String, url: URL, mimeType: String)
@@ -357,12 +361,16 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     func addImageToCanvas(_ image: CGImage) async throws {
         let url = assetServer.add(image: image)
         let request = BridgeImageAssetProps(fileSize: Double(image.png?.count ?? 0), h: Double(image.height), isAnimated: false, mimeType: "image/png", name: image.hashValue.description, src: url, w: Double(image.width))
-        let (res, data) = try await sendRequest(req: request) as (EmptyResponse, Data?)
+        (_, _) = try await sendRequest(req: request) as (EmptyResponse, Data?)
         // Ok.
     }
     
-    func zoomToFit() async throws {
-        let (res, data) = try await sendRequest(req: ZoomToFitRequest()) as (EmptyResponse, Data?)
+    func zoomToFit(inset: Bool = false, animate: Bool = false, delayMS: Double = 0) async throws {
+        (_, _) = try await sendRequest(req: ZoomToFitRequest(animate: animate, delayMS: delayMS, inset: inset)) as (EmptyResponse, Data?)
+    }
+    
+    func waitForResize(timeoutMS: Double) async throws {
+        (_, _) = try await sendRequest(req: WaitForResizeRequest(timeoutMS: timeoutMS)) as (EmptyResponse, Data?)
     }
 
     func getUserScript() -> WKUserScript {

@@ -15,6 +15,7 @@
 //   let bridgeRequestMap = try? JSONDecoder().decode(BridgeRequestMap.self, from: jsonData)
 //   let bridgeIncomingMap = try? JSONDecoder().decode(BridgeIncomingMap.self, from: jsonData)
 //   let zoomToFitRequest = try? JSONDecoder().decode(ZoomToFitRequest.self, from: jsonData)
+//   let waitForResizeRequest = try? JSONDecoder().decode(WaitForResizeRequest.self, from: jsonData)
 //   let emptyResponse = try? JSONDecoder().decode(EmptyResponse.self, from: jsonData)
 //   let bridgeIncomingEnvelope = try? JSONDecoder().decode(BridgeIncomingEnvelope.self, from: jsonData)
 //   let bridgeNotificationType = try? JSONDecoder().decode(BridgeNotificationType.self, from: jsonData)
@@ -174,6 +175,7 @@ struct ResponseNotification: Codable, Hashable {
 enum BridgeIncomingType: String, Codable, Hashable {
     case addAsset = "addAsset"
     case save = "save"
+    case waitForResize = "waitForResize"
     case zoomToFit = "zoomToFit"
 }
 
@@ -280,6 +282,7 @@ struct GetNameResponse: Codable, Hashable {
 struct BridgeIncomingMap: Codable, Hashable {
     let addAsset: AddAsset
     let save: Save
+    let waitForResize: WaitForResize
     let zoomToFit: ZoomToFit
 }
 
@@ -350,6 +353,33 @@ struct SaveResponse: Codable, Hashable {
 // for types that require the use of JSONAny, nor will the implementation of Hashable be
 // synthesized for types that have collections (such as arrays or dictionaries).
 
+// MARK: - WaitForResize
+struct WaitForResize: Codable, Hashable {
+    let request: WaitForResizeRequest
+    let response: EmptyResponse
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
+// MARK: - WaitForResizeRequest
+struct WaitForResizeRequest: Codable, Hashable {
+    let timeoutMS: Double
+
+    enum CodingKeys: String, CodingKey {
+        case timeoutMS = "timeoutMs"
+    }
+}
+
+//
+// Hashable or Equatable:
+// The compiler will not be able to synthesize the implementation of Hashable or Equatable
+// for types that require the use of JSONAny, nor will the implementation of Hashable be
+// synthesized for types that have collections (such as arrays or dictionaries).
+
 // MARK: - ZoomToFit
 struct ZoomToFit: Codable, Hashable {
     let request: ZoomToFitRequest
@@ -364,6 +394,15 @@ struct ZoomToFit: Codable, Hashable {
 
 // MARK: - ZoomToFitRequest
 struct ZoomToFitRequest: Codable, Hashable {
+    let animate: Bool
+    let delayMS: Double
+    let inset: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case animate
+        case delayMS = "delayMs"
+        case inset
+    }
 }
 
 //

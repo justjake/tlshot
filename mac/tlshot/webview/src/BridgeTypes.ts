@@ -80,8 +80,21 @@ export interface BridgeIncomingMap {
     request: ZoomToFitRequest;
     response: EmptyResponse;
   };
+  waitForResize: {
+    request: WaitForResizeRequest;
+    response: EmptyResponse;
+  };
 }
-interface ZoomToFitRequest {}
+interface ZoomToFitRequest {
+  delayMs: number;
+  inset: boolean;
+  animate: boolean;
+}
+
+interface WaitForResizeRequest {
+  timeoutMs: number;
+}
+
 interface EmptyResponse {}
 
 export interface BridgeIncomingEnvelope {

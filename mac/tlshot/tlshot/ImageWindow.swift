@@ -25,6 +25,13 @@ class ImageDisplayWindow: NSWindow {
     }
 }
 
+extension NSWindow {
+    func setContentFrame(_ rect: NSRect, animate: Bool = false) {
+        let frameRect = frameRect(forContentRect: rect)
+        setFrame(rect, display: true, animate: animate)
+    }
+}
+
 class ImageEditWindow: NSWindow {
     func waitForRender() async {
         await bridge.renderWaiter.wait()
@@ -32,7 +39,7 @@ class ImageEditWindow: NSWindow {
     
     private var bridge: Bridge
     
-    init(rect: CGRect, image: CGImage, name: String) {
+    init(rect: CGRect) {
         let bridge = Bridge()
         self.bridge = bridge
         
@@ -44,12 +51,18 @@ class ImageEditWindow: NSWindow {
         )
 
         isReleasedWhenClosed = false
+        let view = ImageEditView(bridge: bridge, window: self).environmentObject(AppDelegate.shared)
+        contentView = NSHostingView(rootView: view)
+    }
+    
+    @MainActor
+    func addInitialImage(image: CGImage, name: String, frame: CGRect) async throws {
         title = name
+        setContentFrame(frame)
         
         bridge.imageName = name
-        bridge.assetServer.add(image: image)
-        let view = ImageEditView(bridge: bridge, window: self, imageName: name).environmentObject(AppDelegate.shared)
-        contentView = NSHostingView(rootView: view)
+        try await bridge.addImageToCanvas(image)
+        try await bridge.zoomToFit()
     }
     
     override var canBecomeKey: Bool {
@@ -70,7 +83,6 @@ struct ImageEditView: View {
     @EnvironmentObject var app: AppDelegate
     @StateObject var bridge: Bridge
     var window: NSWindow
-    var imageName: String
     
     var body: some View {
         TldrawWebView(bridge: bridge)
@@ -112,7 +124,8 @@ struct ImageEditView: View {
             newFrame = CGRect(center: screen.visibleFrame.center, size: newFrame.size)
         }
         window.setFrame(newFrame, display: true, animate: false)
-        try await bridge.zoomToFit()
+        try await bridge.waitForResize(timeoutMS: 100)
+        try await bridge.zoomToFit(inset: true, animate: true, delayMS: 0)
     }
     
     private func onCaptureWindow() async throws {
@@ -125,7 +138,7 @@ struct ImageEditView: View {
     
     private func onCopyAndDelete() async throws {
         let data = try await getImageData()
-        let notification = Notif.CopyAndClose(imageName: imageName, pngImageData: data)
+        let notification = Notif.CopyAndClose(imageName: bridge.imageName, pngImageData: data)
         notification.copyToClipboard()
         try await onDelete()
         
@@ -163,7 +176,7 @@ struct ImageEditView: View {
     }
     
     private func save() async throws {
-        try await app.saveImage(name: imageName, data: getImageData())
+        try await app.saveImage(name: bridge.imageName, data: getImageData())
     }
     
     private func handleErrors(block: @escaping () async throws -> Void) {

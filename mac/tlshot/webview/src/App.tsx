@@ -40,19 +40,43 @@ function App() {
         };
       },
       addAsset: async (props) => {
-        addAsset(editor, props);
+        await addAsset(editor, props);
         return {};
       },
-      zoomToFit: async () => {
-        setTimeout(() => {
+      zoomToFit: async ({ inset, animate }) => {
+        await loggedPromise<void>("zoomToFit", async (resolve) => {
           const bounds = getPageBounds(editor);
-          if (bounds) {
-            editor.zoomToBounds(bounds, {
-              inset: bridge.getGutterSize(),
-              animation: { duration: 100 },
-            });
+          if (!bounds) {
+            return resolve();
           }
+
+          const duration = 100;
+          editor.zoomToBounds(bounds, {
+            inset: inset ? bridge.getGutterSize() : 0,
+            animation: animate ? { duration } : undefined,
+          });
+
+          if (animate) {
+            const animationCancelled = new Promise<void>((resolve) =>
+              editor.once("stop-camera-animation", resolve)
+            );
+            const timeout = new Promise<void>((resolve) =>
+              setTimeout(resolve, duration)
+            );
+            await Promise.race([animationCancelled, timeout]);
+          }
+          resolve();
         });
+        return {};
+      },
+      waitForResize: async ({ timeoutMs }) => {
+        const timeout = waitMs(timeoutMs).then(() => "timeout");
+        const didResize = new Promise((resolve) =>
+          window.addEventListener("resize", () => resolve("resize"), {
+            once: true,
+          })
+        );
+        console.log("waitForResize:", await Promise.race([timeout, didResize]));
         return {};
       },
     };
@@ -113,7 +137,10 @@ function createInitialAsset(editor: Editor) {
   });
 }
 
-function addAsset(editor: Editor, initialAsset: BridgeImageAssetProps) {
+function addAsset(
+  editor: Editor,
+  initialAsset: BridgeImageAssetProps
+): Promise<void> {
   const urlHash = getHashForString(initialAsset.src);
   const asset: TLImageAsset = {
     id: AssetRecordType.createId(urlHash),
@@ -165,6 +192,40 @@ function addAsset(editor: Editor, initialAsset: BridgeImageAssetProps) {
     editor.updateShape({ id: initialImageId, type: "image", isLocked: false });
     initialImageUnlocked = true;
   }
+
+  editor.eventNames;
+
+  return loggedPromise<void>("addAssetImageLoad", async (resolve) => {
+    await wait(editor);
+    const images = Array.from(document.querySelectorAll("img.tl-image"));
+    const notLoadedImages = images.filter(
+      (img) => img instanceof HTMLImageElement && !img.complete
+    ) as HTMLImageElement[];
+    const promises = notLoadedImages.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          const resolveWrapper = () => {
+            console.log("img loaded", img);
+            resolve();
+          };
+          img.addEventListener("load", resolveWrapper, {
+            once: true,
+            passive: true,
+          });
+          img.addEventListener("error", resolveWrapper, {
+            once: true,
+            passive: true,
+          });
+        })
+    );
+    if (promises.length === 0) {
+      console.log("no images to wait for");
+      resolve();
+    } else {
+      console.log(`waiting for ${promises.length} images to load`);
+    }
+    Promise.all(promises).finally(resolve);
+  });
 }
 
 function getPageBounds(editor: Editor) {
@@ -175,4 +236,46 @@ function getPageBounds(editor: Editor) {
 
 function compact<T>(array: (T | null | undefined)[]): T[] {
   return array.filter((x) => x !== null && x !== undefined) as T[];
+}
+
+function loggedPromise<T>(
+  name: string,
+  resolver: (resolve: (arg: T) => void, reject: (error: Error) => void) => void
+) {
+  const log = (...msg: unknown[]) => {
+    console.log(`promise ${name}:`, ...msg);
+  };
+  console.time(name);
+  log("started");
+  return new Promise<T>((resolve, reject) => {
+    const startAt = Date.now();
+
+    const interval = setInterval(() => {
+      log(`  still running after ${Date.now() - startAt}ms`);
+    }, 10_000);
+
+    const wrappedResolve = (arg: T) => {
+      clearInterval(interval);
+      console.timeEnd(name);
+      log("  resolved", arg);
+      resolve(arg);
+    };
+
+    const wrappedReject = (error: Error) => {
+      clearInterval(interval);
+      console.timeEnd(name);
+      log("  rejected", error);
+      reject(error);
+    };
+
+    resolver(wrappedResolve, wrappedReject);
+  });
+}
+
+function wait(editor: Editor) {
+  return new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
+function waitMs(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
