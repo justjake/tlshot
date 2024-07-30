@@ -22,6 +22,29 @@ extension Array {
     }
 }
 
+extension NSScreen {
+    /// Screen contains the window with keyboard focus
+    var isMain: Bool {
+        self == NSScreen.main
+    }
+    
+    /// Screen contains the current mouse location
+    var isMouse: Bool {
+        frame.contains(NSEvent.mouseLocation)
+    }
+    
+    /// Finds the screen that contains the current mouse  location
+    static var withMouse: NSScreen? {
+        screens.first { $0.isMouse }
+    }
+}
+
+extension NSWindow {
+    var tldebug: String {
+        return "\(Self.description())[\(self.windowNumber) @ \(frame) order=\(orderedIndex == .max ? "max" : String(orderedIndex)) key=\(isKeyWindow) main=\(isMainWindow) visible=\(isVisible) responeder=\(firstResponder.debug ?? "nil")]"
+    }
+}
+
 class ShieldOverlayManager {
     static public private(set) var shared = ShieldOverlayManager()
     
@@ -35,33 +58,54 @@ class ShieldOverlayManager {
         render()
     }
     
+    
     func stop() {
         started = false
         screenMonitor.stop()
         render()
     }
     
+    private func enumerate() -> [(NSScreen, ShieldOverlay)] {
+        // We want the main window to makeKeyAndOrderFront + orderFrontRegardless
+        // last, so it's the actual key window.
+        var pairs = NSScreen.screens.enumerated().map { (i, screen) in
+            let overlay = overlays[i, orInsert: ShieldOverlay(screen)]
+            overlay.screen = screen
+            return (screen, overlay)
+        }
+        
+        // Move the screen with the mouse to the end of the array.
+        // That way, we always touch it last when raising windows.
+        if
+            let mainPairIndex = pairs.firstIndex(where: { (screen, _) in screen.isMouse }),
+            mainPairIndex != pairs.endIndex - 1
+        {
+            let mainPair = pairs.remove(at: mainPairIndex)
+            pairs.append(mainPair)
+        }
+        
+        return pairs
+    }
+    
     private func render() {
         if !started {
-            overlays.forEach { $0.panel.setIsVisible(false) }
+            overlays.forEach { $0.panel.orderOut(nil) }
             return
         }
         
-        // We want the main window to makeKeyAndOrderFront + orderFrontRegardless
-        // last, so it's the actual key window.
-        let screensWithMainLast = NSScreen.screens.sorted { l, r in l != NSScreen.main }
-        
-        for (i, screen) in screensWithMainLast.enumerated() {
-            let overlay = overlays[i, orInsert: ShieldOverlay(screen)]
-            overlay.screen = screen
+        for (i, (screen, overlay)) in enumerate().enumerated() {
+            
             if overlay.panel.frame != screen.frame {
                 overlay.panel.setFrame(screen.frame, display: true)
             }
-            if !overlay.panel.isVisible {
-                overlay.panel.setIsVisible(true)
+            if !overlay.panel.isVisible  {
+                print("overlay[\(i)] \(self): update overlay for screen \(NSScreen.screens.firstIndex(of: screen) ?? -1) window \(overlay.panel.tldebug)")
                 // https://stackoverflow.com/questions/46023769/how-to-show-a-window-without-stealing-focus-on-macos
                 // https://stackoverflow.com/questions/15077471/show-window-without-activating-keep-application-below-it-active#comment112101726_15079362
+                
+                print("  overlay[\(i)]: makeKeyAndOrderFront")
                 overlay.panel.makeKeyAndOrderFront(nil)
+                print("  overlay[\(i)]: orderFrontRegardless")
                 overlay.panel.orderFrontRegardless()
             }
         }
@@ -130,6 +174,8 @@ class ShieldOverlay: ObservableObject {
                 }
                 
                 Spacer()
+                
+//                TextField("Hi", text: $text)
                 
                 HStack(spacing: 16) {
                     switch app.captureAction {

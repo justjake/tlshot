@@ -170,6 +170,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSWindow.swizzle()
+        NSCursor.swizzle()
         AppDelegate.shared = self
         Notif.CategoryID.register()
         UNUserNotificationCenter.current().delegate = self
@@ -368,9 +370,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         dragCancelling = false
         updateMouseLocation()
         render()
-        
         Task {
             nextEditWindow.ensureCache()
+            render()
         }
     }
     
@@ -435,7 +437,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
         
         if nextCursor != desiredCursor {
-//            print("\(self).updateCursor: \(desiredCursor?.debugName ?? "?") -> \(nextCursor.debugName)")
+            print("\(self).updateCursor: \(desiredCursor?.debugName ?? "?") -> \(nextCursor.debugName)")
         }
         
         // This should be applied by CursorView
@@ -578,8 +580,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
                 await window.waitForRender()
                 try await window.addInitialImage(image: image, name: imageName, frame: windowFrame)
                 render()
+                window.makeKeyAndOrderFront(nil)
                 window.makeMain()
-                window.setIsVisible(true)
                 NSApp.activate()
             }
         }
@@ -603,6 +605,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     func removeImageWindow(_ window: NSWindow) {
         self.imageWindows.removeAll(where: { $0 == window })
         renderActivationPolicy()
+    }
+    
+    func debugWindows() {
+        var seen = Set<Int>()
+        for (i, window) in NSApp.orderedWindows.enumerated() {
+            seen.insert(window.windowNumber)
+            print("[\(i)] \(window.tldebug)")
+        }
+        
+        for (i, window) in NSApp.windows.enumerated() {
+            if seen.contains(window.windowNumber) {
+                continue
+            }
+            print("[\(i)] unordered \(window.tldebug)")
+        }
     }
     
     private func updateMouseLocation() {
@@ -644,7 +661,8 @@ class EditWindowCache {
     var cachedWindow: ImageEditWindow? = nil
         
     func ensureCache() {
-        cachedWindow = cachedWindow ?? createWindow()
+        return
+//        cachedWindow = cachedWindow ?? createWindow()
     }
     
     func clearCache() {
@@ -666,7 +684,7 @@ class EditWindowCache {
     
     private func createWindow() -> ImageEditWindow {
         let window = ImageEditWindow(rect: NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 600))
-        window.setIsVisible(false)
+        window.orderOut(nil)
         return window
     }
 }

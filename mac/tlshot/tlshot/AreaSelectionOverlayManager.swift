@@ -50,7 +50,7 @@ class AreaSelectionOverlayManager {
     }
     
     func hide() {
-        windows.values.forEach { $0.panel.setIsVisible(false) }
+        windows.values.forEach { $0.panel.orderOut(nil) }
     }
 }
 

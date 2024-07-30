@@ -15,9 +15,91 @@ extension NSWindow.Level {
     }
 }
 
+var cursorDebugCount = 0
+var cursorDebugTime = Date.now
+
+func nextCursorDebugPrefix() -> String {
+    cursorDebugCount += 1
+    cursorDebugTime = Date.now
+    let currentEvent = NSApp.currentEvent.debug ?? "(?event?)"
+    return "[\(cursorDebugCount) \(cursorDebugTime) \(currentEvent)]"
+}
+
+func printCursorUpdateInfo(window: NSWindow, eventName: String) {
+    let prefix = nextCursorDebugPrefix()
+    print("\(prefix) \(window)@\(window.frame): \(eventName)")
+    AppDelegate.shared.debugWindows()
+    Thread.callStackSymbols.forEach { print("\(prefix) \($0)") }
+}
+
+func printCursorUpdateInfo(cursor: NSCursor, eventName: String) {
+    let prefix = nextCursorDebugPrefix()
+    print("\(prefix) \(cursor.debugName): \(eventName)")
+    Thread.callStackSymbols.forEach { print("\(prefix) \($0)") }
+}
+
+func swizzleMethod(_ klass: AnyClass, newMethod: Selector, originalMethod: Selector) {
+    let originalMethod = class_getInstanceMethod(klass, originalMethod)
+    let swizzledMethod = class_getInstanceMethod(klass, newMethod)
+    method_exchangeImplementations(originalMethod!, swizzledMethod!)
+}
+
+extension NSCursor {
+    @objc func _tracked_set() {
+        printCursorUpdateInfo(cursor: self, eventName: "NSCursor.set")
+        _tracked_set()
+    }
+    
+    @objc func _tracked_push() {
+        printCursorUpdateInfo(cursor: self, eventName: "NSCursor.push")
+        _tracked_push()
+    }
+    
+    @objc func _tracked_pop() {
+        printCursorUpdateInfo(cursor: self, eventName: "NSCursor.pop")
+        _tracked_pop()
+    }
+
+    static func swizzle() {
+        swizzleMethod(self, newMethod: #selector(NSCursor._tracked_set),  originalMethod: #selector(NSCursor.set))
+        swizzleMethod(self, newMethod: #selector(NSCursor._tracked_push), originalMethod: #selector(NSCursor.push))
+        swizzleMethod(self, newMethod: #selector(NSCursor._tracked_pop),  originalMethod: #selector(NSCursor.pop))
+    }
+}
+
+/// Debug cursorUpdate calls
+extension NSWindow {
+    @objc func _tracked_cursorUpdate(with event: NSEvent) {
+        printCursorUpdateInfo(window: self, eventName: "NSWindow.cursorUpdate")
+        // We'll end up swapping...
+        _tracked_cursorUpdate(with: event)
+    }
+    
+    // https://medium.com/@pallavidipke07/method-swizzling-in-swift-5c9d9ab008e4
+    static func swizzle() {
+        let originalSelector = #selector(NSWindow.cursorUpdate(with:))
+        let originalMethod = class_getInstanceMethod(self, originalSelector)
+        
+        let swizzledSelector = #selector(NSWindow._tracked_cursorUpdate(with:))
+        let swizzledMethod = class_getInstanceMethod(self, swizzledSelector)
+        
+        method_exchangeImplementations(originalMethod!, swizzledMethod!)
+    }
+}
+
+
+
+class NSWindowWithCursorLogging: NSWindow {
+//    override func cursorUpdate(with event: NSEvent) {
+//        printCursorUpdateInfo(window: self, eventName: "cursorUpdate")
+//        super.cursorUpdate(with: event)
+//    }
+}
+
 /// Base class for borderless, invisible windows that render a SwiftUI view
 /// https://cindori.com/developer/floating-panel
 class OverlayPanel<Content: View>: NSPanel {
+    
     convenience init(
         _ contentRect: NSRect,
         level: NSWindow.Level = .normal,
@@ -65,7 +147,9 @@ class OverlayPanel<Content: View>: NSPanel {
         
         isFloatingPanel = true
         self.level = level
-        setIsVisible(visible)
+        if !visible {
+            orderOut(nil)
+        }
         
         /// https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior
         collectionBehavior = [
@@ -122,6 +206,22 @@ class OverlayPanel<Content: View>: NSPanel {
         // No constraint.
         return frameRect
     }
+    
+//    override func cursorUpdate(with event: NSEvent) {
+//        guard let cursor = AppDelegate.shared.desiredCursor else {
+//            super.cursorUpdate(with: event)
+//            return
+//        }
+//        printCursorUpdateInfo(window: self, eventName: "OverlayPanel.cursorUpdate")
+//        cursor.set()
+//    }
+    
+//    override func becomeKey() {
+//        print("\(self).super.becomeKey")
+//        super.becomeKey()
+//        print("\(self).becomeKey")
+//        AppDelegate.shared.desiredCursor?.set()
+//    }
 }
 
 extension NSEvent.EventTypeMask {

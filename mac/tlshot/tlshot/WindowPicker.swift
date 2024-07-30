@@ -46,7 +46,7 @@ class WindowPicker {
         
         guard let window = window else {
             if overlay.panel.isVisible {
-                overlay.panel.setIsVisible(false)
+                overlay.panel.orderOut(nil)
             }
             overlay.isHovered = false
             overlay.isSelected = false
@@ -56,7 +56,6 @@ class WindowPicker {
         overlay.isHovered = hovered
         overlay.isSelected = selected
         overlay.window = window
-        overlay.panel.setIsVisible(true)
         overlay.panel.setFrame(window.frame.asNS, display: true)
         overlay.panel.level = if window.layer == CGWindowLevelKey.mainMenuWindow.cgLevel {
             // The system doesn't allow ordering in front of mainMenuWindow withing the same level.

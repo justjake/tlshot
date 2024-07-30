@@ -15,7 +15,7 @@ extension NSCursor {
         case NSCursor.pointingHand: "pointingHand"
         case NSCursor.dragCopy: "dragCopy"
         case NSCursor.crosshair: "crosshair"
-        default: String(reflecting: self)
+        default: "NSCursor \(self.image.name().debug ?? "(no name)") \(String(reflecting: self))"
         }
     }
 }
@@ -45,18 +45,18 @@ private struct CursorView: NSViewRepresentable {
         cursor ?? NSCursor.arrow
     }
     
-    func makeNSView(context: Context) -> NSViewType {
+    func makeNSView(context: Context) -> CursorNSView {
 //        print("CursorView: make \(cursorWithDefault.debugName)")
         return NSViewType(cursor: cursorWithDefault)
     }
     
-    func updateNSView(_ nsView: NSViewType, context: Context) {
+    func updateNSView(_ nsView: CursorNSView, context: Context) {
 //        print("CursorView: update \(cursorWithDefault.debugName)")
         nsView.cursor = cursorWithDefault
         nsView.window?.invalidateCursorRects(for: nsView)
     }
     
-    class NSViewType: NSView {
+    class CursorNSView: NSView {
         var cursor: NSCursor
         
         init(cursor: NSCursor) {
@@ -67,6 +67,8 @@ private struct CursorView: NSViewRepresentable {
         required init?(coder: NSCoder) { fatalError() }
         
         override func resetCursorRects() {
+            // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/CocoaViewsGuide/SubclassingNSView/SubclassingNSView.html#//apple_ref/doc/uid/TP40002978-CH7-SW26:~:text=//%20remove%20the%20existing,%5Bself%20discardCursorRects%5D%3B
+            discardCursorRects()
             addCursorRect(bounds, cursor: cursor)
         }
     }

@@ -14,7 +14,7 @@ extension BridgeEnvironment {
     
     static var assetOffset: CGFloat { 20 }
     
-    static var scaleFactor: CGFloat { NSScreen.main?.backingScaleFactor ?? 2 }
+    static var scaleFactor: CGFloat { (NSScreen.withMouse ?? NSScreen.main)?.backingScaleFactor ?? 2 }
     
     static func defaults(_ bridgeAsset: InitialAsset?) -> BridgeEnvironment {
         BridgeEnvironment(

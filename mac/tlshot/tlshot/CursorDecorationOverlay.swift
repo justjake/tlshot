@@ -9,7 +9,7 @@ import SwiftUI
 
 class CursorDecorationOverlay: ObservableObject {
     static let shared = CursorDecorationOverlay()
-    lazy var panel = OverlayPanel(NSRect(center: NSScreen.main?.frame.center ?? .zero, size: size)) {
+    lazy var panel = OverlayPanel(NSRect(center: NSScreen.withMouse?.frame.center ?? .zero, size: size)) {
         CursorDecorationView(props: self)
     }
 
@@ -32,7 +32,7 @@ class CursorDecorationOverlay: ObservableObject {
     func hide() {
         return
 //        active = false
-//        panel.setIsVisible(false)
+//        panel.orderOut(nil)
     }
     
     struct CursorDecorationView: View {

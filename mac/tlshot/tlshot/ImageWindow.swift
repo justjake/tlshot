@@ -8,7 +8,7 @@
 import AppKit
 import SwiftUI
 
-class ImageDisplayWindow: NSWindow {
+class ImageDisplayWindow: NSWindowWithCursorLogging {
     init(rect: CGRect, image: NSImage) {
         super.init(
             contentRect: rect,
@@ -32,7 +32,7 @@ extension NSWindow {
     }
 }
 
-class ImageEditWindow: NSWindow {
+class ImageEditWindow: NSWindowWithCursorLogging {
     func waitForRender() async {
         await bridge.renderWaiter.wait()
     }
