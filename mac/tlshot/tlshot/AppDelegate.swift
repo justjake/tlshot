@@ -170,8 +170,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSWindow.swizzle()
-        NSCursor.swizzle()
+//        NSWindow.swizzle()
+//        NSCursor.swizzle()
         AppDelegate.shared = self
         Notif.CategoryID.register()
         UNUserNotificationCenter.current().delegate = self
@@ -661,8 +661,7 @@ class EditWindowCache {
     var cachedWindow: ImageEditWindow? = nil
         
     func ensureCache() {
-        return
-//        cachedWindow = cachedWindow ?? createWindow()
+        cachedWindow = cachedWindow ?? createWindow()
     }
     
     func clearCache() {

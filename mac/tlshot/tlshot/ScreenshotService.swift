@@ -231,9 +231,6 @@ class ScreenshotService {
                 return isScreenshotAble(windowNumber: window.id)
             }
             if window.isCursorWindow {
-                // We don't seem to hit this ever, but keeping it in just in case,
-                // since I thought I saw some cases where we included the cursor.
-                print("exclude cursor window \(window)")
                 return false
             }
             return true

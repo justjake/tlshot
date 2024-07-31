@@ -96,6 +96,12 @@ class NSWindowWithCursorLogging: NSWindow {
 //    }
 }
 
+class FirstClickHostingView<Content>: NSHostingView<Content> where Content : View {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        true
+    }
+}
+
 /// Base class for borderless, invisible windows that render a SwiftUI view
 /// https://cindori.com/developer/floating-panel
 class OverlayPanel<Content: View>: NSPanel {
@@ -197,7 +203,7 @@ class OverlayPanel<Content: View>: NSPanel {
             .ignoresSafeArea()
             .environmentObject(AppDelegate.shared)
         
-        let hostingView = NSHostingView(rootView: newView)
+        let hostingView = FirstClickHostingView(rootView: newView)
         hostingView.setFrameSize(contentRect.size)
         contentView = hostingView
     }

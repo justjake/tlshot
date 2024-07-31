@@ -52,12 +52,11 @@ extension ViewRenderHolderP {
     }
 }
 
-struct Empty: Equatable {}
+struct EmptyStruct: Equatable {}
 
-class ViewRenderHolder<Content: View>: ViewRenderHolderWithProps<Empty, Content> {
-    
+class ViewRenderHolder<Content: View>: ViewRenderHolderWithProps<EmptyStruct, Content> {
     init(imageProps: ImageProps = ImageProps.defaults, @ViewBuilder render: @escaping  () -> Content) {
-        super.init(props: Empty(), imageProps: imageProps, render: { _ in render() })
+        super.init(props: EmptyStruct(), imageProps: imageProps, render: { _ in render() })
     }
 }
 

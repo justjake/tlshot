@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import _SpriteKit_SwiftUI
 
 extension Array {
     subscript(
@@ -107,6 +108,11 @@ class ShieldOverlayManager {
                 overlay.panel.makeKeyAndOrderFront(nil)
                 print("  overlay[\(i)]: orderFrontRegardless")
                 overlay.panel.orderFrontRegardless()
+                
+//                let position = AppDelegate.shared.mouseLocation
+//                if screen.frame.contains(position) {
+//                    overlay.setPosition(screenRelative)
+//                }
             }
         }
     }
@@ -114,6 +120,7 @@ class ShieldOverlayManager {
 
 class ShieldOverlay: ObservableObject {
     @Published var screen: NSScreen
+    
     
     init(_ screen: NSScreen) {
         self.screen = screen
@@ -126,6 +133,21 @@ class ShieldOverlay: ObservableObject {
         panel.ignoresMouseEvents = false
         return panel
     }()
+    
+    lazy var crosshairScene = CrosshairScene(getPosition: { [self] in
+        let position = AppDelegate.shared.mouseLocation
+        guard
+            AppDelegate.shared.captureAction == .area,
+            screen.frame.contains(position)
+        else {
+            return nil
+        }
+        return CGPoint(x: position.x - screen.frame.minX, y: position.y - screen.frame.minY)
+    })
+    
+    func setPosition(_ point: CGPoint?) {
+        crosshairScene.setPosition(point)
+    }
 
     class Panel<Content: View>: OverlayPanel<Content> {
         override var canBecomeKey: Bool { true }
@@ -156,23 +178,14 @@ class ShieldOverlay: ObservableObject {
         }
         
         var body: some View {
+            ZStack {
+                SpriteView(scene: props.crosshairScene, options: [.allowsTransparency])
+                helpOverlay
+            }
+        }
+        
+        var helpOverlay: some View {
             VStack {
-                if let position = mousePosition {
-                    let actionSymbol: String? = switch shiftClickHoverState {
-                    case .adding(let windowInfo):
-                        "plus.circle.fill"
-                    case .removing(let windowInfo):
-                        "minus.circle.fill"
-                    case nil: nil
-                    }
-                    CursorDecoration(
-                        // Now handled by cursor rendering
-                        showActionSymbol: nil,
-                        showCrosshairs: false // app.captureAction == .area
-                    )
-                    .position(position)
-                }
-                
                 Spacer()
                 
 //                TextField("Hi", text: $text)
@@ -258,13 +271,13 @@ class ShieldOverlay: ObservableObject {
             .onContinuousHover { event in
                 switch event {
                 case .active(let point):
-                    if !props.panel.isKeyWindow {
-                        props.panel.makeKeyAndOrderFront(nil)
-                    }
+//                    if !props.panel.isKeyWindow {
+//                        props.panel.makeKeyAndOrderFront(nil)
+//                    }
                     
                     if app.captureAction == nil && !app.isSwiftPreview {
                         print("XXX: mouse over ShieldOverlayView, but not capturing!")
-                        app.render()
+//                        app.render()
                     }
                     
                     localMousePosition = point.rounded()
@@ -373,31 +386,6 @@ func +(lhs: CGPoint, rhs: CGVector) -> CGPoint {
     CGPoint(x: lhs.x + rhs.dx, y: lhs.y + rhs.dy)
 }
 
-struct Crosshairs: Shape {
-    var max: Double = 10_000.0
-    var line: Double = 1.0
-    var gap = 1.0
-    
-    func path(in rect: CGRect) -> Path {
-        Path { path in
-            path.addRects([
-                vertical(in: rect, dx: gap),
-                vertical(in: rect, dx: -gap),
-                horizontal(in: rect, dy: gap),
-                horizontal(in: rect, dy: -gap),
-            ])
-        }
-    }
-    
-    func vertical(in rect: CGRect, dx: CGFloat) -> CGRect {
-        .init(center: rect.center.rounded().d(x: dx), size: CGSize(width: line, height: max))
-    }
-    
-    func horizontal(in rect: CGRect, dy: CGFloat) -> CGRect {
-        .init(center: rect.center.rounded().d(y: dy), size: CGSize(width: max, height: line))
-    }
-    
-}
 
 extension CGPoint {
     func d(x: CGFloat = 0, y: CGFloat = 0) -> CGPoint {
@@ -424,10 +412,11 @@ struct CursorDecoration: View {
     // Crosshairs
     @ViewBuilder
     var crosshairs: some View {
-        if showCrosshairs {
-            Crosshairs(line: 2, gap: 2)
-                .fill(.white, style: .init(antialiased: false))
-        }
+//        if showCrosshairs {
+//            Crosshairs(line: 1, gap: 1)
+//                .fill(.white, style: .init(antialiased: false))
+//        }
+        EmptyView()
     }
     
     
@@ -462,5 +451,11 @@ struct CursorSymbolBadge: View {
             .fontWeight(.bold)
             .frame(width: 14, height: 14)
             .zIndex(1)
+    }
+}
+
+extension Path {
+    static func line(_ points: [CGPoint]) -> Self {
+        Self { $0.addLines(points) }
     }
 }

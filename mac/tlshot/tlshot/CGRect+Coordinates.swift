@@ -8,12 +8,12 @@ import Foundation
 import AppKit
 
 enum CoordPoint {
-    static func flip(_ point: CGPoint, height: Double) -> CGPoint {
-        guard let screen = NSScreen.screens.first else {
+    static func flip(_ point: CGPoint, height: Double, frame: CGRect? = NSScreen.screens.first?.frame) -> CGPoint {
+        guard let frame = frame else {
             return point
         }
         var result = point
-        result.y = screen.frame.maxY - (point.y + height)
+        result.y = frame.maxY - (point.y + height)
         return result
     }
     
