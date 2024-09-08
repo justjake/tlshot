@@ -80,6 +80,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         NSWorkspace.shared.open(url)
     }
     
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        //        NSWindow.swizzle()
+        //        NSCursor.swizzle()
+        AppDelegate.shared = self
+        Notif.CategoryID.register()
+        UNUserNotificationCenter.current().delegate = self
+        
+        if isSwiftPreview {
+            return
+        }
+        
+        // Build our mouse cursors
+        Task {
+            let cameraPath = try! await Cursors.cameraPath.buildAsync()
+            let cameraViewBuilder = CameraViewBuilder(cameraPath!)
+            
+            func makeCursor(name: String, image: CGImage?, size: CGSize? = nil, offset: CGSize? = nil) -> NSCursor {
+                let nsImage: NSImage = image!.nsImage(size: size)!
+                nsImage.setName(name)
+                return NSCursor(image: nsImage, hotSpot: nsImage.size.center.d(x: offset?.width ?? 0, y: offset?.height ?? 0))
+            }
+            
+            Task { @MainActor in
+                self.cameraCursor = makeCursor(
+                    name: "Camera",
+                    image: cameraViewBuilder.cameraRenderer.render(),
+                    size: .init(square: 28)
+                )
+                
+                let badgeOffset = CGSize(width: -4, height: -4)
+                let badgeSize = CGSize(square: 36)
+                self.cameraPlusCursor = makeCursor(
+                    name: "CameraPlus",
+                    image: cameraViewBuilder.cameraPlusRenderer.render(),
+                    size: badgeSize,
+                    offset: badgeOffset
+                )
+                self.cameraMinusCursor = makeCursor(
+                    name: "CameraMinus",
+                    image: cameraViewBuilder.cameraMinusRenderer.render(),
+                    size: badgeSize,
+                    offset: badgeOffset
+                )
+            }
+        }
+        
+        
+        renderActivationPolicy()
+        hasPermission = CGPreflightScreenCaptureAccess()
+        
+        KeyboardShortcuts.onKeyDown(for: .captureArea) {
+            self.startCapture(.area)
+        }
+        
+        KeyboardShortcuts.onKeyDown(for: .captureWindow) {
+            self.startCapture(.window)
+        }
+        
+        KeyboardShortcuts.onKeyDown(for: .captureFullscreen) {
+            self.handleErrors {
+                try self.onCaptureFullscreen()
+            }
+        }
+        
+        //#if DEBUG
+        //        // TODO: not this
+        //        startCapture(.area)
+        //#endif
+    }
+
     lazy var mouseListener = EventMonitor(.leftMouse) { @MainActor [self] event in
         updateMouseLocation()
         if isSwiftPreview {
@@ -170,75 +240,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         return event
     }
     
-    func applicationDidFinishLaunching(_ notification: Notification) {
-//        NSWindow.swizzle()
-//        NSCursor.swizzle()
-        AppDelegate.shared = self
-        Notif.CategoryID.register()
-        UNUserNotificationCenter.current().delegate = self
-        
-        if isSwiftPreview {
-            return
-        }
-        
-        // Build our mouse cursors
-        Task {
-            let cameraPath = try! await Cursors.cameraPath.buildAsync()
-            let cameraViewBuilder = CameraViewBuilder(cameraPath!)
-            
-            func makeCursor(name: String, image: CGImage?, size: CGSize? = nil, offset: CGSize? = nil) -> NSCursor {
-                let nsImage: NSImage = image!.nsImage(size: size)!
-                nsImage.setName(name)
-                return NSCursor(image: nsImage, hotSpot: nsImage.size.center.d(x: offset?.width ?? 0, y: offset?.height ?? 0))
-            }
-            
-            Task { @MainActor in
-                self.cameraCursor = makeCursor(
-                    name: "Camera",
-                    image: cameraViewBuilder.cameraRenderer.render(),
-                    size: .init(square: 28)
-                )
-                
-                let badgeOffset = CGSize(width: -4, height: -4)
-                let badgeSize = CGSize(square: 36)
-                self.cameraPlusCursor = makeCursor(
-                    name: "CameraPlus",
-                    image: cameraViewBuilder.cameraPlusRenderer.render(),
-                    size: badgeSize,
-                    offset: badgeOffset
-                )
-                self.cameraMinusCursor = makeCursor(
-                    name: "CameraMinus",
-                    image: cameraViewBuilder.cameraMinusRenderer.render(),
-                    size: badgeSize,
-                    offset: badgeOffset
-                )
-            }
-        }
-
-        
-        renderActivationPolicy()
-        hasPermission = CGPreflightScreenCaptureAccess()
-        
-        KeyboardShortcuts.onKeyDown(for: .captureArea) {
-            self.startCapture(.area)
-        }
-        
-        KeyboardShortcuts.onKeyDown(for: .captureWindow) {
-            self.startCapture(.window)
-        }
-        
-        KeyboardShortcuts.onKeyDown(for: .captureFullscreen) {
-            self.handleErrors {
-                try self.onCaptureFullscreen()
-            }
-        }
-        
-#if DEBUG
-        // TODO: not this
-        startCapture(.area)
-#endif
-    }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let categoryIdentifier = response.notification.request.content.categoryIdentifier

@@ -39,6 +39,7 @@
 		C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D02C41B36400E60BE4 /* TldrawDocument.swift */; };
 		C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */; };
 		C1C3573D2C8E2C30003EDAB7 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = C1C3573C2C8E2C30003EDAB7 /* KeyboardShortcuts */; };
+		C1C357402C8E38D3003EDAB7 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = C1C3573F2C8E38D3003EDAB7 /* LaunchAtLogin */; };
 		C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */; };
 		C1CD21622C5188500079AAEF /* NotificationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21612C5188500079AAEF /* NotificationSupport.swift */; };
 		C1CD21642C51C9C20079AAEF /* SaveDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */; };
@@ -110,6 +111,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1C357402C8E38D3003EDAB7 /* LaunchAtLogin in Frameworks */,
 				C1C3573D2C8E2C30003EDAB7 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -259,6 +261,7 @@
 			name = tlshot;
 			packageProductDependencies = (
 				C1C3573C2C8E2C30003EDAB7 /* KeyboardShortcuts */,
+				C1C3573F2C8E38D3003EDAB7 /* LaunchAtLogin */,
 			);
 			productName = tlshot;
 			productReference = C17645942C3F8DB400E60BE4 /* tlshot.app */;
@@ -333,6 +336,7 @@
 			);
 			mainGroup = C176458B2C3F8DB400E60BE4;
 			packageReferences = (
+				C1C3573E2C8E38D3003EDAB7 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 			);
 			productRefGroup = C17645952C3F8DB400E60BE4 /* Products */;
 			projectDirPath = "";
@@ -727,10 +731,26 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		C1C3573E2C8E38D3003EDAB7 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		C1C3573C2C8E2C30003EDAB7 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = KeyboardShortcuts;
+		};
+		C1C3573F2C8E38D3003EDAB7 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C1C3573E2C8E38D3003EDAB7 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			productName = LaunchAtLogin;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
