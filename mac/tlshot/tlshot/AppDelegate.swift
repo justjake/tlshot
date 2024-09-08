@@ -45,7 +45,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     @Published var cameraMinusCursor: NSCursor?
     
     @Published var hasPermission: Bool = false
-    @Published var imageWindows: [NSWindow] = []
     @Published var desiredCursor: NSCursor?
     
     // capture state
@@ -126,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
             }
         }
         
-        
+        observeWindowWillClose()
         renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
         
@@ -272,6 +271,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
             alert.addButton(withTitle: "OK")
         }
         return alert
+    }
+    
+    private func observeWindowWillClose() {
+        Task {
+            for await _ in await NotificationCenter.default.notifications(named: NSWindow.willCloseNotification) {
+                renderActivationPolicyAfterDelay()
+                
+            }
+        }
     }
     
     
@@ -589,22 +597,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         let height = min(usable.height * 0.9, max(400, frame.height))
         let windowFrame = CGRect(center: frame.center, size: CGSize(width: width, height: height))
         let window = nextEditWindow.getWindow()
-        imageWindows.append(window)
         let imageName = getImageName()
         Task {
             await handleErrors { @MainActor in
                 await window.waitForRender()
                 try await window.addInitialImage(image: image, name: imageName, frame: windowFrame)
-                render()
-                window.makeKeyAndOrderFront(nil)
-                window.makeMain()
-                NSApp.activate(ignoringOtherApps: true)
+                withForegroundActivation {
+                    window.makeKeyAndOrderFront(nil)
+                    window.makeMain()
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             }
         }
     }
     
+    func renderActivationPolicyAfterDelay() {
+        Task {
+            try await Task.sleep(for: .milliseconds(100))
+            await renderActivationPolicy()
+        }
+        
+    }
+    
+    @MainActor
+    var forceForeground = 0
+    
+    @MainActor
+    func withForegroundActivation(block: () -> Void) {
+        forceForeground += 1
+        render()
+        block()
+        forceForeground -= 1
+        render()
+    }
+    
+    @MainActor
     func renderActivationPolicy() {
-        let policy: NSApplication.ActivationPolicy = if imageWindows.count > 0 {
+        let normalWindows = NSApp.windows.filter {
+            if $0.level == .normal && $0.canBecomeMain && $0.isVisible && !$0.isFloatingPanel {
+                return true
+            }
+            return false
+        }
+        print("renderActivationPolicy: have windows", normalWindows)
+        
+        let policy: NSApplication.ActivationPolicy = if forceForeground > 0 || normalWindows.count > 0 {
             .regular
         } else {
             .accessory
@@ -616,11 +653,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
-    }
-    
-    func removeImageWindow(_ window: NSWindow) {
-        self.imageWindows.removeAll(where: { $0 == window })
-        renderActivationPolicy()
     }
     
     func debugWindows() {

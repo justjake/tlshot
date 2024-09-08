@@ -90,10 +90,6 @@ extension NSWindow {
 
 
 class NSWindowWithCursorLogging: NSWindow {
-//    override func cursorUpdate(with event: NSEvent) {
-//        printCursorUpdateInfo(window: self, eventName: "cursorUpdate")
-//        super.cursorUpdate(with: event)
-//    }
 }
 
 class FirstClickHostingView<Content>: NSHostingView<Content> where Content : View {

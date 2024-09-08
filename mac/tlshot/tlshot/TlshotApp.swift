@@ -108,6 +108,7 @@ struct TlshotApp: App {
             SettingsScreen()
                 .padding(12)
                 .frame(width: 500)
+                .onAppear { appDelegate.renderActivationPolicyAfterDelay() }
         }.windowResizability(.contentSize)
         
         MenuBarExtra(content: {

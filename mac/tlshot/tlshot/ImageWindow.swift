@@ -20,8 +20,6 @@ class ImageDisplayWindow: NSWindowWithCursorLogging {
         title = "Image Preview"
         let imageView = NSImageView(image: image)
         contentView = imageView
-        
-        isReleasedWhenClosed = false
     }
 }
 
@@ -50,7 +48,6 @@ class ImageEditWindow: NSWindowWithCursorLogging {
             defer: false
         )
 
-        isReleasedWhenClosed = false
         let view = ImageEditView(bridge: bridge, window: self).environmentObject(AppDelegate.shared)
         contentView = NSHostingView(rootView: view)
     }
@@ -71,11 +68,6 @@ class ImageEditWindow: NSWindowWithCursorLogging {
     
     override var canBecomeMain: Bool {
         true
-    }
-    
-    override func close() {
-        AppDelegate.shared.removeImageWindow(self)
-        super.close()
     }
 }
 
