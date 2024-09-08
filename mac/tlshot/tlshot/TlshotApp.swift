@@ -8,6 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import ScreenCaptureKit
+import KeyboardShortcuts
 
 
 enum CaptureAction {
@@ -75,6 +76,16 @@ struct SettingsKey {
     private init() {}
 }
 
+extension KeyboardShortcuts.Name {
+    static let captureAreaDefault = KeyboardShortcuts.Shortcut(.four, modifiers: [.command, .option])
+    static let captureWindowDefault = KeyboardShortcuts.Shortcut(.five, modifiers: [.command, .option])
+    static let captureFullscreenDefault = KeyboardShortcuts.Shortcut(.six, modifiers: [.command, .option])
+
+    static let captureArea = Self("captureArea", default: captureAreaDefault)
+    static let captureWindow = Self("captureWindow", default: captureWindowDefault)
+    static let captureFullscreen = Self("captureFullscreen", default: captureFullscreenDefault)
+}
+
 @main
 struct TlshotApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
@@ -83,6 +94,10 @@ struct TlshotApp: App {
     @AppStorage(SettingsKey.windowIncludeMenuBarWithDesktop) private var windowIncludeMenuBarWithDesktop = false
     @AppStorage(SettingsKey.afterSaveAction) private var afterSaveAction: AfterSaveAction = .none
     
+    @StateObject private var areaShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .captureArea)
+    @StateObject private var windowShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .captureWindow)
+    @StateObject private var fullscreenShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .captureFullscreen)
+
     static var trayImage = {
         let image = NSImage(named: "TrayIcon")!
         image.isTemplate = true
@@ -93,22 +108,29 @@ struct TlshotApp: App {
 //        DocumentGroup(newDocument: TldrawDocument()) { group in
 //            ContentView(document: group.$document)
 //        }
+        Settings {
+            SettingsScreen()
+        }
         
         MenuBarExtra(content: {
             Button("Capture Area") {
                 appDelegate.startCapture(.area)
-            }
+            }.keyboardShortcut(areaShortcut.shortcut?.keyboardShortcut)
             Button("Capture Window") {
                 appDelegate.startCapture(.window)
-            }
+            }.keyboardShortcut(windowShortcut.shortcut?.keyboardShortcut)
             Button("Capture Fullscreen") {
                 appDelegate.handleErrors {
                     try appDelegate.onCaptureFullscreen()
                 }
-            }
+            }.keyboardShortcut(fullscreenShortcut.shortcut?.keyboardShortcut)
             //            Button("Record video") {
             //                appDelegate.startCapture(.area, mediaType: .video)
             //            }
+            
+            SettingsLink {
+                Text("Shortcut settings...").keyboardShortcut(KeyEquivalent(","), modifiers: .command)
+            }
             
             Divider()
             
@@ -167,5 +189,15 @@ struct TlshotApp: App {
         })
     }
     
+}
+
+struct SettingsScreen: View {
+    var body: some View {
+        Form {
+            KeyboardShortcuts.Recorder("Capture area:", name: .captureArea)
+            KeyboardShortcuts.Recorder("Capture window:", name: .captureWindow)
+            KeyboardShortcuts.Recorder("Capture full screen:", name: .captureFullscreen)
+        }.padding()
+    }
 }
 

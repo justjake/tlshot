@@ -9,6 +9,7 @@ import AppKit
 import SwiftUI
 import CoreGraphics
 import UserNotifications
+import KeyboardShortcuts
 
 struct CaptureResult {
     let frame: CGRect
@@ -218,6 +219,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         
         renderActivationPolicy()
         hasPermission = CGPreflightScreenCaptureAccess()
+        
+        KeyboardShortcuts.onKeyDown(for: .captureArea) {
+            self.startCapture(.area)
+        }
+        
+        KeyboardShortcuts.onKeyDown(for: .captureWindow) {
+            self.startCapture(.window)
+        }
+        
+        KeyboardShortcuts.onKeyDown(for: .captureFullscreen) {
+            self.handleErrors {
+                try self.onCaptureFullscreen()
+            }
+        }
         
 #if DEBUG
         // TODO: not this
@@ -582,7 +597,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
                 render()
                 window.makeKeyAndOrderFront(nil)
                 window.makeMain()
-                NSApp.activate()
+                NSApp.activate(ignoringOtherApps: true)
             }
         }
     }
@@ -597,7 +612,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         if NSApp.activationPolicy() != policy {
             NSApp.setActivationPolicy(policy)
             if policy == .regular {
-                NSApp.activate()
+                NSApp.activate(ignoringOtherApps: true)
             }
         }
     }

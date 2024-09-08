@@ -44,6 +44,7 @@ struct TldrawWebView: NSViewRepresentable {
         
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: any Error) {
             print("Navigation failed: \(error)")
+            Task { await bridge.app.showErrorAlert(error: error) }
         }
         
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

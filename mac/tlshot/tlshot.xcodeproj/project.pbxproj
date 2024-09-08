@@ -38,6 +38,7 @@
 		C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */; };
 		C17645D12C41B36400E60BE4 /* TldrawDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D02C41B36400E60BE4 /* TldrawDocument.swift */; };
 		C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */; };
+		C1C3573D2C8E2C30003EDAB7 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = C1C3573C2C8E2C30003EDAB7 /* KeyboardShortcuts */; };
 		C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */; };
 		C1CD21622C5188500079AAEF /* NotificationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21612C5188500079AAEF /* NotificationSupport.swift */; };
 		C1CD21642C51C9C20079AAEF /* SaveDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */; };
@@ -97,6 +98,7 @@
 		C17645CE2C41B0C500E60BE4 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
 		C17645D02C41B36400E60BE4 /* TldrawDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawDocument.swift; sourceTree = "<group>"; };
 		C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSelectionOverlayManager.swift; sourceTree = "<group>"; };
+		C19C1A212C8E265E00F3C3D6 /* KeyboardShortcuts */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = KeyboardShortcuts; path = ../KeyboardShortcuts; sourceTree = "<group>"; };
 		C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeDelegate.swift; sourceTree = "<group>"; };
 		C1CD21612C5188500079AAEF /* NotificationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSupport.swift; sourceTree = "<group>"; };
 		C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveDirectory.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1C3573D2C8E2C30003EDAB7 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -149,10 +152,12 @@
 		C176458B2C3F8DB400E60BE4 = {
 			isa = PBXGroup;
 			children = (
+				C19C1A212C8E265E00F3C3D6 /* KeyboardShortcuts */,
 				C17645962C3F8DB400E60BE4 /* tlshot */,
 				C17645A82C3F8DB800E60BE4 /* tlshotTests */,
 				C17645B22C3F8DB800E60BE4 /* tlshotUITests */,
 				C17645952C3F8DB400E60BE4 /* Products */,
+				C1C3573B2C8E2C30003EDAB7 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -229,6 +234,13 @@
 			path = tlshotUITests;
 			sourceTree = "<group>";
 		};
+		C1C3573B2C8E2C30003EDAB7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -245,6 +257,9 @@
 			dependencies = (
 			);
 			name = tlshot;
+			packageProductDependencies = (
+				C1C3573C2C8E2C30003EDAB7 /* KeyboardShortcuts */,
+			);
 			productName = tlshot;
 			productReference = C17645942C3F8DB400E60BE4 /* tlshot.app */;
 			productType = "com.apple.product-type.application";
@@ -317,6 +332,8 @@
 				Base,
 			);
 			mainGroup = C176458B2C3F8DB400E60BE4;
+			packageReferences = (
+			);
 			productRefGroup = C17645952C3F8DB400E60BE4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -709,6 +726,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C1C3573C2C8E2C30003EDAB7 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = KeyboardShortcuts;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C176458C2C3F8DB400E60BE4 /* Project object */;
 }
