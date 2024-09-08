@@ -639,7 +639,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
             }
             return false
         }
-        print("renderActivationPolicy: have windows", normalWindows)
+//        print("renderActivationPolicy: have windows", normalWindows)
         
         let policy: NSApplication.ActivationPolicy = if forceForeground > 0 || normalWindows.count > 0 {
             .regular
