@@ -439,11 +439,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         if captureAction != nil {
             keyboardListener.start()
             mouseListener.start()
-            CursorDecorationOverlay.shared.show(point: mouseLocation)
+//            CursorDecorationOverlay.shared.show(point: mouseLocation)
             ShieldOverlayManager.shared.start()
         } else {
             ShieldOverlayManager.shared.stop()
-            CursorDecorationOverlay.shared.hide()
+//            CursorDecorationOverlay.shared.hide()
             mouseListener.stop()
             keyboardListener.stop()
         }

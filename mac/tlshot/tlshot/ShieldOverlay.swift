@@ -179,7 +179,7 @@ class ShieldOverlay: ObservableObject {
         
         var body: some View {
             ZStack {
-                SpriteView(scene: props.crosshairScene, options: [.allowsTransparency])
+//                SpriteView(scene: props.crosshairScene, options: [.allowsTransparency])
                 helpOverlay
             }
         }
