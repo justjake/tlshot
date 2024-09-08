@@ -8,7 +8,6 @@ import {
   BridgeProtocol,
   BridgeRequestMap,
   BridgeRequestType,
-  ResponseNotification,
 } from "./BridgeTypes";
 
 // Things that exist
@@ -38,17 +37,8 @@ type BridgeNotificationTypeMap = {
   };
 };
 
-type BridgeRequestTypeMap = {
-  [K in keyof BridgeRequestMap]: {
-    type: K;
-    data: BridgeRequestMap[K]["request"];
-  };
-};
-
 type BridgeNotification<T extends BridgeNotificationType> =
   BridgeNotificationTypeMap[T];
-
-type BridgeRequest<T extends BridgeRequestType> = BridgeRequestTypeMap[T];
 
 type BridgeResponse<T extends BridgeRequestType> =
   BridgeRequestMap[T]["response"];
@@ -98,6 +88,7 @@ class Bridge {
     save: this.noOp("save"),
     addAsset: this.noOp("addAsset"),
     zoomToFit: this.noOp("zoomToFit"),
+    waitForResize: this.noOp("waitForResize"),
   };
 
   incomingMessageHandler: (message: BridgeIncomingEnvelope) => void = async (

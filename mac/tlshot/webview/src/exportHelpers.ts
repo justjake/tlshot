@@ -68,7 +68,7 @@ async function getSvgAsCanvas(
     height: number;
   }
 ) {
-  const { type, quality, scale, width, height } = options;
+  const { scale, width, height } = options;
 
   const clampedWidth = Math.floor(scale * width);
   const clampedHeight = Math.floor(scale * height);

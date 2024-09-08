@@ -271,7 +271,7 @@ function loggedPromise<T>(
   });
 }
 
-function wait(editor: Editor) {
+function wait(_editor: Editor) {
   return new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
