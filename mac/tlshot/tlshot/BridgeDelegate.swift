@@ -265,7 +265,10 @@ class BridgeAssetServer {
 class BridgeResourceServer {
     func onRequest(_ request: URLRequest) async throws -> BridgeURLResponse {
         let pathComponents = request.url!.relativePath
-        guard let resourceUrl = Bundle.main.resourceURL?.appending(path: pathComponents) else {
+        guard let
+                resourceUrl = Bundle.main.resourceURL?.appending(path: pathComponents).standardized,
+              resourceUrl.absoluteString.starts(with: Bundle.main.resourceURL!.absoluteString)
+        else {
             return .notFound
         }
         let type = try! resourceUrl.resourceValues(forKeys: [.contentTypeKey]).contentType
