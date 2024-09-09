@@ -160,6 +160,7 @@ enum BridgeURLResponse {
     case binary(Data, url: URL, mimeType: String)
     case utf8(String, url: URL, mimeType: String)
     case empty
+    case notFound
 }
 
 
@@ -173,8 +174,9 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     var colorScheme: ColorScheme?
     @MainActor weak var webview: WKWebView?
     
-    var urlSchemes = [BridgeProtocol.asset.rawValue, BridgeProtocol.tlshotResponse.rawValue]
+    var urlSchemes = [BridgeProtocol.asset.rawValue, BridgeProtocol.tlshotResponse.rawValue, BridgeProtocol.resource.rawValue]
     var assetServer = BridgeAssetServer()
+    var resourceServer = BridgeResourceServer()
     var bootWaiter = Waiter("js boot")
     var renderWaiter = Waiter("tldraw render image")
     var outgoingResponses = BridgeOutgoingRequestRegistry()
@@ -221,6 +223,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                 }
                 
                 let response = switch scheme {
+                case .resource: try await resourceServer.onRequest(request)
                 case .asset: try await assetServer.onRequest(request)
                 case .tlshotResponse: try await outgoingResponses.onRequest(request)
                 }
@@ -243,6 +246,10 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                     let response = httpResponse(request: request, mimeType: "text/plain", expectedContentLength: 0)
                     urlSchemeTask.didReceive(response)
                     urlSchemeTask.didFinish()
+                case .notFound:
+                    let response = httpResponse(request: request, mimeType: "text/plain", expectedContentLength: 0, statusCode: 404)
+                    urlSchemeTask.didReceive(response)
+                    urlSchemeTask.didFinish()
                 }
             } catch {
                 urlSchemeTask.didFailWithError(error)
@@ -254,13 +261,14 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     private func httpResponse(
         request: URLRequest,
         mimeType: String?,
-        expectedContentLength: Int
+        expectedContentLength: Int,
+        statusCode: Int = 200
     ) -> HTTPURLResponse {
         var headers: [String:String] = [:]
         headers["Access-Control-Allow-Origin"] = "*"
         headers["Content-Type"] = mimeType
         headers["Content-Length"] = String(expectedContentLength)
-        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: headers)
+        let response = HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: nil, headerFields: headers)
         return response!
     }
     

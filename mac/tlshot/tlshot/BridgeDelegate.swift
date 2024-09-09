@@ -262,6 +262,20 @@ class BridgeAssetServer {
     }
 }
 
+class BridgeResourceServer {
+    func onRequest(_ request: URLRequest) async throws -> BridgeURLResponse {
+        let pathComponents = request.url!.relativePath
+        guard let resourceUrl = Bundle.main.resourceURL?.appending(path: pathComponents) else {
+            return .notFound
+        }
+        let type = try! resourceUrl.resourceValues(forKeys: [.contentTypeKey]).contentType
+        if type?.conforms(to: .data) ?? false {
+            return .binary(try Data(contentsOf: resourceUrl), url: resourceUrl, mimeType: type?.preferredMIMEType ?? "application/octet-stream")
+        }
+        return .utf8(try String(contentsOf: resourceUrl), url: resourceUrl, mimeType: type?.preferredMIMEType ?? "text/plain")
+    }
+}
+
 class BridgeHelloWorldDelegate {
     func onRequest(_ request: GetNameRequest) async throws -> GetNameResponse {
         return .init(name: "Bob")

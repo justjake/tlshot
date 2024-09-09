@@ -86,11 +86,26 @@ struct TldrawWebView: NSViewRepresentable {
         webview.uiDelegate = context.coordinator
         webview.isInspectable = true
         webview.navigationDelegate = context.coordinator
-        let preview = "http://localhost:5173/"
-        webview.load(URLRequest(url: URL(string: preview)!))
         context.coordinator.bridge.webview = webview
         context.coordinator.bridge.colorScheme = colorScheme
+        
+        webview.load(URLRequest(url: URL(string: "resource:///webview/index.html")!))
+        
+//        webview.loadFileURL(bundledWebviewIndex!, allowingReadAccessTo: bundledWebviewDir!)
+        
         return webview
+    }
+    
+    private var bundledWebviewDir: URL? {
+        Bundle.main.resourceURL?.appendingPathComponent("webview", isDirectory: true)
+    }
+    
+    private var bundledWebviewIndex: URL? {
+        bundledWebviewDir?.appendingPathComponent("index", conformingTo: .html)
+    }
+    
+    private var viteDevMode: URL? {
+        URL(string: "http://localhost:5173/")
     }
     
     func updateNSView(_ nsView: WKWebView, context: Context) {

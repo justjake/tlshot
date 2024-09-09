@@ -118,6 +118,7 @@ export type BridgeImageAssetProps = {
 };
 
 export enum BridgeProtocol {
+  resource = "resource",
   httpResponse = "tlshot-response",
   asset = "asset",
 }

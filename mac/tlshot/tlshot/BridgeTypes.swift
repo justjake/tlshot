@@ -452,5 +452,6 @@ struct BridgeImageAssetProps: Codable, Hashable {
 
 enum BridgeProtocol: String, Codable, Hashable {
     case asset = "asset"
+    case resource = "resource"
     case tlshotResponse = "tlshot-response"
 }
