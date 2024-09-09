@@ -100,7 +100,6 @@
 		C17645D02C41B36400E60BE4 /* TldrawDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawDocument.swift; sourceTree = "<group>"; };
 		C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSelectionOverlayManager.swift; sourceTree = "<group>"; };
 		C19C1A212C8E265E00F3C3D6 /* KeyboardShortcuts */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = KeyboardShortcuts; path = ../KeyboardShortcuts; sourceTree = "<group>"; };
-		C1C3574A2C8E6DBF003EDAB7 /* dist */ = {isa = PBXFileReference; lastKnownFileType = folder; name = dist; path = webview/dist; sourceTree = "<group>"; };
 		C1CD215F2C47082A0079AAEF /* BridgeDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeDelegate.swift; sourceTree = "<group>"; };
 		C1CD21612C5188500079AAEF /* NotificationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSupport.swift; sourceTree = "<group>"; };
 		C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveDirectory.swift; sourceTree = "<group>"; };
@@ -155,7 +154,6 @@
 		C176458B2C3F8DB400E60BE4 = {
 			isa = PBXGroup;
 			children = (
-				C1C3574A2C8E6DBF003EDAB7 /* dist */,
 				C19C1A212C8E265E00F3C3D6 /* KeyboardShortcuts */,
 				C17645962C3F8DB400E60BE4 /* tlshot */,
 				C17645A82C3F8DB800E60BE4 /* tlshotTests */,
@@ -605,12 +603,13 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = tlshot;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "2024 Jake Teton-Landis";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = "0.0.1 yolo";
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = tl.jake.tlshot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -634,12 +633,13 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = tlshot;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "2024 Jake Teton-Landis";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = "0.0.1 yolo";
+				MARKETING_VERSION = 0.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = tl.jake.tlshot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
