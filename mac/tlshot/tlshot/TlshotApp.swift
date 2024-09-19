@@ -80,10 +80,12 @@ extension KeyboardShortcuts.Name {
     static let captureAreaDefault = KeyboardShortcuts.Shortcut(.four, modifiers: [.command, .option])
     static let captureWindowDefault = KeyboardShortcuts.Shortcut(.five, modifiers: [.command, .option])
     static let captureFullscreenDefault = KeyboardShortcuts.Shortcut(.six, modifiers: [.command, .option])
+    static let capturePasteDefault = KeyboardShortcuts.Shortcut(.seven, modifiers: [.command, .option])
     
     static let captureArea = Self("captureArea", default: captureAreaDefault)
     static let captureWindow = Self("captureWindow", default: captureWindowDefault)
     static let captureFullscreen = Self("captureFullscreen", default: captureFullscreenDefault)
+    static let capturePaste = Self("capturePaste", default: capturePasteDefault)
 }
 
 @main
@@ -93,6 +95,8 @@ struct TlshotApp: App {
     @StateObject private var areaShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .captureArea)
     @StateObject private var windowShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .captureWindow)
     @StateObject private var fullscreenShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .captureFullscreen)
+    @StateObject private var pasteShortcut: KeyboardShortcuts.ShortcutObservable = .init(name: .capturePaste)
+    @StateObject private var canPasteObserver = CanPasteImageObservable()
     
     static var trayImage = {
         let image = NSImage(named: "TrayIcon")!
@@ -126,6 +130,13 @@ struct TlshotApp: App {
             //            Button("Record video") {
             //                appDelegate.startCapture(.area, mediaType: .video)
             //            }
+            Button("Paste") {
+                appDelegate.handleErrors {
+                    try appDelegate.onCaptureClipboard()
+                }
+            }
+            .keyboardShortcut(pasteShortcut.shortcut?.keyboardShortcut)
+            .disabled(!canPasteObserver.canPaste)
             
             
             Divider()
@@ -219,6 +230,29 @@ struct SettingsScreen: View {
         KeyboardShortcuts.Recorder("Capture area:", name: .captureArea)
         KeyboardShortcuts.Recorder("Capture window:", name: .captureWindow)
         KeyboardShortcuts.Recorder("Capture full screen:", name: .captureFullscreen)
+        KeyboardShortcuts.Recorder("New from paste:", name: .capturePaste)
     }
 }
 
+
+final class CanPasteImageObservable: ObservableObject {
+    @Published var canPaste = false
+    
+    private var task: Task<(), Error>?
+    
+    init() {
+        task = Task { try await self.poll() }
+    }
+    
+    deinit {
+        task?.cancel()
+    }
+    
+    private func poll() async throws {
+        while true {
+            try await Task.sleep(for: .seconds(1))
+            let newCanPaste = NSPasteboard.general.canReadObject(forClasses: [NSImage.self])
+            Task { @MainActor in self.canPaste = newCanPaste }
+        }
+    }
+}

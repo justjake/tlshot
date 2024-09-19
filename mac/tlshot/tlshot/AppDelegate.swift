@@ -565,6 +565,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
     }
     
+    @MainActor func onCaptureClipboard() throws {
+        print("\(self).onCaptureClipboard")
+        guard let images = NSPasteboard.general.readObjects(forClasses: [NSImage.self]) else {
+            print("  readObjects -> nil")
+            return
+        }
+        guard images.count >= 1 else {
+            print("  images.count == 0")
+            return
+        }
+        let image = images[0] as! NSImage
+        guard let cgImage = image.cgImage() else {
+            print("  nsImage -> cgImage nil")
+            return
+        }
+        editImage(cgImage, frame: CGRect(center: NSScreen.main?.frame.center ?? .zero, size: image.size))
+    }
+    
     @MainActor
     func handleErrors(block: () throws -> Void) -> Void {
         do {
