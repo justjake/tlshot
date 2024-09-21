@@ -8,6 +8,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import ScreenCaptureKit
 
 @objc protocol ScreenshotVisible {
     @objc var includeInScreenshot: Bool { get }
@@ -240,6 +241,8 @@ class ScreenshotService {
     func desktopWindows() -> [WindowInfo] {
         return windows().filter { $0.isDesktopWindow }
     }
+    
+    let streamDelegate = TlshotStreamDelegate()
     
     func screenshot(_ windows: [WindowInfo]) -> CGImage? {
         print("ScreenshotService.screenshot(windows): \(windows)")

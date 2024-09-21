@@ -20,6 +20,7 @@
 		C1448EAE2C459D2B00639D0D /* TldrawView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1448EAD2C459D2B00639D0D /* TldrawView.swift */; };
 		C149800C2C45EDE500C4E4D0 /* BridgeTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */; };
 		C149800E2C45F1E900C4E4D0 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800D2C45F1E900C4E4D0 /* Bridge.swift */; };
+		C14A20C12C9F271400AA93E2 /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -77,6 +78,7 @@
 		C1448EAD2C459D2B00639D0D /* TldrawView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TldrawView.swift; sourceTree = "<group>"; };
 		C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BridgeTypes.swift; sourceTree = "<group>"; };
 		C149800D2C45F1E900C4E4D0 /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
+		C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -176,6 +178,7 @@
 		C17645962C3F8DB400E60BE4 /* tlshot */ = {
 			isa = PBXGroup;
 			children = (
+				C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */,
 				C143F6922C594F2C00AFE5A8 /* Crosshair */,
 				C143F68C2C58783900AFE5A8 /* DisplayLink */,
 				C12AEF8A2C4328D500B29527 /* AppDelegate.swift */,
@@ -413,6 +416,7 @@
 				C17645C92C40C56100E60BE4 /* LoupeView.swift in Sources */,
 				C143F6902C58786000AFE5A8 /* DisplayLink.swift in Sources */,
 				C12AEF8B2C4328D500B29527 /* AppDelegate.swift in Sources */,
+				C14A20C12C9F271400AA93E2 /* ScreenRecorder.swift in Sources */,
 				C17645CD2C418B4D00E60BE4 /* ScreenshotService.swift in Sources */,
 				C17645C52C40847000E60BE4 /* PermissionWarningView.swift in Sources */,
 				C17645CF2C41B0C500E60BE4 /* WindowPicker.swift in Sources */,
@@ -522,7 +526,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -579,7 +583,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -609,7 +613,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = tl.jake.tlshot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -639,7 +643,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = tl.jake.tlshot;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -583,6 +583,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         editImage(cgImage, frame: CGRect(center: NSScreen.main?.frame.center ?? .zero, size: image.size))
     }
     
+    @MainActor func onCaptureScreencast() throws {
+        
+    }
+    
     @MainActor
     func handleErrors(block: () throws -> Void) -> Void {
         do {

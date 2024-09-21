@@ -138,6 +138,12 @@ struct TlshotApp: App {
             .keyboardShortcut(pasteShortcut.shortcut?.keyboardShortcut)
             .disabled(!canPasteObserver.canPaste)
             
+            Button("Record screencast") {
+                appDelegate.handleErrors {
+                    try appDelegate.onCaptureScreencast()
+                }
+            }
+            
             
             Divider()
             
