@@ -309,6 +309,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         return "Screenshot \(now)"
     }
     
+    func getVideoName() -> String {
+        var formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH.mm.ss a"
+        let now = formatter.string(from: Date.now)
+        return "Screencast \(now)"
+    }
+    
     @MainActor func onDragStart() {
         if dragCancelling {
             return
@@ -583,8 +590,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         editImage(cgImage, frame: CGRect(center: NSScreen.main?.frame.center ?? .zero, size: image.size))
     }
     
-    @MainActor func onCaptureScreencast() throws {
+    @MainActor func onCaptureScreencast() async throws {
+        guard let rect = NSScreen.main?.frame.isNS else {
+            return
+        }
+        let content = try await ScreenshotService.shared.scContentFilter(rect)
+        let saveFolder = try saveDirectory.getOrChooseSaveFolder()
+        _ = saveFolder.startAccessingSecurityScopedResource()
+        defer { saveFolder.stopAccessingSecurityScopedResource() }
         
+        let name = getVideoName()
+        let url = saveFolder.appendingPathComponent(getVideoName(), conformingTo: .mpeg4Movie)
+        
+        var recorder = try await ScreenRecorder(source: content, recordAudio: false, recordMicrophone: false, destination: url, mode: .h264_sRGB)
+        try await recorder.startRecording()
+        
+        try await Task.sleep(for: .seconds(10))
+        
+        try await recorder.stop()
+        
+        let context = Notif.SavedFile(fileURL: url, pngImageData: nil, responseAction: .revealInFinder)
+        try await context.sendNotification()
     }
     
     @MainActor

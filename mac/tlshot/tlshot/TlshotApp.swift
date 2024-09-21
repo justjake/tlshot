@@ -139,8 +139,10 @@ struct TlshotApp: App {
             .disabled(!canPasteObserver.canPaste)
             
             Button("Record screencast") {
-                appDelegate.handleErrors {
-                    try appDelegate.onCaptureScreencast()
+                Task {
+                    await appDelegate.handleErrors {
+                        try await appDelegate.onCaptureScreencast()
+                    }
                 }
             }
             

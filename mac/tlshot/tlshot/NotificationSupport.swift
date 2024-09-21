@@ -122,7 +122,7 @@ struct Notif {
 
     struct SavedFile: TlshotNotification {
         let fileURL: URL
-        let pngImageData: Data
+        let pngImageData: Data?
         let responseAction: ActionID?
         
         func revealInFinder() {
@@ -132,7 +132,9 @@ struct Notif {
         func copyToClipboard() {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
-            pasteboard.setData(pngImageData, forType: .png)
+            if let data = pngImageData {
+                pasteboard.setData(pngImageData, forType: .png)
+            }
             pasteboard.setString(fileURL.formatted(), forType: .fileURL)
             pasteboard.setString(fileURL.absoluteString, forType: .string)
         }
@@ -153,7 +155,9 @@ struct Notif {
             content.title = fileURL.lastPathComponent
             content.body = "Saved to \(fileURL.deletingLastPathComponent().relativePath)"
             content.userInfo["fileURL"] = fileURL.formatted()
-            content.userInfo["pngImageData"] = pngImageData
+            if let imageData = pngImageData {
+                content.userInfo["pngImageData"] = imageData
+            }
             content.sound = nil
             content.interruptionLevel = .active
             content.threadIdentifier = "file:\(fileURL.lastPathComponent)"
@@ -168,9 +172,7 @@ struct Notif {
             guard let fileURLString = content.userInfo["fileURL"] as? String, let fileURL = URL(string: fileURLString) else {
                 throw TlshotError.invalidData("no fileURL")
             }
-            guard let pngImageData = content.userInfo["pngImageData"] as? Data else {
-                throw TlshotError.invalidData("no pngImageData")
-            }
+            let pngImageData = content.userInfo["pngImageData"] as? Data
             let actionId = ActionID(rawValue: response.actionIdentifier)
             return SavedFile(fileURL: fileURL, pngImageData: pngImageData, responseAction: actionId)
         }

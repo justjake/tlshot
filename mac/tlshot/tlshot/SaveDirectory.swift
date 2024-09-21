@@ -15,7 +15,6 @@ class SaveDirectory: ObservableObject {
         let saveFolder = try await getOrChooseSaveFolder()
         let startedAccess = saveFolder.startAccessingSecurityScopedResource()
         defer { saveFolder.stopAccessingSecurityScopedResource() }
-        
         if !startedAccess {
             print("\(self).saveImage: startAccessingSecurityScopedResource returned false. This directory might not need it, or this URL might not be a security scoped URL, or maybe something's wrong?")
         }

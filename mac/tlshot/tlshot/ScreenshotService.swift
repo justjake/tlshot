@@ -242,7 +242,6 @@ class ScreenshotService {
         return windows().filter { $0.isDesktopWindow }
     }
     
-    let streamDelegate = TlshotStreamDelegate()
     
     func screenshot(_ windows: [WindowInfo]) -> CGImage? {
         print("ScreenshotService.screenshot(windows): \(windows)")
@@ -288,6 +287,20 @@ class ScreenshotService {
         print("screenshoot \(rect): first attempt null, fall back to CGWindowListCreateImage")
         // Fall back to fully flattened image
         return CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, baseImageOptions)
+    }
+    
+    @MainActor func scContentFilter(_ rect: CoordRect) async throws -> SCContentFilter {
+        let appWindowIds = NSApp.windows.filter { $0.includeInScreenshot }.map { $0.windowNumber }
+        guard let nsScreen = NSScreen.screens.first(where: { $0.frame.intersects(rect.asNS) }) else {
+            throw RecordingError("no screen for rect \(rect)")
+        }
+        let content = try await SCShareableContent.current
+        let appWindows = content.windows.filter { appWindowIds.contains(Int($0.windowID)) }
+        let app = content.applications.first { $0.processID == NSRunningApplication.current.processIdentifier }
+        guard let display = content.displays.first(where: { $0.displayID == nsScreen.displayID }) else {
+            throw RecordingError("display not found: \(nsScreen)")
+        }
+        return SCContentFilter(display: display, excludingApplications: [app].compactMap { $0 }, exceptingWindows: appWindows)
     }
     
     func screenshotAll() -> CGImage? {
