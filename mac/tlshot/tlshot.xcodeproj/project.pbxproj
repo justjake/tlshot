@@ -21,6 +21,7 @@
 		C149800C2C45EDE500C4E4D0 /* BridgeTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */; };
 		C149800E2C45F1E900C4E4D0 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800D2C45F1E900C4E4D0 /* Bridge.swift */; };
 		C14A20C12C9F271400AA93E2 /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */; };
+		C14A20C42C9F776B00AA93E2 /* PresenterCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -79,6 +80,8 @@
 		C149800B2C45EDE500C4E4D0 /* BridgeTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BridgeTypes.swift; sourceTree = "<group>"; };
 		C149800D2C45F1E900C4E4D0 /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
 		C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
+		C14A20C22C9F734F00AA93E2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenterCapture.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -153,6 +156,15 @@
 			path = Crosshair;
 			sourceTree = "<group>";
 		};
+		C14A20C52CA0BB5000AA93E2 /* Screencast */ = {
+			isa = PBXGroup;
+			children = (
+				C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */,
+				C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */,
+			);
+			path = Screencast;
+			sourceTree = "<group>";
+		};
 		C176458B2C3F8DB400E60BE4 = {
 			isa = PBXGroup;
 			children = (
@@ -178,9 +190,6 @@
 		C17645962C3F8DB400E60BE4 /* tlshot */ = {
 			isa = PBXGroup;
 			children = (
-				C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */,
-				C143F6922C594F2C00AFE5A8 /* Crosshair */,
-				C143F68C2C58783900AFE5A8 /* DisplayLink */,
 				C12AEF8A2C4328D500B29527 /* AppDelegate.swift */,
 				C17645D22C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift */,
 				C176459B2C3F8DB800E60BE4 /* Assets.xcassets */,
@@ -191,10 +200,13 @@
 				C17645CA2C415C6A00E60BE4 /* CGRect+Coordinates.swift */,
 				C17645992C3F8DB400E60BE4 /* ContentView.swift */,
 				C140CAEB2C457B1B00FAB807 /* ContourPathExtractor.swift */,
+				C143F6922C594F2C00AFE5A8 /* Crosshair */,
 				C12AEF902C44852C00B29527 /* CursorDecorationOverlay.swift */,
 				C12AEF8C2C43453C00B29527 /* CursorModifier.swift */,
 				C12AEF8E2C443E4600B29527 /* Cursors.swift */,
+				C143F68C2C58783900AFE5A8 /* DisplayLink */,
 				C12AEF882C4328B200B29527 /* ImageWindow.swift */,
+				C14A20C22C9F734F00AA93E2 /* Info.plist */,
 				C1753ADC2C42447000BC7F6C /* Keycode.swift */,
 				C17645C82C40C56100E60BE4 /* LoupeView.swift */,
 				C1CD21612C5188500079AAEF /* NotificationSupport.swift */,
@@ -202,6 +214,7 @@
 				C17645C42C40847000E60BE4 /* PermissionWarningView.swift */,
 				C176459D2C3F8DB800E60BE4 /* Preview Content */,
 				C1CD21632C51C9C20079AAEF /* SaveDirectory.swift */,
+				C14A20C52CA0BB5000AA93E2 /* Screencast */,
 				C17645CC2C418B4D00E60BE4 /* ScreenshotService.swift */,
 				C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */,
 				C17645D02C41B36400E60BE4 /* TldrawDocument.swift */,
@@ -435,6 +448,7 @@
 				C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */,
 				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
 				C143F68E2C58784600AFE5A8 /* OnFrame.swift in Sources */,
+				C14A20C42C9F776B00AA93E2 /* PresenterCapture.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,
 				C1CD21642C51C9C20079AAEF /* SaveDirectory.swift in Sources */,
 			);
@@ -606,9 +620,12 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = tlshot/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = tlshot;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This is so we can record you during a screencast";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2024 Jake Teton-Landis";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This is so we can record your voice-over during a screencast";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -636,9 +653,12 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = tlshot/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = tlshot;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
+				INFOPLIST_KEY_NSCameraUsageDescription = "This is so we can record you during a screencast";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "2024 Jake Teton-Landis";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This is so we can record your voice-over during a screencast";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

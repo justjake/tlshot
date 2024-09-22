@@ -141,7 +141,7 @@ struct TlshotApp: App {
             Button("Record screencast") {
                 Task {
                     await appDelegate.handleErrors {
-                        try await appDelegate.onCaptureScreencast()
+                        try await appDelegate.onStartScreencast()
                     }
                 }
             }

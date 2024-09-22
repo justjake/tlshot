@@ -10,6 +10,7 @@ import SwiftUI
 import CoreGraphics
 import UserNotifications
 import KeyboardShortcuts
+import ScreenCaptureKit
 
 struct CaptureResult {
     let frame: CGRect
@@ -594,12 +595,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         guard let rect = NSScreen.main?.frame.isNS else {
             return
         }
+        try await onCaptureSceencast(rect: rect)
+    }
+    
+    @MainActor
+    func onCaptureSceencast(rect: CoordRect) async throws {
         let content = try await ScreenshotService.shared.scContentFilter(rect)
+        try await onCaptureScreencast(content: content)
+    }
+    
+    @MainActor
+    func onStartScreencast() async throws {
+        try PresenterCaptureOverlay.shared.show()
+        guard let content = try await ContentSharingPickerFlow.pick() else {
+            return
+        }
+        
+        try await onCaptureScreencast(content: content)
+    }
+    
+    @MainActor
+    func onCaptureScreencast(content: SCContentFilter) async throws {
         let saveFolder = try saveDirectory.getOrChooseSaveFolder()
         _ = saveFolder.startAccessingSecurityScopedResource()
         defer { saveFolder.stopAccessingSecurityScopedResource() }
         
-        let name = getVideoName()
         let url = saveFolder.appendingPathComponent(getVideoName(), conformingTo: .mpeg4Movie)
         
         var recorder = try await ScreenRecorder(source: content, recordAudio: false, recordMicrophone: false, destination: url, mode: .h264_sRGB)
@@ -781,5 +801,43 @@ class EditWindowCache {
         let window = ImageEditWindow(rect: NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 600))
         window.orderOut(nil)
         return window
+    }
+}
+
+class ContentSharingPickerFlow: NSObject, SCContentSharingPickerObserver {
+    static func pick() async throws -> SCContentFilter? {
+        var observer: ContentSharingPickerFlow? = nil
+        
+        let initialActiveState = SCContentSharingPicker.shared.isActive
+        defer { SCContentSharingPicker.shared.isActive = initialActiveState }
+        
+        let result = try await withCheckedThrowingContinuation {
+            observer = ContentSharingPickerFlow(continuation: $0)
+            SCContentSharingPicker.shared.isActive = true
+            SCContentSharingPicker.shared.add(observer!)
+            SCContentSharingPicker.shared.present(using: .display)
+        }
+        if let observer = observer {
+            SCContentSharingPicker.shared.remove(observer)
+        }
+        return result
+    }
+    
+    var continuation: CheckedContinuation<SCContentFilter?, Error>
+    
+    init(continuation: CheckedContinuation<SCContentFilter?, Error>) {
+        self.continuation = continuation
+    }
+    
+    func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
+        continuation.resume(returning: nil)
+    }
+    
+    func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
+        continuation.resume(returning: filter)
+    }
+    
+    func contentSharingPickerStartDidFailWithError(_ error: any Error) {
+        continuation.resume(throwing: error)
     }
 }
