@@ -8,7 +8,18 @@
 import SwiftUI
 
 class ScreencastOverlay: ObservableObject {
-    var panel = OverlayPanel(NSScreen.main?.visibleFrame ?? CGRect(square: 500), level: .shieldWindow, visible: true) {
+    var panelLocation: NSRect {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else {
+            print("no screen!?!?")
+            return CGRect(square: 500)
+        }
+        
+        return NSRect(
+            x: 0, y: 0, width: screen.visibleFrame.width, height: 50
+        )
+    }
+    
+    lazy var panel = OverlayPanel(panelLocation, level: .shieldWindow, visible: true) {
         ScreencastOverlayView()
     }
     
@@ -57,7 +68,6 @@ class ScreencastOverlay: ObservableObject {
                             session.presentPicker(newStyle: nil)
                         }
                     }
-                    
                     
                     Button("Cancel") {
                         session.cancelPresenter(didFinish: false)

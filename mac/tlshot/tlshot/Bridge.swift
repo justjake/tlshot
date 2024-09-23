@@ -213,7 +213,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
     private func schemeHandler(_ urlSchemeTask: any WKURLSchemeTask) {
         Task { @MainActor in
             let request = urlSchemeTask.request
-            print("<< REQUEST \(request.httpMethod ?? "?") \(request.url.debug ?? "(no url)")")
+            print("<< SCHEME REQUEST \(request.httpMethod ?? "?") \(request.url.debug ?? "(no url)")")
             print("   headers: \(request.allHTTPHeaderFields.debug ?? "?")")
             print("   body: \((request.httpBody?.count).debug ?? "?")")
             print("   bodyStream: \(request.httpBodyStream.debug ?? "?")")

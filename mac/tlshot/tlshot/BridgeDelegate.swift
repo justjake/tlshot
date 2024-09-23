@@ -67,19 +67,19 @@ class BridgeOutgoingRequestRegistry {
                 }
             }
             
-            print("Waiting for request \(requestID)")
+            print("\(self).waitForResponse(\(requestID))")
         }
     }
     
     private func fulfill(notification: ResponseNotification) {
         if !notification.httpUpload {
-            print("Notification: not httpUpload: \(notification)")
+            print("\(self).fulfill: not an HTTP upload: \(notification)")
             // We don't need to wait for an HTTP upload request in this case.
             fulfill(httpUpload: nil, forRequest: notification.requestID)
         }
         
         guard let handler = notificationWaiters.removeValue(forKey: notification.requestID) else {
-            print("Notification: Unknown RequestID: \(notification.requestID) in \(notification)")
+            print("WARNING \(self).fulfill(notification): Unknown RequestID: \(notification.requestID) in \(notification)")
             return
         }
         
@@ -88,7 +88,7 @@ class BridgeOutgoingRequestRegistry {
     
     private func fulfill(httpUpload: URLRequest?, forRequest requestID: String) {
         guard let handler = httpUploadWaiters.removeValue(forKey: requestID) else {
-            print("httpUpload: Unknown RequestID: \(requestID) in \(httpUpload.debug ?? "(cancellation)")")
+            print("WARNING \(self).fulfill(http): Unknown RequestID: \(requestID) in \(httpUpload.debug ?? "(cancellation)")")
             return
         }
         handler(httpUpload)
