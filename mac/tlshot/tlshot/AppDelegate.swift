@@ -202,7 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
                 print("  released shift key: \(targets)")
                 if targets.count > 0 {
                     handleErrors {
-                        try onCaptureWindows(targets)
+                        try onCaptureWindows(targets, includeDesktop: modifiersCaptureDesktop, asVideo: modifiersCaptureVideo)
                     }
                 }
             }
@@ -240,6 +240,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         return event
     }
     
+    var modifiersCaptureDesktop: Bool {
+        modifierFlags.contains(.control)
+    }
+    
+    var modifiersCaptureVideo: Bool {
+        modifierFlags.contains(.option)
+    }
     
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let categoryIdentifier = response.notification.request.content.categoryIdentifier
@@ -349,7 +356,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         
         // Regular click: pick that win!
         do {
-            try onCaptureWindows([window])
+            try onCaptureWindows([window], includeDesktop: modifiersCaptureDesktop, asVideo: modifiersCaptureVideo)
         } catch {
             onCaptureError(error)
         }
@@ -366,7 +373,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
         print("onDragEnd", rect)
         do {
-            try onCaptureRect(area: rect)
+            try onCaptureRect(area: rect, asVideo: modifiersCaptureVideo)
         } catch {
             onCaptureError(error)
         }
@@ -522,7 +529,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
     }
     
-    @MainActor func onCaptureRect(area: CGRect) throws {
+    @MainActor func onCaptureRect(area: CGRect, asVideo: Bool) throws {
         defer { onCaptureClose() }
 //        print("onCaptureRect(\(area)")
 //        let screen = NSScreen.screens.first { $0.frame.intersects(area) }
@@ -533,6 +540,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
 //            print("  backingRect: \(screen.convertRectToBacking(area))")
 //            print("  backingScaleFactor: \(screen.backingScaleFactor)")
 //        }
+        
+        if asVideo {
+            handleErrorsTask {
+                let content = try await ScreenshotService.shared.scContentFilter(area.isNS)
+                self.onScreencastStart(content: content, cropRect: area.isNS)
+            }
+            return
+        }
+
+        
         if let image = ScreenshotService.shared.screenshot(area.isNS) {
             print("\(self).onCaptureRect image: \(image)")
             onCaptureSuccess(image, frame: area, windows: nil)
@@ -541,12 +558,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
     }
     
-    @MainActor func onCaptureWindows(_ windows: [ScreenshotService.WindowInfo]) throws {
+    @MainActor func onCaptureWindows(_ windows: [ScreenshotService.WindowInfo], includeDesktop: Bool, asVideo: Bool) throws {
         defer { onCaptureClose() }
         print("\(self).onCaptureWindows:", windows)
         var included = windows
         let bounds = included.map { $0.frame }.union().asCG
-        if windowIncludeDesktop {
+        if windowIncludeDesktop || includeDesktop {
             let desktopWindows = ScreenshotService.shared.desktopWindows()
             let intersectingWindows =  desktopWindows.filter { $0.frame.asCG.intersects(bounds) }
             print("  includeDesktop: bounds: \(bounds)")
@@ -554,6 +571,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
             print("  includeDesktop: intersectingWindows: \(intersectingWindows)")
             included.append(contentsOf: intersectingWindows)
         }
+        
+        if asVideo {
+            handleErrorsTask {
+                let content = try await ScreenshotService.shared.scContentFilter(included)
+                self.onScreencastStart(content: content, cropRect: nil)
+            }
+            return
+        }
+        
         if let image = ScreenshotService.shared.screenshot(included) {
             print("onCaptureWindow: got image \(image)")
             onCaptureSuccess(image, frame: bounds.isCG.asNS, windows: included)
@@ -665,17 +691,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     
     var screencastOverlay: ScreencastOverlay?
     
-    func onScreencastStart() {
+    func onScreencastStart(content: SCContentFilter, cropRect: CoordRect?) {
         let overlay = ScreencastOverlay()
         screencastOverlay = overlay
-        
-        let window = overlay.panel
-        window.orderFrontRegardless()
+        overlay.show(content: content, cropRect: cropRect?.asCG)
         NSApp.activate(ignoringOtherApps: true)
     }
     
     @MainActor func onScreencastCancel() {
-        screencastOverlay?.panel.close()
+        screencastOverlay?.close()
         screencastOverlay = nil
     }
     
@@ -834,7 +858,7 @@ class EditWindowCache {
 }
 
 class ContentSharingPickerFlow: NSObject, SCContentSharingPickerObserver {
-    static func pick() async throws -> SCContentFilter? {
+    static func pick(using style: SCShareableContentStyle = .display) async throws -> SCContentFilter? {
         var observer: ContentSharingPickerFlow? = nil
         
         let initialActiveState = SCContentSharingPicker.shared.isActive
@@ -844,7 +868,7 @@ class ContentSharingPickerFlow: NSObject, SCContentSharingPickerObserver {
             observer = ContentSharingPickerFlow(continuation: $0)
             SCContentSharingPicker.shared.isActive = true
             SCContentSharingPicker.shared.add(observer!)
-            SCContentSharingPicker.shared.present(using: .display)
+            SCContentSharingPicker.shared.present(using: style)
         }
         if let observer = observer {
             SCContentSharingPicker.shared.remove(observer)
@@ -859,14 +883,17 @@ class ContentSharingPickerFlow: NSObject, SCContentSharingPickerObserver {
     }
     
     func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
+        print("\(self).didCancelFor(stream: \(stream.debug ?? "nil"))")
         continuation.resume(returning: nil)
     }
     
     func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
+        print("\(self).didUpdateWith(\(filter), stream: \(stream.debug ?? "nil"))")
         continuation.resume(returning: filter)
     }
     
     func contentSharingPickerStartDidFailWithError(_ error: any Error) {
+        print("\(self).didFailWith(\(error)")
         continuation.resume(throwing: error)
     }
 }

@@ -194,11 +194,13 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
         print("stopRecording")
         if isRecording {
             try await stream?.stopCapture()
+            try await recorder?.stopRecording()
             isRecording = false
+            cancelPresenter(didFinish: true)
+        } else {
+            cancelPresenter(didFinish: false)
         }
         
-        try await recorder?.stopRecording()
-        cancelPresenter(didFinish: true)
         recorder = nil
     }
     

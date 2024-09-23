@@ -6,8 +6,27 @@
 //
 
 import SwiftUI
+import ScreenCaptureKit
 
 class ScreencastOverlay: ObservableObject {
+    @Published var content: SCContentFilter?
+    @Published var cropRect: CGRect?
+    
+    func show(content: SCContentFilter?, cropRect: CGRect?) {
+        self.content = content
+        self.cropRect = cropRect
+        if let cropRect = cropRect ?? content?.contentRect {
+            indicator.setFrame(cropRect.isCG.asNS, display: true)
+            indicator.orderFrontRegardless()
+        }
+        panel.orderFrontRegardless()
+    }
+    
+    func close() {
+        self.indicator.close()
+        self.panel.close()
+    }
+    
     var panelLocation: NSRect {
         guard let screen = NSScreen.main ?? NSScreen.screens.first else {
             print("no screen!?!?")
@@ -20,13 +39,15 @@ class ScreencastOverlay: ObservableObject {
     }
     
     lazy var panel = OverlayPanel(panelLocation, level: .shieldWindow, visible: true) {
-        ScreencastOverlayView()
+        ScreencastOverlayView(props: self)
     }
     
+    lazy var indicator: some NSPanel = WindowPicker.WindowPickerOverlay().panel
+    
     struct ScreencastOverlayView: View {
+        @ObservedObject var props: ScreencastOverlay
         @StateObject var session = ScreencastSession()
         @EnvironmentObject var app: AppDelegate
-        @State var cropRect = CGRect(center: NSScreen.main?.visibleFrame.center ?? .zero, size: CGSize(square: 800)).isNS.asCG
         
         var body: some View {
             HStack {
@@ -82,8 +103,12 @@ class ScreencastOverlay: ObservableObject {
             .background(.gray)
             .onAppear {
                 app.handleErrorsTask {
-                    let content = try await ScreenshotService.shared.scContentFilter(cropRect.isCG)
-                    try await session.update(filter: content, cropRect: cropRect)
+                    if let content = props.content {
+                        try await session.update(filter: content, cropRect: props.cropRect)
+                    } else {
+                        let content = try await ScreenshotService.shared.scContentFilter()
+                        try await session.update(filter: content, cropRect: props.cropRect)
+                    }
                 }
             }
         }

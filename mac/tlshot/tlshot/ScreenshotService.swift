@@ -289,6 +289,21 @@ class ScreenshotService {
         return CGWindowListCreateImage(rect.asCG, .optionAll, kCGNullWindowID, baseImageOptions)
     }
     
+    @MainActor func scContentFilter() async throws -> SCContentFilter {
+        let content = try await SCShareableContent.current
+        return SCContentFilter(display: content.displays[0], excludingApplications: [], exceptingWindows: [])
+    }
+    
+    @MainActor func scContentFilter(_ included: [WindowInfo]) async throws -> SCContentFilter {
+        let firstWindowFrame = included.first?.frame.asNS ?? NSScreen.main?.frame
+        let displayID = NSScreen.screens.first { $0.frame.intersects(firstWindowFrame ?? .zero) }?.displayID
+        let windowIDs = Set(included.map { $0.id })
+        let content = try await SCShareableContent.current
+        let display = content.displays.first { $0.displayID == displayID } ?? content.displays[0]
+        let windows = content.windows.filter { windowIDs.contains(Int($0.windowID)) }
+        return SCContentFilter(display: display, including: windows)
+    }
+    
     @MainActor func scContentFilter(_ rect: CoordRect) async throws -> SCContentFilter {
         let appWindowIds = NSApp.windows.filter { $0.includeInScreenshot }.map { $0.windowNumber }
         guard let nsScreen = NSScreen.screens.first(where: { $0.frame.intersects(rect.asNS) }) else {

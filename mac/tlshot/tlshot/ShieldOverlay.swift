@@ -202,6 +202,12 @@ class ShieldOverlay: ObservableObject {
                         }
                         divider
                         action {
+                            Text("Option")
+                                .foregroundStyle(app.modifierFlags.contains(.option) ? .primary : .secondary)
+                            Text("Record video")
+                        }
+                        divider
+                        action {
                             Text("Space")
                                 .foregroundStyle(.secondary)
                             Text("Capture Window")
@@ -227,6 +233,12 @@ class ShieldOverlay: ObservableObject {
                                 .foregroundStyle(app.modifierFlags.contains(.control) ? .primary :
                                         .secondary)
                             Text("Include desktop")
+                        }
+                        divider
+                        action {
+                            Text("Option")
+                                .foregroundStyle(app.modifierFlags.contains(.option) ? .primary : .secondary)
+                            Text("Record video")
                         }
                         divider
                         action {

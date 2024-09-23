@@ -139,7 +139,11 @@ struct TlshotApp: App {
             .disabled(!canPasteObserver.canPaste)
             
             Button("Record screencast") {
-                appDelegate.onScreencastStart()
+                appDelegate.handleErrorsTask {
+                    if let content = try await ContentSharingPickerFlow.pick() {
+                        appDelegate.onScreencastStart(content: content, cropRect: nil)
+                    }
+                }
             }
             
             
