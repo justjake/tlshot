@@ -67,18 +67,25 @@ class PresenterCapture {
     }
 }
 
-struct PresenterCaptureView: NSViewRepresentable {
+struct PresenterOverlayCaptureView: View {
     @ObservedObject var props: PresenterCaptureOverlay
+    var body: some View {
+        PresenterCaptureView(captureSession: props.captureSession)
+    }
+}
+
+struct PresenterCaptureView: NSViewRepresentable {
+    var captureSession: AVCaptureSession?
     typealias NSViewType = CaptureNSView
 
     func makeNSView(context: Context) -> NSViewType {
         let view = NSViewType()
-        view.session = props.captureSession
+        view.session = captureSession
         return view
     }
     
     func updateNSView(_ nsView: NSViewType, context: Context) {
-        nsView.session = props.captureSession
+        nsView.session = captureSession
     }
     
     final class CaptureNSView: NSView {
@@ -109,7 +116,7 @@ class PresenterCaptureOverlay: ObservableObject {
     var helper = PresenterCapture()
     
     lazy var panel = OverlayPanel(NSRect(origin: .zero, size: CGSize(square: 400)), level: .shieldWindow) {
-        PresenterCaptureView(props: self)
+        PresenterOverlayCaptureView(props: self)
     }
     
     @MainActor func show() throws {

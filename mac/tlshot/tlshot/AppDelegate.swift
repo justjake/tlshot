@@ -591,47 +591,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         editImage(cgImage, frame: CGRect(center: NSScreen.main?.frame.center ?? .zero, size: image.size))
     }
     
-    @MainActor func onCaptureScreencast() async throws {
-        guard let rect = NSScreen.main?.frame.isNS else {
-            return
-        }
-        try await onCaptureSceencast(rect: rect)
-    }
-    
-    @MainActor
-    func onCaptureSceencast(rect: CoordRect) async throws {
-        let content = try await ScreenshotService.shared.scContentFilter(rect)
-        try await onCaptureScreencast(content: content)
-    }
-    
-    @MainActor
-    func onStartScreencast() async throws {
-        try PresenterCaptureOverlay.shared.show()
-        guard let content = try await ContentSharingPickerFlow.pick() else {
-            return
-        }
-        
-        try await onCaptureScreencast(content: content)
-    }
-    
-    @MainActor
-    func onCaptureScreencast(content: SCContentFilter) async throws {
-        let saveFolder = try saveDirectory.getOrChooseSaveFolder()
-        _ = saveFolder.startAccessingSecurityScopedResource()
-        defer { saveFolder.stopAccessingSecurityScopedResource() }
-        
-        let url = saveFolder.appendingPathComponent(getVideoName(), conformingTo: .mpeg4Movie)
-        
-        var recorder = try await ScreenRecorder(source: content, recordAudio: false, recordMicrophone: false, destination: url, mode: .h264_sRGB)
-        try await recorder.startRecording()
-        
-        try await Task.sleep(for: .seconds(10))
-        
-        try await recorder.stop()
-        
-        let context = Notif.SavedFile(fileURL: url, pngImageData: nil, responseAction: .revealInFinder)
-        try await context.sendNotification()
-    }
+//    @MainActor func onCaptureScreencast() async throws {
+//        guard let rect = NSScreen.main?.frame.isNS else {
+//            return
+//        }
+//        try await onCaptureSceencast(rect: rect)
+//    }
+//    
+//    @MainActor
+//    func onCaptureSceencast(rect: CoordRect) async throws {
+//        let content = try await ScreenshotService.shared.scContentFilter(rect)
+//        try await onCaptureScreencast(content: content)
+//    }
+//    
+//    @MainActor
+//    func onStartScreencast() async throws {
+//        try PresenterCaptureOverlay.shared.show()
+//        guard let content = try await ContentSharingPickerFlow.pick() else {
+//            return
+//        }
+//        
+//        try await onCaptureScreencast(content: content)
+//    }
+//    
+//    @MainActor
+//    func onCaptureScreencast(content: SCContentFilter) async throws {
+//        let saveFolder = try saveDirectory.getOrChooseSaveFolder()
+//        _ = saveFolder.startAccessingSecurityScopedResource()
+//        defer { saveFolder.stopAccessingSecurityScopedResource() }
+//        
+//        let url = saveFolder.appendingPathComponent(getVideoName(), conformingTo: .mpeg4Movie)
+//        
+//        var recorder = try await ScreenRecorder(source: content, recordAudio: false, recordMicrophone: false, destination: url, mode: .h264_sRGB)
+//        try await recorder.startRecording()
+//        
+//        try await Task.sleep(for: .seconds(10))
+//        
+//        try await recorder.stop()
+//        
+//        let context = Notif.SavedFile(fileURL: url, pngImageData: nil, responseAction: .revealInFinder)
+//        try await context.sendNotification()
+//    }
     
     @MainActor
     func handleErrors(block: () throws -> Void) -> Void {
@@ -650,6 +650,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         }
     }
     
+    func handleErrorsTask(block: @escaping () async throws -> Void) {
+        Task { await self.handleErrors(block: block)}
+    }
+
     @MainActor func onCaptureSuccess(_ image: CGImage, frame: CGRect, windows: [WindowInfo]?) {
         if let callback = captureCallback {
             let result = CaptureResult(frame: frame, image: image, action: captureAction, windows: windows)
@@ -657,6 +661,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
             return
         }
         editImage(image, frame: frame)
+    }
+    
+    var screencastOverlay: ScreencastOverlay?
+    
+    func onScreencastStart() {
+        let overlay = ScreencastOverlay()
+        screencastOverlay = overlay
+        
+        let window = overlay.panel
+        window.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @MainActor func onScreencastCancel() {
+        screencastOverlay?.panel.close()
+        screencastOverlay = nil
+    }
+    
+    func onSceencastComplete(screencastURL url: URL) {
+        handleErrorsTask {
+            let context = Notif.SavedFile(fileURL: url, pngImageData: nil, responseAction: .revealInFinder)
+            try await context.sendNotification()
+            await self.screencastOverlay?.panel.close()
+            self.screencastOverlay = nil
+        }
     }
 
     @MainActor func editImage(_ image: CGImage, frame: CGRect) {

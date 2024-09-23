@@ -22,6 +22,8 @@
 		C149800E2C45F1E900C4E4D0 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = C149800D2C45F1E900C4E4D0 /* Bridge.swift */; };
 		C14A20C12C9F271400AA93E2 /* ScreenRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */; };
 		C14A20C42C9F776B00AA93E2 /* PresenterCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */; };
+		C14A20C72CA0BC7100AA93E2 /* ScreencastSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C62CA0BC6B00AA93E2 /* ScreencastSession.swift */; };
+		C14A20C92CA0D3CE00AA93E2 /* ScreencastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C82CA0D3CB00AA93E2 /* ScreencastOverlay.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -82,6 +84,8 @@
 		C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenRecorder.swift; sourceTree = "<group>"; };
 		C14A20C22C9F734F00AA93E2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenterCapture.swift; sourceTree = "<group>"; };
+		C14A20C62CA0BC6B00AA93E2 /* ScreencastSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencastSession.swift; sourceTree = "<group>"; };
+		C14A20C82CA0D3CB00AA93E2 /* ScreencastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencastOverlay.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -159,6 +163,8 @@
 		C14A20C52CA0BB5000AA93E2 /* Screencast */ = {
 			isa = PBXGroup;
 			children = (
+				C14A20C82CA0D3CB00AA93E2 /* ScreencastOverlay.swift */,
+				C14A20C62CA0BC6B00AA93E2 /* ScreencastSession.swift */,
 				C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */,
 				C14A20C02C9F271400AA93E2 /* ScreenRecorder.swift */,
 			);
@@ -420,6 +426,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C1CD21622C5188500079AAEF /* NotificationSupport.swift in Sources */,
+				C14A20C92CA0D3CE00AA93E2 /* ScreencastOverlay.swift in Sources */,
 				C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */,
 				C12AEF8F2C443E4600B29527 /* Cursors.swift in Sources */,
 				C1CD21662C53574A0079AAEF /* TlshotToolbar.swift in Sources */,
@@ -441,6 +448,7 @@
 				C17645D32C41B7D000E60BE4 /* AreaSelectionOverlayManager.swift in Sources */,
 				C12AEF912C44852C00B29527 /* CursorDecorationOverlay.swift in Sources */,
 				C1CD21602C47082A0079AAEF /* BridgeDelegate.swift in Sources */,
+				C14A20C72CA0BC7100AA93E2 /* ScreencastSession.swift in Sources */,
 				C17645CB2C415C6A00E60BE4 /* CGRect+Coordinates.swift in Sources */,
 				C12AEF8D2C43453C00B29527 /* CursorModifier.swift in Sources */,
 				C143F6962C59555A00AFE5A8 /* CrosshairView.swift in Sources */,

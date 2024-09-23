@@ -22,70 +22,60 @@ enum RecordMode {
 //    case hevc_displayP3_HDR
 }
 
-// Create a screen recording
-func exampleScreenRecorder() async throws {
-    do {
-        // Check for screen recording permission, make sure your terminal has screen recording permission
-        guard CGPreflightScreenCaptureAccess() else {
-            throw RecordingError("No screen capture permission")
-        }
-        
-        let url = URL(filePath: FileManager.default.currentDirectoryPath).appending(path: "recording \(Date()).mov")
-        //    let cropRect = CGRect(x: 0, y: 0, width: 960, height: 540)
-        let source = SCContentFilter(display: try await SCShareableContent.current.displays.first!, excludingWindows: [])
-        var screenRecorder = try await ScreenRecorder(source: source, recordAudio: true, recordMicrophone: true, destination: url, mode: .h264_sRGB)
-        
-        print("Starting screen recording of main display")
-        try await screenRecorder.startRecording()
-        
-        print("Hit Return to end recording")
-        _ = readLine()
-        try await screenRecorder.stop()
-        
-        print("Recording ended, opening video")
-        NSWorkspace.shared.open(url)
-    } catch {
-        print("Error during recording:", error)
-    }
-}
-
-
-
-struct ScreenRecorder {
+class ScreenRecorder {
     private let videoSampleBufferQueue = DispatchQueue(label: "ScreenRecorder.VideoSampleBufferQueue")
     private let audioSampleBufferQueue = DispatchQueue(label: "ScreenRecorder.AudioSampleBufferQueue")
 
-    private let assetWriter: AVAssetWriter
+    private let streamOutput: StreamOutput
+    private var assetWriter: AVAssetWriter?
     private let videoInput: AVAssetWriterInput
     private let audioInput: AVAssetWriterInput?
     private let micInput: AVAssetWriterInput?
-    private let streamOutput: StreamOutput
-    private var stream: SCStream
-    private var isActive = false
-
-    init(source: SCContentFilter, cropRect: CGRect? = nil, recordAudio: Bool, recordMicrophone: Bool, destination: URL, mode: RecordMode) async throws {
-        let url = destination
-
-        self.assetWriter = try AVAssetWriter(url: url, fileType: .mp4)
+    
+    static func streamConfiguration(for source: SCContentFilter, cropRect: CGRect?, recordAudio: Bool, videoFormat: RecordMode) -> SCStreamConfiguration {
+        let configuration = SCStreamConfiguration()
         
+        // Increase the depth of the frame queue to ensure high fps at the expense of increasing
+        // the memory footprint of WindowServer.
+        configuration.queueDepth = 6 // 4 minimum, or it becomes very stuttery
+        
+        // Make sure to take displayScaleFactor into account
+        // otherwise, image is scaled up and gets blurry
+        let displayScalingFactor = Int(source.pointPixelScale)
+        if let cropRect = cropRect {
+            // ScreenCaptureKit uses top-left of screen as origin
+            configuration.sourceRect = cropRect
+            configuration.width = Int(cropRect.width) * displayScalingFactor
+            configuration.height = Int(cropRect.height) * displayScalingFactor
+        } else {
+            let sourceSize = source.contentRect.size
+            configuration.width = Int(sourceSize.width) * displayScalingFactor
+            configuration.height = Int(sourceSize.height) * displayScalingFactor
+        }
+        
+        // Set pixel format an color space, see CVPixelBuffer.h
+        switch videoFormat {
+        case .h264_sRGB:
+            configuration.pixelFormat = kCVPixelFormatType_32BGRA // 'BGRA'
+            configuration.colorSpaceName = CGColorSpace.sRGB
+        case .hevc_displayP3:
+            configuration.pixelFormat = kCVPixelFormatType_ARGB2101010LEPacked // 'l10r'
+            configuration.colorSpaceName = CGColorSpace.displayP3
+            //        case .hevc_displayP3_HDR:
+            //            configuration.pixelFormat = kCVPixelFormatType_ARGB2101010LEPacked // 'l10r'
+            //            configuration.colorSpaceName = CGColorSpace.displayP3
+        }
+        
+        configuration.capturesAudio = recordAudio
+        return configuration
+    }
 
-        // MARK: AVAssetWriter setup
-
-        // Get size and pixel scale factor for display
-        // Used to compute the highest possible qualitiy
-//        let displaySize = CGDisplayBounds(displayID).size
-//
-//        // The number of physical pixels that represent a logic point on screen, currently 2 for MacBook Pro retina displays
-//        let displayScaleFactor: Int
-//        if let mode = CGDisplayCopyDisplayMode(displayID) {
-//            displayScaleFactor = mode.pixelWidth / mode.width
-//        } else {
-//            displayScaleFactor = 1
-//        }
-
+    init(config: SCStreamConfiguration, mode: RecordMode) async throws {
+        
         // AVAssetWriterInput supports maximum resolution of 4096x2304 for H.264
         // Downsize to fit a larger display back into in 4K
-        let videoSize = downsizedVideoSize(source: source.contentRect.size, scaleFactor: Int(source.pointPixelScale), mode: mode)
+        // Note `config` width/height is already scaled from screen points to pixels
+        let videoSize = downsizedVideoSize(source: CGSize(width: config.width, height: config.height) , scaleFactor: 1, mode: mode)
 
         // Use the preset as large as possible, size will be reduced to screen size by computed videoSize
         guard let assistant = AVOutputSettingsAssistant(preset: mode.preset) else {
@@ -113,19 +103,26 @@ struct ScreenRecorder {
         videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         videoInput.expectsMediaDataInRealTime = true
         
-        audioInput = if recordAudio  {
+        audioInput = if config.capturesAudio  {
             AVAssetWriterInput(mediaType: .audio, outputSettings: assistant.audioSettings)
         } else {
             nil
         }
-        micInput = if recordMicrophone  {
-            AVAssetWriterInput(mediaType: .audio, outputSettings: assistant.audioSettings)
+        micInput = if #available(macOS 15.0, *) {
+            if config.captureMicrophone  {
+                AVAssetWriterInput(mediaType: .audio, outputSettings: assistant.audioSettings)
+            } else {
+                nil
+            }
         } else {
             nil
         }
 
         streamOutput = StreamOutput(videoInput: videoInput, audioInput: audioInput, micInput: micInput)
-
+    }
+    
+    private func buildAssetWriter(url: URL) throws -> AVAssetWriter {
+        let assetWriter = try AVAssetWriter(url: url, fileType: .mp4)
         // Adding videoInput to assetWriter
         guard assetWriter.canAdd(videoInput) else {
             throw RecordingError("Can't add video input to asset writer")
@@ -146,6 +143,43 @@ struct ScreenRecorder {
             assetWriter.add(micInput)
         }
         
+        return assetWriter
+    }
+    
+    var stream: SCStream?
+    func setInput(stream: SCStream) throws {
+        if self.stream == stream {
+            return
+        }
+        
+        try stream.addStreamOutput(streamOutput, type: .screen, sampleHandlerQueue: videoSampleBufferQueue)
+        if audioInput != nil {
+            try stream.addStreamOutput(streamOutput, type: .audio, sampleHandlerQueue: audioSampleBufferQueue)
+        }
+        if #available(macOS 15.0, *) {
+            if micInput != nil {
+                try stream.addStreamOutput(streamOutput, type: .microphone, sampleHandlerQueue: audioSampleBufferQueue)
+            }
+        }
+        self.stream = stream
+    }
+    
+    func removeFromInput() throws {
+        try stream?.removeStreamOutput(streamOutput, type: .screen)
+        if audioInput != nil {
+            try stream?.removeStreamOutput(streamOutput, type: .audio)
+        }
+        if #available(macOS 15.0, *) {
+            if micInput != nil {
+                try stream?.removeStreamOutput(streamOutput, type: .microphone)
+            }
+        }
+        self.stream = nil
+    }
+
+    func startRecording(url: URL) async throws {
+        let assetWriter = try self.assetWriter ?? self.buildAssetWriter(url: url)
+        self.assetWriter = assetWriter
         guard assetWriter.startWriting() else {
             if let error = assetWriter.error {
                 throw error
@@ -153,82 +187,19 @@ struct ScreenRecorder {
             throw RecordingError("Couldn't start writing to AVAssetWriter")
         }
 
-        // MARK: SCStream setup
-
-        // Create a filter for the specified display
-        let configuration = SCStreamConfiguration()
-
-        // Increase the depth of the frame queue to ensure high fps at the expense of increasing
-        // the memory footprint of WindowServer.
-        configuration.queueDepth = 6 // 4 minimum, or it becomes very stuttery
-
-        // Make sure to take displayScaleFactor into account
-        // otherwise, image is scaled up and gets blurry
-        let displayScalingFactor = Int(source.pointPixelScale)
-        if let cropRect = cropRect {
-            // ScreenCaptureKit uses top-left of screen as origin
-            configuration.sourceRect = cropRect
-            configuration.width = Int(cropRect.width) * displayScalingFactor
-            configuration.height = Int(cropRect.height) * displayScalingFactor
-        } else {
-            let sourceSize = source.contentRect.size
-            configuration.width = Int(sourceSize.width) * displayScalingFactor
-            configuration.height = Int(sourceSize.height) * displayScalingFactor
-        }
-
-        // Set pixel format an color space, see CVPixelBuffer.h
-        switch mode {
-        case .h264_sRGB:
-            configuration.pixelFormat = kCVPixelFormatType_32BGRA // 'BGRA'
-            configuration.colorSpaceName = CGColorSpace.sRGB
-        case .hevc_displayP3:
-            configuration.pixelFormat = kCVPixelFormatType_ARGB2101010LEPacked // 'l10r'
-            configuration.colorSpaceName = CGColorSpace.displayP3
-//        case .hevc_displayP3_HDR:
-//            configuration.pixelFormat = kCVPixelFormatType_ARGB2101010LEPacked // 'l10r'
-//            configuration.colorSpaceName = CGColorSpace.displayP3
-        }
-        
-        configuration.capturesAudio = recordAudio
-        if #available(macOS 15.0, *) {
-            configuration.captureMicrophone = recordMicrophone
-        }
-
-        // Create SCStream and add local StreamOutput object to receive samples
-        stream = SCStream(filter: source, configuration: configuration, delegate: nil)
-    }
-    
-    mutating func startStream() async throws {
-        // Start capturing, wait for stream to start
-        try await stream.startCapture()
-        isActive = true
-    }
-    
-    func pickAgain() async throws {
-        SCContentSharingPicker.shared.present(for: self.stream)
-    }
-
-    mutating func startRecording() async throws {
-        if !isActive {
-            try await startStream()
-        }
-        
-        try stream.addStreamOutput(streamOutput, type: .screen, sampleHandlerQueue: videoSampleBufferQueue)
-        try stream.addStreamOutput(streamOutput, type: .audio, sampleHandlerQueue: audioSampleBufferQueue)
-        if #available(macOS 15.0, *) {
-            try stream.addStreamOutput(streamOutput, type: .microphone, sampleHandlerQueue: audioSampleBufferQueue)
-        }
-
         // Start the AVAssetWriter session at source time .zero, sample buffers will need to be re-timed
         assetWriter.startSession(atSourceTime: .zero)
         streamOutput.sessionStarted = true
+        print("\(self).startRecording")
     }
 
-    mutating func stop() async throws {
-
-        // Stop capturing, wait for stream to stop
-        try await stream.stopCapture()
-        isActive = false
+    func stopRecording() async throws {
+        print("\(self).stopRecording")
+        streamOutput.sessionStarted = false
+        
+        guard let assetWriter = self.assetWriter else {
+            throw RecordingError("Not currently recording")
+        }
 
         // Repeat the last frame and add it at the current time
         // In case no changes happend on screen, and the last frame is from long ago
@@ -240,7 +211,12 @@ struct ScreenRecorder {
 
         // Finish writing
         videoInput.markAsFinished()
+        audioInput?.markAsFinished()
+        micInput?.markAsFinished()
         await assetWriter.finishWriting()
+        print("assetWriter.didFinishWriting")
+        
+        try self.removeFromInput()
     }
 
     private class StreamOutput: NSObject, SCStreamOutput {
@@ -308,7 +284,6 @@ struct ScreenRecorder {
         }
 
         func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-
             // Return early if session hasn't started yet
             guard sessionStarted else { return }
 
