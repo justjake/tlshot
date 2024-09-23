@@ -205,7 +205,7 @@ class ScreenRecorder {
         print("\(self).startRecording")
     }
 
-    func stopRecording() async throws {
+    func stopRecording() async throws -> URL {
         print("\(self).stopRecording")
         streamOutput.sessionStarted = false
         
@@ -226,9 +226,8 @@ class ScreenRecorder {
         audioInput?.markAsFinished()
         micInput?.markAsFinished()
         await assetWriter.finishWriting()
-        print("assetWriter.didFinishWriting")
-        
         try self.removeFromInput()
+        return assetWriter.outputURL
     }
 
     private class StreamOutput: NSObject, SCStreamOutput {

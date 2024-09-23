@@ -694,12 +694,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
     func onScreencastStart(content: SCContentFilter, cropRect: CoordRect?) {
         let overlay = ScreencastOverlay()
         screencastOverlay = overlay
-        overlay.show(content: content, cropRect: cropRect?.asCG)
-        NSApp.activate(ignoringOtherApps: true)
+        handleErrorsTask {
+            try await overlay.show(content: content, cropRect: cropRect?.asCG)
+            await NSApp.activate(ignoringOtherApps: true)
+        }
     }
     
-    @MainActor func onScreencastCancel() {
-        screencastOverlay?.close()
+    @MainActor func onScreencastClose() {
         screencastOverlay = nil
     }
     
@@ -707,7 +708,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject, UNUs
         handleErrorsTask {
             let context = Notif.SavedFile(fileURL: url, pngImageData: nil, responseAction: .revealInFinder)
             try await context.sendNotification()
-            await self.screencastOverlay?.panel.close()
             self.screencastOverlay = nil
         }
     }

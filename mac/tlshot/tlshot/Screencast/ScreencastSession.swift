@@ -7,18 +7,30 @@
 
 import ScreenCaptureKit
 
+protocol ScreencastSessionDelegate {
+    func didWrite(url: URL) async throws
+    func didClose() async throws
+    func didUpdate() async throws
+}
+
 class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObserver, SCStreamDelegate {
+    var delegate: ScreencastSessionDelegate?
+    
     @Published var stream: SCStream?
+    @Published var isCapturing = false
     @Published var isRecording = false
     @Published var hasPresenterOverlay = false
     
-    var cleanup: ((_ didFinish: Bool) -> Void)?
     var source: SCContentFilter?
     var cropRect: CGRect?
     var config: SCStreamConfiguration?
     var recorder: ScreenRecorder?
     
     @Published var presenterCaptureSession: AVCaptureSession?
+    
+    var contentRect: CGRect? {
+        cropRect ?? source?.contentRect
+    }
     
     var recordAudio = false
     var videoFormat: RecordMode = .h264_sRGB
@@ -43,18 +55,21 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
         }
     }
     
-    func presentPicker(newStyle: SCShareableContentStyle?) {
+    func presentPickerForPresenterOverlay() {
+        var config = SCContentSharingPickerConfiguration()
+        config.allowedPickerModes = []
+        config.allowsChangingSelectedContent = false
+        config.excludedBundleIDs = [NSRunningApplication.current.bundleIdentifier].compactMap { $0 }
+        presentPicker(newStyle: nil, config: config)
+    }
+    
+    func presentPicker(newStyle: SCShareableContentStyle?, config: SCContentSharingPickerConfiguration?) {
         let picker = SCContentSharingPicker.shared
         picker.isActive = true
         
         if let stream = stream {
-//            if let style = newStyle ?? source?.style {
-//                print("picker.present(for: \(stream), using: \(style))")
-//                picker.present(for: stream, using: style)
-//            } else {
-                print("picker.present(for: \(stream))")
-                picker.present(for: stream)
-//            }
+            picker.setConfiguration(config, for: stream)
+            picker.present(for: stream)
         } else {
             let style = newStyle ?? source?.style ?? .display
             print("picker.present(using: \(style))")
@@ -101,23 +116,18 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
     func stream(_ stream: SCStream, didStopWithError error: any Error) {
         Task { @MainActor in
             
-            let wasRecording = isRecording
-            isRecording = false
+            // The stream already stopped, we shouldn't try to stop it ourselves.
+            isCapturing = false
             
             if let error = error as? SCStreamError, error.code == .userStopped {
-                // User explicitly stopped.
-                // Treat as call to stop.
-                AppDelegate.shared.handleErrorsTask {
-                    try await self.stopRecording()
-                }
-                return
+                // User explicitly stopped, no need to report an error
+            } else {
+                // Unexpected.
+                AppDelegate.shared.onCaptureError(error)
             }
             
-            AppDelegate.shared.onCaptureError(error)
             await AppDelegate.shared.handleErrors {
-                if wasRecording {
-                    try await self.stopRecording()
-                }
+                try await self.stopRecording()
             }
         }
     }
@@ -160,14 +170,17 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
             try await stream.updateContentFilter(newContentFilter)
         }
         try await self.setupRecorder(stream: stream, config: config)
+        try await self.delegate?.didUpdate()
     }
     
+    @MainActor
     private func setupRecorder(stream: SCStream, config: SCStreamConfiguration) async throws {
         guard let recorder = self.recorder else {
             let newRecorder = try await ScreenRecorder(config: config, mode: videoFormat)
             try newRecorder.setInput(stream: stream)
             self.recorder = newRecorder
             try await stream.startCapture()
+            isCapturing = true
             return
         }
         
@@ -180,38 +193,40 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
     
     @MainActor
     func startRecording(url: URL) async throws {
-        print("startRecording")
+        print("\(self).startRecording")
         guard let recorder = self.recorder else {
             throw RecordingError("Stream not configured")
         }
         try await recorder.startRecording(url: url)
         isRecording = true
-//        SCContentSharingPicker.shared.remove(self)
     }
     
     @MainActor
     func stopRecording() async throws {
-        print("stopRecording")
-        if isRecording {
-            try await stream?.stopCapture()
-            try await recorder?.stopRecording()
-            isRecording = false
-            cancelPresenter(didFinish: true)
-        } else {
-            cancelPresenter(didFinish: false)
+        print("\(self).stopRecording")
+        if isCapturing {
+            try await self.stream?.stopCapture()
+            isCapturing = false
         }
-        
-        recorder = nil
+        if isRecording {
+            guard let recorder = recorder else {
+                throw RecordingError("Unexpected state: isRecording, but no recorder")
+            }
+            let url = try await recorder.stopRecording()
+            isRecording = false
+            try await delegate?.didWrite(url: url)
+        }
+        close()
     }
     
     @MainActor
-    func cancelPresenter(didFinish: Bool) {
+    func close() {
         presenterCaptureSession?.stopRunning()
         presenterCaptureSession = nil
         SCContentSharingPicker.shared.remove(self)
         SCContentSharingPicker.shared.isActive = false
-        if let cleanup = cleanup {
-            cleanup(didFinish)
+        AppDelegate.shared.handleErrorsTask {
+            try await self.delegate?.didClose()
         }
     }
 }
