@@ -48,13 +48,13 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
         picker.isActive = true
         
         if let stream = stream {
-            if let style = newStyle ?? source?.style {
-                print("picker.present(for: \(stream), using: \(style))")
-                picker.present(for: stream, using: style)
-            } else {
+//            if let style = newStyle ?? source?.style {
+//                print("picker.present(for: \(stream), using: \(style))")
+//                picker.present(for: stream, using: style)
+//            } else {
                 print("picker.present(for: \(stream))")
                 picker.present(for: stream)
-            }
+//            }
         } else {
             let style = newStyle ?? source?.style ?? .display
             print("picker.present(using: \(style))")
@@ -62,8 +62,8 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
         }
     }
     
-    func tlshotPicker(didUpdateWith filter: SCContentFilter, cropRect: CGRect?) {
-        updateStream(newStream: nil, newContentFilter: filter, cropRect: cropRect, close: false)
+    func update(filter: SCContentFilter, cropRect: CGRect?) async throws {
+        try await updateStream(newStream: nil, newContentFilter: filter, cropRect: cropRect, close: false)
     }
     
     func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
@@ -158,32 +158,30 @@ class ScreencastSession: NSObject, ObservableObject, SCContentSharingPickerObser
             // Update stream
             try await stream.updateConfiguration(config)
             try await stream.updateContentFilter(newContentFilter)
-        } else {
-            try await self.setupRecorder(stream: stream, config: config)
         }
+        try await self.setupRecorder(stream: stream, config: config)
     }
     
     private func setupRecorder(stream: SCStream, config: SCStreamConfiguration) async throws {
-        var newRecorder = try await ScreenRecorder(config: config, mode: videoFormat)
-        try newRecorder.setInput(stream: stream)
-        
-        if var oldRecorder = self.recorder {
-            print("update recorder stop/start capture")
-            try await stream.stopCapture()
-            try oldRecorder.removeFromInput()
+        guard let recorder = self.recorder else {
+            let newRecorder = try await ScreenRecorder(config: config, mode: videoFormat)
+            try newRecorder.setInput(stream: stream)
+            self.recorder = newRecorder
             try await stream.startCapture()
-        } else {
-            print("start capture")
-            try await stream.startCapture()
+            return
         }
         
-        self.recorder = newRecorder
+        if recorder.stream != stream {
+            throw RecordingError("Cannot change stream")
+        }
+        
+        try recorder.update(config: config, videoFormat: videoFormat)
     }
     
     @MainActor
     func startRecording(url: URL) async throws {
         print("startRecording")
-        guard var recorder = self.recorder else {
+        guard let recorder = self.recorder else {
             throw RecordingError("Stream not configured")
         }
         try await recorder.startRecording(url: url)

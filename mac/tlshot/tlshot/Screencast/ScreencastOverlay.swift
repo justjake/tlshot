@@ -73,7 +73,7 @@ class ScreencastOverlay: ObservableObject {
             .onAppear {
                 app.handleErrorsTask {
                     let content = try await ScreenshotService.shared.scContentFilter(cropRect.isCG)
-                    session.tlshotPicker(didUpdateWith: content, cropRect: cropRect)
+                    try await session.update(filter: content, cropRect: cropRect)
                 }
             }
         }

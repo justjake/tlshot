@@ -26,9 +26,9 @@ class ScreenRecorder {
     private let videoSampleBufferQueue = DispatchQueue(label: "ScreenRecorder.VideoSampleBufferQueue")
     private let audioSampleBufferQueue = DispatchQueue(label: "ScreenRecorder.AudioSampleBufferQueue")
 
-    private let streamOutput: StreamOutput
+    private var streamOutput: StreamOutput
     private var assetWriter: AVAssetWriter?
-    private let videoInput: AVAssetWriterInput
+    private var videoInput: AVAssetWriterInput
     private let audioInput: AVAssetWriterInput?
     private let micInput: AVAssetWriterInput?
     
@@ -69,27 +69,26 @@ class ScreenRecorder {
         configuration.capturesAudio = recordAudio
         return configuration
     }
-
-    init(config: SCStreamConfiguration, mode: RecordMode) async throws {
-        
+    
+    static func outputSettingsAssistant(for config: SCStreamConfiguration, videoFormat mode: RecordMode) throws -> AVOutputSettingsAssistant {
         // AVAssetWriterInput supports maximum resolution of 4096x2304 for H.264
         // Downsize to fit a larger display back into in 4K
         // Note `config` width/height is already scaled from screen points to pixels
         let videoSize = downsizedVideoSize(source: CGSize(width: config.width, height: config.height) , scaleFactor: 1, mode: mode)
-
+        
         // Use the preset as large as possible, size will be reduced to screen size by computed videoSize
         guard let assistant = AVOutputSettingsAssistant(preset: mode.preset) else {
             throw RecordingError("Can't create AVOutputSettingsAssistant")
         }
         assistant.sourceVideoFormat = try CMVideoFormatDescription(videoCodecType: mode.videoCodecType, width: videoSize.width, height: videoSize.height)
         assistant.sourceAudioFormat = try CMAudioFormatDescription(videoCodecType: mode.videoCodecType, width: videoSize.width, height: videoSize.height)
-
+        
         guard var videoSettings = assistant.videoSettings else {
             throw RecordingError("AVOutputSettingsAssistant has no videoSettings")
         }
         videoSettings[AVVideoWidthKey] = videoSize.width
         videoSettings[AVVideoHeightKey] = videoSize.height
-
+        
         // Configure video color properties and compression properties based on RecordMode
         // See AVVideoSettings.h and VTCompressionProperties.h
         videoSettings[AVVideoColorPropertiesKey] = mode.videoColorProperties
@@ -98,9 +97,15 @@ class ScreenRecorder {
             compressionProperties[AVVideoProfileLevelKey] = videoProfileLevel
             videoSettings[AVVideoCompressionPropertiesKey] = compressionProperties as NSDictionary
         }
+        
+        return assistant
+    }
+
+    init(config: SCStreamConfiguration, mode: RecordMode) async throws {
+        let assistant = try Self.outputSettingsAssistant(for: config, videoFormat: mode)
 
         // Create AVAssetWriter input for video, based on the output settings from the Assistant
-        videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: assistant.videoSettings)
         videoInput.expectsMediaDataInRealTime = true
         
         audioInput = if config.capturesAudio  {
@@ -119,6 +124,13 @@ class ScreenRecorder {
         }
 
         streamOutput = StreamOutput(videoInput: videoInput, audioInput: audioInput, micInput: micInput)
+    }
+    
+    func update(config: SCStreamConfiguration, videoFormat: RecordMode) throws {
+        let assistant = try Self.outputSettingsAssistant(for: config, videoFormat: videoFormat)
+        videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: assistant.videoSettings)
+        videoInput.expectsMediaDataInRealTime = true
+        streamOutput.videoInput.input = videoInput
     }
     
     private func buildAssetWriter(url: URL) throws -> AVAssetWriter {
