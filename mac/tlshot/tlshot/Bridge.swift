@@ -228,28 +228,43 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
                 case .tlshotResponse: try await outgoingResponses.onRequest(request)
                 }
                 
+                let sendHeaders = { (response: HTTPURLResponse) in
+                    urlSchemeTask.didReceive(response)
+                    print(" > \(response.statusCode) \(response.mimeType ?? "?") contentLength=\(response.expectedContentLength)")
+                }
+                
+                let sendData = { (data: Data) in
+                    urlSchemeTask.didReceive(data)
+                    print(" > data length=\(data.count)")
+                }
+                
+                let sendEnd = {
+                    urlSchemeTask.didFinish()
+                    print(" > finished")
+                }
+                
                 switch response {
                 case .binary(let data, url: _, mimeType: let mimeType):
                     let response = httpResponse(request: request, mimeType: mimeType, expectedContentLength: data.count)
-                    urlSchemeTask.didReceive(response)
-                    urlSchemeTask.didReceive(data)
-                    urlSchemeTask.didFinish()
+                    sendHeaders(response)
+                    sendData(data)
+                    sendEnd()
                 case .utf8(let text, url: _, mimeType: let mimeType):
                     let response = httpResponse(request: request, mimeType: mimeType, expectedContentLength: text.lengthOfBytes(using: .utf8))
-                    urlSchemeTask.didReceive(response)
+                    sendHeaders(response)
                     guard let data = text.data(using: .utf8) else {
                         throw TlshotError.invalidData("Cannot encode text respnse")
                     }
-                    urlSchemeTask.didReceive(data)
-                    urlSchemeTask.didFinish()
+                    sendData(data)
+                    sendEnd()
                 case .empty:
                     let response = httpResponse(request: request, mimeType: "text/plain", expectedContentLength: 0)
-                    urlSchemeTask.didReceive(response)
-                    urlSchemeTask.didFinish()
+                    sendHeaders(response)
+                    sendEnd()
                 case .notFound:
                     let response = httpResponse(request: request, mimeType: "text/plain", expectedContentLength: 0, statusCode: 404)
-                    urlSchemeTask.didReceive(response)
-                    urlSchemeTask.didFinish()
+                    sendHeaders(response)
+                    sendEnd()
                 }
             } catch {
                 urlSchemeTask.didFailWithError(error)
@@ -289,7 +304,7 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
             case .response:
                 try outgoingResponses.onNotification(ResponseNotification.fromJSON(string: message.json))
             case .prepareSave:
-                let req = try SaveRequest.fromJSON(string: message.json)
+                _ = try SaveRequest.fromJSON(string: message.json)
                 Task {
                     await app.handleErrors {
                         let img = try await getPng()
