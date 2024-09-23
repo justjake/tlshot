@@ -24,6 +24,7 @@
 		C14A20C42C9F776B00AA93E2 /* PresenterCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */; };
 		C14A20C72CA0BC7100AA93E2 /* ScreencastSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C62CA0BC6B00AA93E2 /* ScreencastSession.swift */; };
 		C14A20C92CA0D3CE00AA93E2 /* ScreencastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20C82CA0D3CB00AA93E2 /* ScreencastOverlay.swift */; };
+		C14A20CB2CA14EE600AA93E2 /* VideoTrimmer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A20CA2CA14EE300AA93E2 /* VideoTrimmer.swift */; };
 		C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */; };
 		C1753ADD2C42447000BC7F6C /* Keycode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1753ADC2C42447000BC7F6C /* Keycode.swift */; };
 		C17645982C3F8DB400E60BE4 /* TlshotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17645972C3F8DB400E60BE4 /* TlshotApp.swift */; };
@@ -86,6 +87,7 @@
 		C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenterCapture.swift; sourceTree = "<group>"; };
 		C14A20C62CA0BC6B00AA93E2 /* ScreencastSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencastSession.swift; sourceTree = "<group>"; };
 		C14A20C82CA0D3CB00AA93E2 /* ScreencastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreencastOverlay.swift; sourceTree = "<group>"; };
+		C14A20CA2CA14EE300AA93E2 /* VideoTrimmer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimmer.swift; sourceTree = "<group>"; };
 		C1753ADA2C42148100BC7F6C /* ShieldOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldOverlay.swift; sourceTree = "<group>"; };
 		C1753ADC2C42447000BC7F6C /* Keycode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keycode.swift; sourceTree = "<group>"; };
 		C17645942C3F8DB400E60BE4 /* tlshot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tlshot.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -163,6 +165,7 @@
 		C14A20C52CA0BB5000AA93E2 /* Screencast */ = {
 			isa = PBXGroup;
 			children = (
+				C14A20CA2CA14EE300AA93E2 /* VideoTrimmer.swift */,
 				C14A20C82CA0D3CB00AA93E2 /* ScreencastOverlay.swift */,
 				C14A20C62CA0BC6B00AA93E2 /* ScreencastSession.swift */,
 				C14A20C32C9F776B00AA93E2 /* PresenterCapture.swift */,
@@ -455,6 +458,7 @@
 				C1448EAE2C459D2B00639D0D /* TldrawView.swift in Sources */,
 				C1753ADB2C42148100BC7F6C /* ShieldOverlay.swift in Sources */,
 				C17645C72C40965700E60BE4 /* OverlayPanel.swift in Sources */,
+				C14A20CB2CA14EE600AA93E2 /* VideoTrimmer.swift in Sources */,
 				C143F68E2C58784600AFE5A8 /* OnFrame.swift in Sources */,
 				C14A20C42C9F776B00AA93E2 /* PresenterCapture.swift in Sources */,
 				C17645C32C40303000E60BE4 /* CaptureWindow.swift in Sources */,
