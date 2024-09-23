@@ -20,15 +20,15 @@ class AreaSelectionOverlayManager {
     var windows: [CGDirectDisplayID:BoxOverlay] = [:]
     
     func show(_ rect: NSRect, below: NSWindow? = nil) {
-        hide()
-        
         for screen in NSScreen.screens {
             guard let id = screen.displayID else {
                 continue
             }
+            let maybeBox = windows[id]
             
             let intersection = screen.frame.intersection(rect)
             if intersection.isEmpty {
+                maybeBox?.panel.orderOut(nil)
                 continue
             }
             
@@ -41,8 +41,10 @@ class AreaSelectionOverlayManager {
                 }
             }
             
-            let box = windows[id] ?? BoxOverlay()
-            box.edges = edges
+            let box = maybeBox ?? BoxOverlay()
+            if box.edges != edges {
+                box.edges = edges
+            }
             box.panel.setFrame(intersection, display: true)
             box.panel.orderFront(self)
             windows[id] = box

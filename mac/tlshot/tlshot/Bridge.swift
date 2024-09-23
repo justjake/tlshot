@@ -338,10 +338,11 @@ class Bridge: NSObject, ObservableObject, WKScriptMessageHandler, WKScriptMessag
         )
         let envelopeJson = try envelope.toJSONString()
         await bootWaiter.wait()
-        async let (responseEnvelope, responseHttp) = outgoingResponses.waitForResponse(requestID: requestID)
-        try await evalJS("globalThis.webkit.incomingMessageHandler(\(envelopeJson))")
-        let response: Res = try await responseEnvelope.result().get()
-        let responseData = await responseHttp?.httpBody
+        let task = await outgoingResponses.waitForResponse(requestID: requestID)
+        try evalJS("globalThis.webkit.incomingMessageHandler(\(envelopeJson))")
+        let (responseEnvelope, responseHttp) = await task.value
+        let response: Res = try responseEnvelope.result().get()
+        let responseData = responseHttp?.httpBody
         return (response, responseData)
     }
     

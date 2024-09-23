@@ -46,28 +46,35 @@ class BridgeOutgoingRequestRegistry {
         return .empty
     }
     
-    func waitForResponse(requestID: String) async -> (ResponseNotification, URLRequest?) {
-        return await withCheckedContinuation { cont in
-            var response: ResponseNotification?
-            var didHttp = false
-            var httpUpload: URLRequest?
-            
-            httpUploadWaiters[requestID] = {
-                didHttp = true
-                httpUpload = $0
-                if let didGetResponse = response {
-                    cont.resume(returning: (didGetResponse, httpUpload))
+    func waitForResponse(requestID: String) async -> Task<(ResponseNotification, URLRequest?), Never> {
+        // Outer continuation resolves when the inner continuation listener is registered.
+        return await withCheckedContinuation { didRegister in
+            var task: Task<(ResponseNotification, URLRequest?), Never>?
+            task = Task {
+                await withCheckedContinuation { cont in
+                    var response: ResponseNotification?
+                    var didHttp = false
+                    var httpUpload: URLRequest?
+                    
+                    httpUploadWaiters[requestID] = {
+                        didHttp = true
+                        httpUpload = $0
+                        if let didGetResponse = response {
+                            cont.resume(returning: (didGetResponse, httpUpload))
+                        }
+                    }
+                    
+                    notificationWaiters[requestID] = {
+                        response = $0
+                        if didHttp {
+                            cont.resume(returning: ($0, httpUpload))
+                        }
+                    }
+                    
+                    print("\(self).waitForResponse(\(requestID))")
+                    didRegister.resume(returning: task!)
                 }
             }
-            
-            notificationWaiters[requestID] = {
-                response = $0
-                if didHttp {
-                    cont.resume(returning: ($0, httpUpload))
-                }
-            }
-            
-            print("\(self).waitForResponse(\(requestID))")
         }
     }
     
