@@ -1,0 +1,3 @@
+[submodule "mac/KeyboardShortcuts"]
+	path = mac/KeyboardShortcuts
+	url = git@github.com:justjake/KeyboardShortcuts.git
