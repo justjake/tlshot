@@ -123,8 +123,12 @@ class ViewRenderHolderWithProps<
 
 extension CGImage {
     func nsImage(size: CGSize? = nil) -> NSImage? {
-        let finalSize = size ?? .init(width: width, height: height)
+        let finalSize = size ?? self.size
         return NSImage(cgImage: self, size: finalSize)
+    }
+    
+    var size: CGSize {
+        .init(width: width, height: height)
     }
 }
 
